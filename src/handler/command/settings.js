@@ -9,8 +9,8 @@ module.exports = async function settingsCommand(authId, sock, msg) {
   const senderId = sender?.split('@')[0];
   const name = sock.user?.name;
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: `❌ Only *${name}* can view this bot settings.`
+    return await sock.sendMessage(from, {
+      text: `❌ Only *${name}* can view this bot settings.`
     });
   }
   const settings = await getUserSettings(authId, botId, from); // botId = user_id, from = groupId
@@ -106,6 +106,6 @@ ${teamText}
   const randomFormat = formats[Math.floor(Math.random() * formats.length)];
   const text = randomFormat();
 
-  await sendToChat(sock, from, { message: text });
+  await sock.sendMessage(from, { text });
   //console.log("Settings sent to", from, "with text:", text);
 };

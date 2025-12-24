@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const { db } = require('../../database/database');
 
 module.exports = async function warnlistCommand(sock, msg) {
@@ -6,8 +5,8 @@ module.exports = async function warnlistCommand(sock, msg) {
   const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
 
   if (!msg.key.remoteJid.endsWith('@g.us')) {
-    await sendToChat(sock, msg.key.remoteJid, {
-      message: '❌ This command can only be used in a group.'
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: '❌ This command can only be used in a group.'
     });
     return;
   }
@@ -20,8 +19,8 @@ module.exports = async function warnlistCommand(sock, msg) {
   `).all(from, botId);
 
   if (!warns.length) {
-    return await sendToChat(sock, from, { 
-      message: '✅ No warnings in this group.' 
+    return await sock.sendMessage(from, { 
+      text: '✅ No warnings in this group.' 
     });
   }
 
@@ -37,8 +36,8 @@ module.exports = async function warnlistCommand(sock, msg) {
                  `──────────────\n\n` +
                  `${lines.join('\n\n')}`;
 
-  await sendToChat(sock, from, {
-    message: message,
+  await sock.sendMessage(from, {
+    text: message,
     mentions: warns.map(w => w.user_jid)
   });
 };

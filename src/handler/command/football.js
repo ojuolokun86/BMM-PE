@@ -175,7 +175,7 @@ class FootballCommands {
       const searchResults = await footballApp('search', query);
       
       if (!searchResults?.teams?.length) {
-        await sendToChat(this.sock, this.from, { message: `❌ No teams found matching "${query}".` }, { quoted: this.msg });
+        await this.sock.sendMessage(this.from, { text: `❌ No teams found matching "${query}".` }, { quoted: this.msg });
         return;
       }
 
@@ -194,11 +194,11 @@ class FootballCommands {
       
       message += '\nReply with *follow [number]* to follow a team.';
       
-      await sendToChat(this.sock, this.from, { message }, { quoted: this.msg });
+      await this.sock.sendMessage(this.from, { text: message }, { quoted: this.msg });
       
     } catch (error) {
       console.error('Error in team search:', error);
-      await sendToChat(this.sock, this.from, { message: '❌ Failed to search for teams. Please try again later.' }, { quoted: this.msg });
+      await this.sock.sendMessage(this.from, { text: '❌ Failed to search for teams. Please try again later.' }, { quoted: this.msg });
     } finally {
       // Stop typing indicator
       await this.sock.sendPresenceUpdate('paused', this.from);
@@ -240,7 +240,7 @@ class FootballCommands {
       
       message += `Example: *${this.prefix}football league epl*`;
       
-      return this.sendMessage(message);
+      return this.sock.sendMessage(this.from, { text: message }, { quoted: this.msg });
     }
     
     try {
@@ -263,13 +263,11 @@ class FootballCommands {
             .map(([key, name]) => `• ${key} (${name})`)
             .join('\n');
           
-          return this.sendMessage(
-            `❌ League not found. Available leagues:\n\n${availableLeagues}\n\n` +
-            `Example: *${this.prefix}football league epl*`
-          );
+          return this.sock.sendMessage(this.from, { text: `❌ League not found. Available leagues:\n\n${availableLeagues}\n\n` +
+            `Example: *${this.prefix}football league epl*` }, { quoted: this.msg });
         }
         
-        return this.sendMessage(`❌ Could not fetch ${leagueName} standings. Please try again later.`);
+        return this.sock.sendMessage(this.from, { text: `❌ Could not fetch ${leagueName} standings. Please try again later.` }, { quoted: this.msg });
       }
 
       const leagueName = result.leagueName || this.leagues[leagueKey] || leagueKey;
@@ -277,7 +275,7 @@ class FootballCommands {
       
       if (!standings?.length) {
         console.log(`No standings data for ${leagueName}:`, result);
-        return this.sendMessage(`❌ No standings data available for ${leagueName}.`);
+        return this.sock.sendMessage(this.from, { text: `❌ No standings data available for ${leagueName}.` }, { quoted: this.msg });
       }
 
       let message = `🏆 *${leagueName} Standings* 🏆\n\n`;
@@ -310,12 +308,12 @@ class FootballCommands {
       const lastUpdated = new Date(standings[0]?.updatedAtTimestamp * 1000 || Date.now());
       message += `\n*Last updated*: ${lastUpdated.toLocaleString()}`;
       //console.log(message);
-      return this.sendMessage(message);
+      return this.sock.sendMessage(this.from, { text: message }, { quoted: this.msg });
       
     } catch (error) {
       console.error('Error fetching league standings:', error);
       console.log(error);
-      return this.sendMessage('❌ Failed to fetch league standings. Please try again later.');
+      return this.sock.sendMessage(this.from, { text: '❌ Failed to fetch league standings. Please try again later.' }, { quoted: this.msg });
     } finally {
       // Stop typing indicator
       await this.sock.sendPresenceUpdate('paused', this.from);
@@ -336,13 +334,13 @@ class FootballCommands {
       
       if (result?.error) {
         console.log('Error fetching featured matches:', result.error);
-        return this.sendMessage('❌ Could not fetch featured matches. Please try again later.');
+        return this.sock.sendMessage(this.from, { text: '❌ Could not fetch featured matches. Please try again later.' }, { quoted: this.msg });
       }
 
       const events = result?.events || [];
       
       if (events.length === 0) {
-        return this.sendMessage('ℹ️ No featured matches at the moment. Check back later!');
+        return this.sock.sendMessage(this.from, { text: 'ℹ️ No featured matches at the moment. Check back later!' }, { quoted: this.msg });
       }
 
       let message = '⭐ *Featured Matches* ⭐\n\n';
@@ -372,11 +370,11 @@ class FootballCommands {
       
       message += `\nUse *${this.prefix}match [number]* to see more details about a match.`;
       
-      return this.sendMessage(message);
+      return this.sock.sendMessage(this.from, { text: message }, { quoted: this.msg });
       
     } catch (error) {
       console.error('Error in handleFeaturedMatches:', error);
-      return this.sendMessage('❌ An error occurred while fetching featured matches.');
+      return this.sock.sendMessage(this.from, { text: '❌ An error occurred while fetching featured matches.' }, { quoted: this.msg });
     } finally {
       // Stop typing indicator
       await this.sock.sendPresenceUpdate('paused', this.from);
@@ -396,7 +394,7 @@ class FootballCommands {
 *${this.prefix}football featured* - Show featured matches with odds
 *${this.prefix}football help* - Show this help message`;
 
-    this.sendMessage(helpMessage);
+    this.sock.sendMessage(this.from, { text: helpMessage }, { quoted: this.msg });
   }
 
   /**
@@ -410,7 +408,7 @@ class FootballCommands {
       await this.sock.sendPresenceUpdate('composing', this.from);
       
       // Send the message using sendToChat
-      await sendToChat(this.sock, this.from, { message }, { quoted: this.msg });
+      await this.sock.sendMessage(this.from, { text: message }, { quoted: this.msg });
       
       // Stop typing indicator
       await this.sock.sendPresenceUpdate('paused', this.from);

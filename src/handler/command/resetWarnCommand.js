@@ -11,8 +11,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
 
   // Check if in group
   if (!from.endsWith('@g.us')) {
-    return await sendToChat(sock, from, {
-      message: '❌ This command can only be used in a group.'
+    return await sock.sendMessage(from, {
+      text: '❌ This command can only be used in a group.'
     });
   }
 
@@ -21,8 +21,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
   const isOwner = isBotOwner(senderId, null, botId);
   
   if (!isAdmin && !isOwner) {
-    return await sendToChat(sock, from, {
-      message: '❌ Only admins can reset warnings.'
+    return await sock.sendMessage(from, {
+      text: '❌ Only admins can reset warnings.'
     });
   }
 
@@ -33,8 +33,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
   if (target === 'all') {
     db.prepare(`DELETE FROM warns WHERE group_id = ? AND bot_id = ?`)
       .run(from, botId);
-    return await sendToChat(sock, from, {
-      message: '♻️ All warnings for this group have been cleared.'
+    return await sock.sendMessage(from, {
+      text: '♻️ All warnings for this group have been cleared.'
     });
   }
 
@@ -48,8 +48,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
   }
 
   if (!userToReset) {
-    return await sendToChat(sock, from, {
-      message: '❌ Please mention or reply to the user whose warnings you want to reset.'
+    return await sock.sendMessage(from, {
+      text: '❌ Please mention or reply to the user whose warnings you want to reset.'
     });
   }
 
@@ -60,8 +60,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
   `).get(from, botId, userToReset);
 
   if (!currentWarns) {
-    return await sendToChat(sock, from, {
-      message: `✨ @${userToReset.split('@')[0]} has no warnings to reset.`,
+    return await sock.sendMessage(from, {
+      text: `✨ @${userToReset.split('@')[0]} has no warnings to reset.`,
       mentions: [userToReset]
     });
   }
@@ -72,8 +72,8 @@ async function resetWarnCommand(sock, msg, textMsg) {
     WHERE group_id = ? AND bot_id = ? AND user_jid = ?
   `).run(from, botId, userToReset);
 
-  await sendToChat(sock, from, {
-    message: `✅ Cleared ${currentWarns.warn_count} warning(s) for @${userToReset.split('@')[0]}.`,
+  await sock.sendMessage(from, {
+    text: `✅ Cleared ${currentWarns.warn_count} warning(s) for @${userToReset.split('@')[0]}.`,
     mentions: [userToReset]
   });
 };

@@ -4,7 +4,7 @@ const { isBotOwner } = require('../../database/database');
 
 async function confirmAction(sock, from, question, allowedUserJid) {
     const jid = allowedUserJid;
-    await sendToChat(sock, from, { message: question });
+    await sock.sendMessage(from, { text: question });
 
     return new Promise((resolve) => {
         const listener = async ({ messages }) => {
@@ -48,8 +48,8 @@ async function logoutCommand(authId, sock, msg) {
 
     try {
         if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-            await sendToChat(sock, from, {
-                message: `🖥️ *ACCESS DENIED*\n\n> **Reason:** Insufficient privilege\n> **Required:** Root Access (Owner)\n\n⛔ Only *${name}* can perform this action.`
+            await sock.sendMessage(from, {
+                text: `🖥️ *ACCESS DENIED*\n\n> **Reason:** Insufficient privilege\n> **Required:** Root Access (Owner)\n\n⛔ Only *${name}* can perform this action.`
             });
             return false;
         }
@@ -72,8 +72,8 @@ async function logoutCommand(authId, sock, msg) {
         );
 
         if (!confirmation) {
-            await sendToChat(sock, from, {
-                message: `🖥️ *SYSTEM NOTICE*\n\n` +
+            await sock.sendMessage(from, {
+                text: `🖥️ *SYSTEM NOTICE*\n\n` +
                          `> **Action:** Logout aborted by user\n` +
                          `> **Status:** Current session remains active\n` +
                          `> **Bot State:** Fully operational`
@@ -82,8 +82,8 @@ async function logoutCommand(authId, sock, msg) {
         }
 
         // Styled logout process
-        await sendToChat(sock, from, {
-            message:
+        await sock.sendMessage(from, {
+            text:
                 `🖥️ *LOGOUT SEQUENCE INITIATED*\n\n` +
                 `> **Status:** Disconnecting from WhatsApp...\n` +
                 `> **Action:** Removing session from memory\n` +
@@ -100,8 +100,8 @@ async function logoutCommand(authId, sock, msg) {
         return true;
     } catch (error) {
         console.error('Logout error:', error);
-        await sendToChat(sock, from, {
-            message: `🖥️ *SYSTEM ERROR*\n\n` +
+        await sock.sendMessage(from, {
+            text: `🖥️ *SYSTEM ERROR*\n\n` +
                      `❌ *Logout failed: ${error.message}*\n` +
                      `> **Status:** Session remains active\n` +
                      `> **Recommendation:** Try again or contact support`

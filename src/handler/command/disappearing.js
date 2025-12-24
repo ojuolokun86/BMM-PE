@@ -27,8 +27,8 @@ async function setDisappearingCommand(sock, msg) {
   const senderId = sender?.split('@')[0];
   const name = sock.user?.name;
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: `❌ Only *${name}* can configure Disappearing settings.`
+    return await sock.sendMessage(from, {
+      text: `❌ Only *${name}* can configure Disappearing settings.`
     });
   }
 
@@ -50,7 +50,7 @@ async function setDisappearingCommand(sock, msg) {
     const option = parseInt(body.trim());
 
     if (isNaN(option) || !disappearingOptions.hasOwnProperty(option)) {
-      await sendToChat(sock, from, { message: '❌ Invalid option. Use 0–3.' });
+      await sock.sendMessage(from, { text: '❌ Invalid option. Use 0–3.' });
       sock.ev.off('messages.upsert', listener);
       return;
     }
@@ -63,12 +63,12 @@ async function setDisappearingCommand(sock, msg) {
 
       const readable = formatDuration(duration);
 
-      await sendToChat(sock, from, {
-        message: `✅ Disappearing messages set to *${readable}*`
+      await sock.sendMessage(from, {
+        text: `✅ Disappearing messages set to *${readable}*`
       });
     } catch (err) {
-      await sendToChat(sock, from, {
-        message: `❌ Error setting disappearing messages:\n${err.message}`
+      await sock.sendMessage(from, {
+        text: `❌ Error setting disappearing messages:\n${err.message}`
       });
     }
 

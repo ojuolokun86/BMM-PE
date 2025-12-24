@@ -2,7 +2,6 @@ const { getMediaFromStore, deleteMediaFromStore, getTextFromStore, deleteTextFro
 const { getAntideleteMode, isGroupExcluded, } = require('../../database/antideleteDb');
 const { wasDeletedByBot } = require('../../utils/botDeletedMessages');
 const { isBotOwner } = require('../../database/database');
-const sendToChat = require('../../utils/sendToChat');
 const { shouldForwardToOwner } = require('../../database/antideleteDb');
 
 
@@ -76,8 +75,8 @@ async function handleDeletedMessage(sock, msg) {
 
   // Restore text
   if (textData) {
-    await sendToChat(sock, targetJid, {
-      message: `♻️ *Restored deleted message*\n\n*Content:* ${textData.content}${deletedByTag ? `\n*By:* ${deletedByTag}` : ''}\n*At:* ${timestamp}`,
+    await sock.sendMessage(targetJid, {
+      text: `♻️ *Restored deleted message*\n\n*Content:* ${textData.content}${deletedByTag ? `\n*By:* ${deletedByTag}` : ''}\n*At:* ${timestamp}`,
       mentions
     });
     //console.log(`Restoring deleted message to: ${targetJid}, mentioning: ${mentions}`);
@@ -101,8 +100,8 @@ async function handleDeletedMessage(sock, msg) {
   }
 
   // Nothing found
-  await sendToChat(sock, targetJid, {
-    message: `🗑️ *A message was deleted${deletedByTag ? ` by ${deletedByTag}` : ''}* but could not be restored.`,
+  await sock.sendMessage(targetJid, {
+    text: `🗑️ *A message was deleted${deletedByTag ? ` by ${deletedByTag}` : ''}* but could not be restored.`,
     mentions
   });
   //console.log(`Restoring deleted message to: ${targetJid}, mentioning: ${mentions}`);

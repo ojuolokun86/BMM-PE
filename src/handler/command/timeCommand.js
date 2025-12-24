@@ -1,7 +1,6 @@
 const moment = require('moment-timezone');
 const countryTimezoneList = require('../../data/all_countries_timezones.json'); // Full list
 const countryAliases = require('../../data/countryAliases.json'); // Shortcut names
-const sendToChat = require('../../utils/sendToChat');
 
 function getTimezone(userInput) {
     if (!userInput) return null;
@@ -26,12 +25,12 @@ function getTimezone(userInput) {
     return match?.[1]?.[0] || null;
 }
 
-async function handleTimeCommand(chatId, remoteJid, message, args) {
+async function handleTimeCommand(sock, chatId, remoteJid, message, args) {
     const country = args.join(' ').trim();
 
     if (!country) {
-        await sendToChat(chatId, remoteJid, {
-            message: '❌ Please provide a country. Example: `.time Nigeria`',
+        await sock.sendMessage(remoteJid, {
+            text: '❌ Please provide a country. Example: `.time Nigeria`',
             quotedMessage: message
         });
         return;
@@ -40,8 +39,8 @@ async function handleTimeCommand(chatId, remoteJid, message, args) {
     const timezone = getTimezone(country);
 
     if (!timezone) {
-        await sendToChat(chatId, remoteJid, {
-            message: `❌ Sorry, I don't know the timezone for "${country}".`,
+        await sock.sendMessage(remoteJid, {
+            text: `❌ Sorry, I don't know the timezone for "${country}".`,
             quotedMessage: message
         });
         return;
@@ -50,8 +49,8 @@ async function handleTimeCommand(chatId, remoteJid, message, args) {
     const now = moment().tz(timezone);
     const formatted = now.format('dddd, MMMM Do YYYY, h:mm:ss A');
 
-    await sendToChat(chatId, remoteJid, {
-        message: `🕒 *Time in ${country}*\n${formatted}\n🌍 Timezone: ${timezone}`,
+    await sock.sendMessage(remoteJid, {
+        text: `🕒 *Time in ${country}*\n${formatted}\n🌍 Timezone: ${timezone}`,
         quotedMessage: message
     });
 }

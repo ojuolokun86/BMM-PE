@@ -166,7 +166,7 @@ const repostViewOnceMedia = async (sock, detectedMedia, targetJid, caption = nul
 
     if (!buffer) {
       if (!mediaContent?.directPath || !mediaContent?.mediaKey) {
-        await sendToChat(sock, targetJid, { message: '❌ Failed to process the view-once media. It may have expired or been deleted.' });
+        await sock.sendMessage(targetJid, { text: '❌ Failed to process the view-once media. It may have expired or been deleted.' });
         return;
       }
       buffer = await downloadMediaMessage(
@@ -201,13 +201,13 @@ const repostViewOnceMedia = async (sock, detectedMedia, targetJid, caption = nul
       mediaPayload.audio = buffer;
       mediaPayload.ptt = mediaType === 'voiceMessage';
     } else {
-      await sendToChat(sock, targetJid, { message: `❌ Unsupported media type: ${mediaType}.` });
+      await sock.sendMessage(targetJid, { text: `❌ Unsupported media type: ${mediaType}.` });
       return;
     }
 
     await sock.sendMessage(targetJid, mediaPayload);
   } catch (error) {
-    await sendToChat(sock, targetJid, { message: '❌ Failed to repost the view-once media. Please try again later.' });
+    await sock.sendMessage(targetJid, { text: '❌ Failed to repost the view-once media. Please try again later.' });
   }
 };
 
@@ -225,7 +225,7 @@ async function viewOnceCommand(sock, msg, command) {
   const detected = detectViewOnceMedia(msg);
 
   if (!detected) {
-    await sendToChat(sock, msg.key.remoteJid, { message: '❌ No view-once media found in the quoted message.' });
+    await sock.sendMessage(msg.key.remoteJid, { text: '❌ No view-once media found in the quoted message.' });
     return;
   }
 
@@ -235,7 +235,7 @@ async function viewOnceCommand(sock, msg, command) {
   const ownerJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
   await repostViewOnceMedia(sock, detected, ownerJid, null, msg.message?.extendedTextMessage?.contextInfo);
 } else {
-    await sendToChat(sock, msg.key.remoteJid, { message: '❌ Unknown view-once command. Use vv or view.' });
+    await sock.sendMessage(msg.key.remoteJid, { text: '❌ Unknown view-once command. Use vv or view.' });
     console.log(`❌ Unknown view-once command: ${command}`);
   }
 }

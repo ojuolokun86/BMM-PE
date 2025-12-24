@@ -148,8 +148,8 @@ async function funCommand(sock, from, msg, textMsg) {
         switch (command) {
             case 'quote': {
                 const q = await getDeepQuote();
-                await sendToChat(sock, from, {
-                    message: `💬 *Quote of the Moment*\n\n"${q.content}"\n\n— _${q.author}_`
+                await sock.sendMessage(from, {
+                    text: `💬 *Quote of the Moment*\n\n"${q.content}"\n\n— _${q.author}_`
                 }, { quoted: msg });
                 break;
             }
@@ -157,8 +157,8 @@ async function funCommand(sock, from, msg, textMsg) {
             case 'joke': {
                 const res = await axios.get('https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit');
                 const joke = res.data.type === 'single' ? res.data.joke : `${res.data.setup}\n${res.data.delivery}`;
-                await sendToChat(sock, from, {
-                    message: `😂 *Joke of the Moment*\n\n${joke}`
+                await sock.sendMessage(from, {
+                    text: `😂 *Joke of the Moment*\n\n${joke}`
                 }, { quoted: msg });
                 break;
             }
@@ -167,16 +167,16 @@ async function funCommand(sock, from, msg, textMsg) {
                 const [targetLang, ...textArr] = args;
                 const text = textArr.join(' ');
                 if (!targetLang || !text) {
-                    await sendToChat(sock, from, {
-                        message: '❌ Usage: .translate <lang_code> <text>'
+                    await sock.sendMessage(from, {
+                        text: '❌ Usage: .translate <lang_code> <text>'
                     }, { quoted: msg });
                     break;
                 }
                 const res = await axios.post('https://libretranslate.de/translate', {
                     q: text, source: 'auto', target: targetLang, format: 'text'
                 }, { headers: { accept: 'application/json' } });
-                await sendToChat(sock, from, {
-                    message: `🌐 *Translated (${targetLang}):*\n${res.data.translatedText}`
+                await sock.sendMessage(from, {
+                    text: `🌐 *Translated (${targetLang}):*\n${res.data.translatedText}`
                 }, { quoted: msg });
                 break;
             }
@@ -194,15 +194,15 @@ async function funCommand(sock, from, msg, textMsg) {
             }
 
             default:
-                await sendToChat(sock, from, {
-                    message: '❌ Unknown fun command.'
+                await sock.sendMessage(from, {
+                    text: '❌ Unknown fun command.'
                 }, { quoted: msg });
                 break;
         }
     } catch (err) {
         console.error('❌ Error in fun command:', err);
-        await sendToChat(sock, from, {
-            message: '❌ An error occurred while processing the fun command.', err
+        await sock.sendMessage(from, {
+            text: '❌ An error occurred while processing the fun command.', err
         }, { quoted: msg });
     }
 }

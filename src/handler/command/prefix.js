@@ -40,8 +40,8 @@ let senderJid;
 
   // ✅ Check if sender is the bot owner
   if (!isOwner) {
-    await sendToChat(sock, from, {
-      message: '❌ Only the bot owner can change the prefix.'
+    await sock.sendMessage(from, {
+      text: '❌ Only the bot owner can change the prefix.'
     });
     return;
   }
@@ -52,19 +52,19 @@ let senderJid;
   const command = args.shift().toLowerCase();
 
   if (command !== 'prefix' || args.length < 1) {
-    await sendToChat(sock, from, {
-      message: `Usage: ${currentPrefix}prefix <new_prefix>\nCurrent prefix: *${currentPrefix}*`
+    await sock.sendMessage(from, {
+      text: `Usage: ${currentPrefix}prefix <new_prefix>\nCurrent prefix: *${currentPrefix}*`
     });
     return;
   }
 
   const newPrefix = args[0];
   if (!newPrefix || newPrefix.length > 3) {
-    await sendToChat(sock, from, { message: '❌ Invalid prefix. Please use 1–3 characters.' });
+    await sock.sendMessage(from, { text: '❌ Invalid prefix. Please use 1–3 characters.' });
     return;
   }
 
   setUserPrefix(botId, newPrefix);
   console.log(`Prefix updated for ${botId} to ${newPrefix}`);
-  await sendToChat(sock, from, { message: `✅ Prefix updated to *${newPrefix}*.` });
+  await sock.sendMessage(from, { text: `✅ Prefix updated to *${newPrefix}*.` });
 };

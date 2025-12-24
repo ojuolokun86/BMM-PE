@@ -1,5 +1,4 @@
 const { getWelcomeSettings } = require('../../database/welcomeDb');
-const sendToChat = require('../../utils/sendToChat');
 
 async function handleGroupParticipantsUpdate(sock, update) {
     const groupId = update.id;
@@ -37,8 +36,8 @@ _${groupDesc}_
 Proceed with respect. Follow the rules. Engage logically.  
 Welcome to the network.`;
 
-            await sendToChat(sock, groupId, {
-                message: welcomeMsg,
+            await sock.sendMessage(groupId, {
+                text: welcomeMsg,
                 mentions: [participant, ...(ownerId ? [ownerId] : []), ...admins]
             });
         }
@@ -56,8 +55,8 @@ Welcome to the network.`;
 
             const randomGoodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
 
-            await sendToChat(sock, groupId, {
-                message: randomGoodbye,
+            await sock.sendMessage(groupId, {
+                text: randomGoodbye,
                 mentions: [participant]
             });
         }

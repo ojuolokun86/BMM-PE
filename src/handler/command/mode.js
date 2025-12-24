@@ -60,7 +60,7 @@ module.exports = async function modeCommand(sock, msg, textMsg, phoneNumber) {
   const [, mode] = textMsg.split(' ');
   if (!['public', 'private', 'admin'].includes(mode)) {
     console.log(`❌ Invalid mode input: ${mode}`);
-    await sendToChat(sock, from, { message: 'Usage: .mode public|private|admin' });
+    await sock.sendMessage(from, { text: 'Usage: .mode public|private|admin' });
     return;
   }
 
@@ -69,15 +69,15 @@ module.exports = async function modeCommand(sock, msg, textMsg, phoneNumber) {
 
   if (!isOwner) {
     console.log(`⛔ Unauthorized mode change attempt by ${senderId} in ${from}`);
-    await sendToChat(sock, from, {
-      message: '❌ Only the bot owner can change the mode.'
+    await sock.sendMessage(from, {
+      text: '❌ Only the bot owner can change the mode.'
     });
     return;
   }
 
   setUserMode(botId, mode);
   console.log(`✅ Mode set to: ${mode} by ${senderId} (from ${from})`);
-  await sendToChat(sock, from, { message: `✅ Mode set to *${mode}*.` });
+  await sock.sendMessage(from, { text: `✅ Mode set to *${mode}*.` });
 
   console.log('========================================\n');
 };

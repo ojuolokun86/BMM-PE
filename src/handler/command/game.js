@@ -92,8 +92,8 @@ async function handleGameCommand(sock, msg, args) {
                        msg.message?.extendedTextMessage?.text || '';
     
     if (!groupId.endsWith('@g.us')) {
-        return sendToChat(sock, groupId, { 
-            message: '❌ Games can only be played in groups!' 
+        return sock.sendMessage(groupId, { 
+            text: '❌ Games can only be played in groups!' 
         });
     }
 
@@ -119,8 +119,8 @@ async function handleGameCommand(sock, msg, args) {
 
 async function createGame(sock, groupId, sender) {
     if (games.has(groupId)) {
-        return sendToChat(sock, groupId, {
-            message: '❌ A game is already in progress!'
+        return sock.sendMessage(groupId, {
+            text: '❌ A game is already in progress!'
         });
     }
 
@@ -160,8 +160,8 @@ Reply to this message with "join"
     } catch (error) {
         console.error('Error creating game:', error);
         games.delete(groupId);
-        return sendToChat(sock, groupId, {
-            message: '❌ Failed to create game. Please try again.'
+        return sock.sendMessage(groupId, {
+            text: '❌ Failed to create game. Please try again.'
         });
     }
 }
@@ -231,8 +231,8 @@ async function checkRegistration(sock, groupId) {
 async function endGame(sock, groupId, sender) {
     const game = games.get(groupId);
     if (!game) {
-        return sendToChat(sock, groupId, {
-            message: '❌ No active game to end!'
+        return sock.sendMessage(groupId, {
+            text: '❌ No active game to end!'
         });
     }
 
@@ -244,16 +244,16 @@ async function endGame(sock, groupId, sender) {
         await showGameStats(sock, groupId, game);
     }
     
-    await sendToChat(sock, groupId, {
-        message: '🛑 Game ended by admin/owner!'
+    await sock.sendMessage(groupId, {
+        text: '🛑 Game ended by admin/owner!'
     });
     
     games.delete(groupId);
 }
 
-async function sendGameHelp(sock, groupId) {
-    await sendToChat(sock, groupId, {
-        message: `🎮 *Word Chain Game Commands*\n\n` +
+async function sendGameHelp(groupId) {
+    await sock.sendMessage(groupId, {
+        text: `🎮 *Word Chain Game Commands*\n\n` +
                 `1️⃣ *.game wordchain*\n` +
                 `   ┗ Create a new game\n\n` +
                 `2️⃣ *Reply "join" to game message*\n` +
