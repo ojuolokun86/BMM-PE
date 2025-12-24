@@ -12,29 +12,29 @@ async function restartCommand(authId, sock, msg) {
     const senderId = sender?.split('@')[0];
 
     if (restartState.has(botId)) {
-        return await sendToChat(sock, from, {
-            message: `🖥️ [SYSTEM ALERT]: Restart protocol is currently ACTIVE.\n> STATUS: Please wait for completion.`
+        return await sock.sendMessage(from, {
+            text: `🖥️ [SYSTEM ALERT]: Restart protocol is currently ACTIVE.\n> STATUS: Please wait for completion.`
         });
     }
 
     if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-        return await sendToChat(sock, from, {
-            message: `🖥️ [ACCESS DENIED]: Unauthorized restart attempt detected.\n> STATUS: Only root operator may execute this command.`
+        return await sock.sendMessage(from, {
+            text: `🖥️ [ACCESS DENIED]: Unauthorized restart attempt detected.\n> STATUS: Only root operator may execute this command.`
         });
     }
 
     try {
         restartState.set(botId, true);
 
-        await sendToChat(sock, from, {
-            message: `🖥️ [RESTART SEQUENCE INITIATED]\n> STATUS: Preparing system reboot...\n> EXECUTION: In 5 seconds`
+        await sock.sendMessage(from, {
+            text: `🖥️ [RESTART SEQUENCE INITIATED]\n> STATUS: Preparing system reboot...\n> EXECUTION: In 5 seconds`
         });
 
         await new Promise(resolve => setTimeout(resolve, 5000));
 
         try {
-            await sendToChat(sock, from, {
-                message: `🖥️ [SYSTEM]: Reboot protocol engaged.\n> PROCESS: Shutting down modules...`
+            await sock.sendMessage(from, {
+                text: `🖥️ [SYSTEM]: Reboot protocol engaged.\n> PROCESS: Shutting down modules...`
             });
         } catch (e) {
             console.warn('Could not send final restart message:', e.message);
@@ -71,8 +71,8 @@ async function restartCommand(authId, sock, msg) {
         restartState.delete(botId);
 
         try {
-            await sendToChat(sock, from, {
-                message: `🖥️ [SYSTEM ERROR]: Restart process aborted.\n> REASON: ${error.message}`
+            await sock.sendMessage(from, {
+                text: `🖥️ [SYSTEM ERROR]: Restart process aborted.\n> REASON: ${error.message}`
             });
         } catch (e) {
             console.error('Could not send error message:', e.message);

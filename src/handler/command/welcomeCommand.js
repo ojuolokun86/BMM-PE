@@ -1,5 +1,4 @@
 const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled } = require('../../database/welcomeDb');
-const sendToChat = require('../../utils/sendToChat');
 const { checkIfAdmin } = require('./kick');
 const menu = (welcome, goodbye) => `
 🤖 [WELCOME/GOODBYE CONFIGURATION]
@@ -17,7 +16,6 @@ const menu = (welcome, goodbye) => `
 [SYSTEM STATUS]: AWAITING USER INPUT...
 `;
 
-
 async function welcomeCommand(sock, msg) {
   const groupId = msg.key.remoteJid;
   const botId = sock.user.id.split(':')[0];
@@ -26,8 +24,8 @@ async function welcomeCommand(sock, msg) {
   const admin = await checkIfAdmin(sock, groupId, senderId);
 
   if (!msg.key.remoteJid.endsWith('@g.us')) {
-    await sendToChat(sock, msg.key.remoteJid, {
-      message: '❌ This command can only be used in a group.'
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: '❌ This command can only be used in a group.'
     });
     return;
   }
@@ -51,16 +49,16 @@ async function welcomeCommand(sock, msg) {
 
     if (input === '1') {
       setWelcomeEnabled(groupId, botId, !settings.welcome);
-      await sendToChat(sock, groupId, { message: `Welcome message is now ${!settings.welcome ? 'ON' : 'OFF'}.` });
+      await sock.sendMessage(groupId, { text: `Welcome message is now ${!settings.welcome ? 'ON' : 'OFF'}.` });
     } else if (input === '2') {
       setGoodbyeEnabled(groupId, botId, !settings.goodbye);
-      await sendToChat(sock, groupId, { message: `Goodbye message is now ${!settings.goodbye ? 'ON' : 'OFF'}.` });
+      await sock.sendMessage(groupId, { text: `Goodbye message is now ${!settings.goodbye ? 'ON' : 'OFF'}.` });
     } else if (input === '3') {
       setWelcomeEnabled(groupId, botId, !settings.welcome);
       setGoodbyeEnabled(groupId, botId, !settings.goodbye);
-      await sendToChat(sock, groupId, { message: `Welcome and Goodbye messages are now ${!settings.welcome && !settings.goodbye ? 'ON' : 'OFF'}.` });
+      await sock.sendMessage(groupId, { text: `Welcome and Goodbye messages are now ${!settings.welcome && !settings.goodbye ? 'ON' : 'OFF'}.` });
     } else {
-      await sendToChat(sock, groupId, { message: '❌ Invalid option.' });
+      await sock.sendMessage(groupId, { text: '❌ Invalid option.' });
     }
     sock.ev.off('messages.upsert', listener);
   };

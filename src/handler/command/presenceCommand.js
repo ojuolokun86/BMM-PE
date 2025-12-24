@@ -27,8 +27,8 @@ async function presenceCommand(sock, msg, args) {
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
     console.log(`❌ *${senderId}* did not have permission to configure bot privacy settings ${isBotOwner(senderId, botId, botLid)}`);
     console.log(`senderId: ${senderId}, botId: ${botId}, botLid: ${botLid}`);
-      return await sendToChat(sock, from, {
-        message: `❌ Only *${ownerName}* can configure bot privacy settings.`
+      return await sock.sendMessage(from, {
+        text: `❌ Only *${ownerName}* can configure bot privacy settings.`
       });
     }
   const sentMenu = await sock.sendMessage(from, { text: menu }, { quoted: msg });
@@ -42,8 +42,8 @@ async function presenceCommand(sock, msg, args) {
     const replySender = reply.key.participant || reply.key.remoteJid;
     if (replyFrom !== from || replySender !== senderId) return;
     if (!bot && !msg.key.fromMe) {
-      await sendToChat(sock, from, {
-        message: `❌ Only *${ownerName}* can configure presence settings.`
+      await sock.sendMessage(from, {
+        text: `❌ Only *${ownerName}* can configure presence settings.`
       });
       sock.ev.off('messages.upsert', listener);
       return;
@@ -64,7 +64,7 @@ async function presenceCommand(sock, msg, args) {
     }
     globalStore.presenceTypeStore[botInstanceId] = globalStore.presenceTypeStore[botInstanceId] || {};
     globalStore.presenceTypeStore[botInstanceId] = presenceType;
-    await sendToChat(sock, from, { message: `✅ Global dynamic presence set to *${presenceType}* for this bot instance.` });
+    await sock.sendMessage(from, { text: `✅ Global dynamic presence set to *${presenceType}* for this bot instance.` });
     sock.ev.off('messages.upsert', listener);
   };
 

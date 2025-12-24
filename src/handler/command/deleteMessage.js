@@ -1,5 +1,5 @@
 // src/handler/command/deleteMessage.js
-const sendToChat = require('../../utils/sendToChat');
+//const sendToChat = require('../../utils/sendToChat');
 
 // Normalize a JID or raw id to its numeric part (before @ / before :)
 function toNumericId(id) {
@@ -61,19 +61,19 @@ module.exports = async function deleteMessageCommand(sock, from, msg) {
   // must be a reply
   const quotedKey = getQuotedDeleteKey(msg);
   if (!quotedKey) {
-    return sendToChat(sock, from, { message: '❌ Reply to a message you want to delete.' }, { quoted: msg });
+    return sock.sendMessage(from, { text: '❌ Reply to a message you want to delete.' }, { quoted: msg });
   }
 
   // DM: only bot owner can delete
   if (!isGroup) {
     if (botId !== senderId) {
-      return sendToChat(sock, from, { message: '❌ Only the bot owner can delete messages in DM.' }, { quoted: msg });
+      return sock.sendMessage(from, { text: '❌ Only the bot owner can delete messages in DM.' }, { quoted: msg });
     }
     try {
       await sock.sendMessage(from, { delete: quotedKey });
       return;
     } catch (e) {
-      return sendToChat(sock, from, { message: `❌ Failed to delete: ${e.message || 'unknown error'}` }, { quoted: msg });
+      return sock.sendMessage(from, { text: `❌ Failed to delete: ${e.message || 'unknown error'}` }, { quoted: msg });
     }
   }
 
@@ -81,7 +81,7 @@ module.exports = async function deleteMessageCommand(sock, from, msg) {
     const botIsAdmin = await isGroupAdmin(sock, from, botLid);
     console.log(`botIsAdmin: ${botIsAdmin}`);
     if (!botIsAdmin) {
-    return sendToChat(sock, from, { message: '❌ I need to be an admin to delete messages.' }, { quoted: msg });
+    return sock.sendMessage(from, { text: '❌ I need to be an admin to delete messages.' }, { quoted: msg });
   }
 
   // Allow if invoker is admin OR quoted sender is admin
@@ -91,12 +91,12 @@ module.exports = async function deleteMessageCommand(sock, from, msg) {
   const quotedSenderIsAdmin = quotedSenderId ? await isGroupAdmin(sock, from, quotedSenderId) : false;
 
   if (!invokerIsAdmin && !quotedSenderIsAdmin) {
-    return sendToChat(sock, from, { message: '❌ Only admins can use this or delete admin messages.' }, { quoted: msg });
+    return sock.sendMessage(from, { text: '❌ Only admins can use this or delete admin messages.' }, { quoted: msg });
   }
 
   try {
     await sock.sendMessage(from, { delete: quotedKey });
   } catch (e) {
-    await sendToChat(sock, from, { message: `❌ Failed to delete: ${e.message || 'unknown error'}` }, { quoted: msg });
+    await sock.sendMessage(from, { text: `❌ Failed to delete: ${e.message || 'unknown error'}` }, { quoted: msg });
   }
 };

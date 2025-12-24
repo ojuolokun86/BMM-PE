@@ -1,5 +1,4 @@
 // src/handler/command/fact.js
-const sendToChat = require('../../utils/sendToChat');
 
 // Primary: Useless Facts (real-world facts, no API key)
 // Fallback: Numbers API (plain text, no key)
@@ -29,8 +28,8 @@ async function fetchFact() {
     try {
       //await sendToChat(sock, from, { message: '📚 Fetching a real fact...' }, { quoted: msg });
       const fact = await fetchFact();
-      await sendToChat(sock, from, { message: `🧠 Fact:\n\n${fact}` }, { quoted: msg });
+      await sock.sendMessage(from, { text: `🧠 Fact:\n\n${fact}` }, { quoted: msg });
     } catch (e) {
-      await sendToChat(sock, from, { message: `❌ Error fetching fact: ${e.message}` }, { quoted: msg });
+      await sock.sendMessage(from, { text: `❌ Error fetching fact: ${e.message}` }, { quoted: msg });
     }
   };

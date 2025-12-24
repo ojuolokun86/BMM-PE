@@ -102,8 +102,8 @@ async function handleTrivia(sock, msg, args) {
     const sender = msg.key.participant || msg.key.remoteJid;
 
     if (!groupId.endsWith('@g.us')) {
-        return sendToChat(sock, groupId, {
-            message: '❌ Trivia can only be played in groups!'
+        return sock.sendMessage(groupId, {
+            text: '❌ Trivia can only be played in groups!'
         });
     }
 
@@ -123,8 +123,8 @@ async function handleTrivia(sock, msg, args) {
 
 async function startTrivia(sock, groupId, sender, args) {
     if (triviaGames.has(groupId)) {
-        return sendToChat(sock, groupId, {
-            message: '❌ A trivia game is already in progress!'
+        return sock.sendMessage(groupId, {
+            text: '❌ A trivia game is already in progress!'
         });
     }
 
@@ -162,8 +162,8 @@ async function startTrivia(sock, groupId, sender, args) {
     } catch (error) {
         console.error('Error starting trivia:', error);
         triviaGames.delete(groupId);
-        return sendToChat(sock, groupId, {
-            message: '❌ Failed to start trivia game!'
+        return sock.sendMessage(groupId, {
+            text: '❌ Failed to start trivia game!'
         });
         
     }
@@ -204,7 +204,7 @@ async function handleRegistrationReply(sock, msg, game, sender) {
     if (game.players.has(sender)) {
         await sock.sendMessage(game.groupId, {
             text: '❌ You have already joined the game!',
-            quoted: msg
+            quotedMessage: msg
         });
         return true;
     }

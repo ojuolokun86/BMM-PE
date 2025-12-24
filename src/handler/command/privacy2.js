@@ -35,8 +35,8 @@ async function setBotPrivacyCommand(sock, msg) {
   const ownerName = sock.user.name;
   const senderId = sender?.split('@')[0];
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: `❌ Only *${ownerName}* can configure bot privacy settings.`
+    return await sock.sendMessage(from, {
+      text: `❌ Only *${ownerName}* can configure bot privacy settings.`
     });
   }
 
@@ -47,8 +47,8 @@ async function setBotPrivacyCommand(sock, msg) {
     const reply = messages?.[0];
     if (!reply) return;
     if (!bot && !isBotOwner(senderId, botId, botLid)) {
-          await sendToChat(sock, from, {
-            message: `❌ Only *${ownerName}* can configure bot privacy settings.`
+          await sock.sendMessage(from, {
+            text: `❌ Only *${ownerName}* can configure bot privacy settings.`
           });
           sock.ev.off('messages.upsert', firstListener);
           return;
@@ -67,7 +67,7 @@ async function setBotPrivacyCommand(sock, msg) {
     sock.ev.off('messages.upsert', firstListener); // Remove listener once valid option received
 
     if (isNaN(option) || !botPrivacyOptions.hasOwnProperty(option)) {
-      return sendToChat(sock, from, { message: '❌ Invalid option. Use 0–4.' });
+      return await sock.sendMessage(from, { text: '❌ Invalid option. Use 0–4.' });
     }
 
     switch (option) {
@@ -78,10 +78,10 @@ async function setBotPrivacyCommand(sock, msg) {
         console.log('Setting bot name to:', name);
         if (!name) throw new Error('No name provided');
         await sock.updateProfileName(name);
-        await sendToChat(sock, from, { message: `✅ Bot name updated to "${name}"` });
+        await sock.sendMessage(from, { text: `✅ Bot name updated to "${name}"` });
       } catch (e) {
         console.error('Error updating bot name:', e);
-        await sendToChat(sock, from, { message: `❌ Failed to update name:\n${e.message}` });
+        await sock.sendMessage(from, { text: `❌ Failed to update name:\n${e.message}` });
       }
       break;
 
@@ -91,10 +91,10 @@ async function setBotPrivacyCommand(sock, msg) {
           const imgMsg = await waitForImage(sock, from, sender);
           const buffer = await downloadImage(imgMsg);
           await sock.updateProfilePicture(sock.user.id, buffer);
-          await sendToChat(sock, from, { message: '✅ Profile picture updated.' });
+          await sock.sendMessage(from, { text: '✅ Profile picture updated.' });
         } catch (e) {
           console.error('Error updating profile picture:', e);
-          await sendToChat(sock, from, { message: `❌ Failed to update profile picture:\n${e.message}` });
+          await sock.sendMessage(from, { text: `❌ Failed to update profile picture:\n${e.message}` });
         }
         break;
 
@@ -104,9 +104,9 @@ async function setBotPrivacyCommand(sock, msg) {
           const bio = await waitForNextText(sock, from, sender, prompts.key.id);
           if (!bio) throw new Error('No bio provided');
           await sock.updateProfileStatus(bio);
-          await sendToChat(sock, from, { message: `✅ Bio updated to "${bio}"` });
+          await sock.sendMessage(from, { text: `✅ Bio updated to "${bio}"` });
         } catch (e) {
-          await sendToChat(sock, from, { message: `❌ Failed to update bio:\n${e.message}` });
+          await sock.sendMessage(from, { text: `❌ Failed to update bio:\n${e.message}` });
         }
         break;
 
@@ -114,16 +114,16 @@ async function setBotPrivacyCommand(sock, msg) {
         try {
           const list = await sock.fetchBlocklist();
           const response = list.length ? list.join('\n') : '✅ No blocked contacts.';
-          await sendToChat(sock, from, { message: `🚫 *Blocked Contacts:*\n${response}` });
+          await sock.sendMessage(from, { text: `🚫 *Blocked Contacts:*\n${response}` });
         } catch (e) {
-          await sendToChat(sock, from, { message: `❌ Failed to fetch blocklist:\n${e.message}` });
+          await sock.sendMessage(from, { text: `❌ Failed to fetch blocklist:\n${e.message}` });
         }
         break;
 
       case 4: // Get user profile picture
         const targetJid = reply.message?.extendedTextMessage?.contextInfo?.participant;
         if (!targetJid) {
-          return sendToChat(sock, from, { message: '❌ Reply to a user’s message to get their profile picture.' });
+          return await sock.sendMessage(from, { text: '❌ Reply to a user’s message to get their profile picture.' });
         }
 
         try {
@@ -134,14 +134,14 @@ async function setBotPrivacyCommand(sock, msg) {
             mentions: [targetJid]
           }, { quoted: reply });
         } catch (e) {
-          await sendToChat(sock, from, {
-            message: '❌ Could not fetch profile picture. They may have hidden it.'
+          await sock.sendMessage(from, {
+            text: '❌ Could not fetch profile picture. They may have hidden it.'
           });
         }
         break;
 
       default:
-        await sendToChat(sock, from, { message: '❌ Unknown action.' });
+        await sock.sendMessage(from, { text: '❌ Unknown action.' });
     }
   };
 

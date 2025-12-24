@@ -1,5 +1,5 @@
 const axios = require('axios');
-const sendToChat = require('../../utils/sendToChat');
+// Using sock.sendMessage directly instead of sendToChat
 
 const AI_PROVIDERS = {
     'gpt': {
@@ -139,12 +139,12 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
 ╰───  *BMM AI System*  ───╯
         `;
         
-        return sendToChat(sock, chatId, { message: helpMessage });
+        return sock.sendMessage(chatId, { text: helpMessage });
     }
 
     try {
-        await sendToChat(sock, chatId, {
-            message: "⏳ *Processing your request...*"
+        await sock.sendMessage(chatId, {
+            text: "⏳ *Processing your request...*"
         });
 
         let providersToTry = [];
@@ -166,16 +166,16 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
                 const aiResponse = await getAIResponse(currentProvider, query);
                 if (aiResponse) {
                     const formattedResponse = formatAIResponse(currentProvider, aiResponse);
-                    return sendToChat(sock, chatId, {
-                        message: formattedResponse
+                    return sock.sendMessage(chatId, {
+                        text: formattedResponse
                     });
                 }
             } catch (error) {
                 console.error(`Attempt ${index + 1} with ${currentProvider.name} failed:`, error.message);
                 
                 if (index < providersToTry.length - 1) {
-                    await sendToChat(sock, chatId, {
-                        message: `⚠️ ${currentProvider.errorMessage} Trying next available AI...`
+                    await sock.sendMessage(chatId, {
+                        text: `⚠️ ${currentProvider.errorMessage} Trying next available AI...`
                     });
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 }
@@ -200,7 +200,7 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
 
 ╰───  *BMM AI System*  ───╯
         `;
-        return sendToChat(sock, chatId, { message: errorMessage });
+return sock.sendMessage(chatId, { text: errorMessage });
     }
 }
 

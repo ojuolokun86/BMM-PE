@@ -68,8 +68,8 @@ async function setPrivacyCommand(sock, msg) {
   const senderId = sender?.split('@')[0];
   const name = sock.user?.name;
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: `❌ Only *${name}* can configure privacy settings.`
+    return await sock.sendMessage(from, {
+      text: `❌ Only *${name}* can configure privacy settings.`
     });
   }
   let currentSettings;
@@ -77,8 +77,8 @@ async function setPrivacyCommand(sock, msg) {
     currentSettings = await sock.fetchPrivacySettings?.(true);
   } catch (e) {
     console.error(`error in fetching privacy settings: ${e}`);
-    return await sendToChat(sock, from, {
-      message: '❌ Failed to fetch current privacy settings.'
+    return await sock.sendMessage(from, {
+      text: '❌ Failed to fetch current privacy settings.'
     });
   }
 
@@ -116,7 +116,7 @@ async function setPrivacyCommand(sock, msg) {
     const option = parseInt(body.trim());
 
     if (isNaN(option) || !privacySettings.hasOwnProperty(option)) {
-      await sendToChat(sock, from, { message: '❌ Invalid option. Use 0–6.' });
+      await sock.sendMessage(from, { text: '❌ Invalid option. Use 0–6.' });
       sock.ev.off('messages.upsert', firstListener);
       return;
     }
@@ -125,8 +125,8 @@ async function setPrivacyCommand(sock, msg) {
     sock.ev.off('messages.upsert', firstListener);
 
     if (selectedSetting === 'calls') {
-      await sendToChat(sock, from, {
-        message: '❌ Call privacy setting is not supported in Baileys.'
+      await sock.sendMessage(from, {
+        text: '❌ Call privacy setting is not supported in Baileys.'
       });
       return;
     }
@@ -152,8 +152,8 @@ async function setPrivacyCommand(sock, msg) {
         const option2 = parseInt(body2.trim());
 
         if (isNaN(option2) || !optionsMap.hasOwnProperty(option2)) {
-        await sendToChat(sock, from, {
-            message: `❌ Invalid option. Use ${
+        await sock.sendMessage(from, {
+            text: `❌ Invalid option. Use ${
             selectedSetting === 'online' ? '1–2' : '0–3'
             }.`
         });
@@ -187,13 +187,13 @@ async function setPrivacyCommand(sock, msg) {
             throw new Error('Unsupported privacy setting');
         }
 
-        await sendToChat(sock, from, {
-          message: `✅ *${selectedSetting.replace('_', ' ')}* updated to *${value}*`
+        await sock.sendMessage(from, {
+          text: `✅ *${selectedSetting.replace('_', ' ')}* updated to *${value}*`
         });
       } catch (err) {
         console.error(err);
-        await sendToChat(sock, from, {
-          message: `❌ Failed to update setting:\n${err.message}`
+        await sock.sendMessage(from, {
+          text: `❌ Failed to update setting:\n${err.message}`
         });
       }
 

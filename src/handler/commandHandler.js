@@ -1,4 +1,3 @@
-const sendToChat = require('../utils/sendToChat');
 const modeCommand = require('./command/mode');
 const prefixCommand = require('./command/prefix');
 const handleAntilinkCommand = require('./features/antiLink');
@@ -358,9 +357,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         await handleBgRemoval(sock, msg);
         break;
       default:
-        await sendToChat(sock, from, {
-          message: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.`
-        });
+        await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
         break;
     }
   } catch (err) {

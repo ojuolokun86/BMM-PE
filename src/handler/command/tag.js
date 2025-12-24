@@ -67,7 +67,7 @@ function getNewRandomEmoji() {
 async function tagCommand(sock, msg, command, args) {
   const remoteJid = msg.key.remoteJid;
   if (!remoteJid.endsWith('@g.us')) {
-    await sendToChat(sock, remoteJid, { message: '❌ This command only works in groups.' });
+    await sock.sendMessage(remoteJid, { text: '❌ This command only works in groups.' });
     return;
   }
 
@@ -101,7 +101,7 @@ async function tagCommand(sock, msg, command, args) {
     );
 
     if (!buffer) {
-      await sendToChat(sock, remoteJid, { message: '❌ Failed to download media.', quotedMessage: msg });
+      await sock.sendMessage(remoteJid, { text: '❌ Failed to download media.', quotedMessage: msg });
       return;
     }
 
@@ -110,7 +110,7 @@ async function tagCommand(sock, msg, command, args) {
       ? generateTagAllMessage(groupName, senderName, botOwnerName, additionalMessage || mediaMsg.caption, participants, adminList, getNewRandomEmoji(), senderJid).text
       : (additionalMessage || mediaMsg.caption || '');
 
-    await sendToChat(sock, remoteJid, {
+    await sock.sendMessage(remoteJid, {
       media: buffer,
       mediaType,
       caption,
@@ -122,8 +122,8 @@ async function tagCommand(sock, msg, command, args) {
 
   // Handle normal text-only tag
   if (command === 'tag') {
-    await sendToChat(sock, remoteJid, {
-      message: additionalMessage || '📢 Attention everyone!',
+    await sock.sendMessage(remoteJid, {
+      text: additionalMessage || '📢 Attention everyone!',
       mentions: participants,
       quotedMessage: msg
     });
@@ -143,8 +143,8 @@ async function tagCommand(sock, msg, command, args) {
       ? tagAllMsgObj.mentions
       : [senderJid, ...tagAllMsgObj.mentions];
 
-    await sendToChat(sock, remoteJid, {
-      message: tagAllMsgObj.text,
+    await sock.sendMessage(remoteJid, {
+      text: tagAllMsgObj.text,
       mentions: mentionsWithSender,
       quotedMessage: msg
     });
@@ -155,13 +155,13 @@ async function tagCommand(sock, msg, command, args) {
     adminMsg += admins.map(p => `• 👮 @${p.id.split('@')[0]}`).join('\n');
     adminMsg += `\n\n${additionalMessage ? `📝 ${additionalMessage}\n` : ''}`;
 
-    await sendToChat(sock, remoteJid, {
-      message: adminMsg,
+    await sock.sendMessage(remoteJid, {
+      text: adminMsg,
       mentions: adminIds,
       quotedMessage: msg
     });
   } else {
-    await sendToChat(sock, remoteJid, { message: '❌ Unknown tag command. Use tag, tagall, or admin.' });
+    await sock.sendMessage(remoteJid, { text: '❌ Unknown tag command. Use tag, tagall, or admin.' });
   }
 }
 

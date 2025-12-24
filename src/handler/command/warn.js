@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const { incrementWarn, resetWarn, getAntilinkSettings } = require('../../database/antilinkDb');
 const { isBotOwner } = require('../../database/database');
 const { checkIfAdmin } = require('./groupCommand');
@@ -40,7 +39,7 @@ async function warnCommand(sock, msg, args) {
 
   // Check if in group
   if (!from.endsWith('@g.us')) {
-    return sendToChat(sock, from, { message: '❌ This command only works in groups.' });
+    return sock.sendMessage(from, { text: '❌ This command only works in groups.' });
   }
 
   // Check if sender is admin or owner
@@ -48,7 +47,7 @@ async function warnCommand(sock, msg, args) {
   //const isOwner = isBotOwner(sender.split('@')[0], null, botId);
   
   if (!isAdmin) {
-    return sendToChat(sock, from, { message: '❌ Only admins can use the warn command.' });
+    return sock.sendMessage(from, { text: '❌ Only admins can use the warn command.' });
   }
 
   // Get target user
@@ -67,29 +66,29 @@ async function warnCommand(sock, msg, args) {
   }
 
   if (!targetUser) {
-    return sendToChat(sock, from, { message: '❌ Please mention or reply to the user you want to warn.' });
+    return sock.sendMessage(from, { text: '❌ Please mention or reply to the user you want to warn.' });
   }
 
   // Don't allow warning admins
   const targetIsAdmin = await checkIfAdmin(sock, from, targetUser.split('@')[0]);
   if (targetIsAdmin) {
-    return sendToChat(sock, from, { message: '❌ Cannot warn admin users.' });
+    return sock.sendMessage(from, { text: '❌ Cannot warn admin users.' });
   }
 
   try {
     const warnCount = incrementWarn(from, botId, targetUser, reason, 'manual');
 
     // Send warning message
-    await sendToChat(sock, from, {
-      message: getRandomMessage(warningMessages, targetUser.split('@')[0], reason, warnCount, warnLimit),
+    await sock.sendMessage(from, {
+      text: getRandomMessage(warningMessages, targetUser.split('@')[0], reason, warnCount, warnLimit),
       mentions: [targetUser]
     });
 
     // If warn limit reached, remove user
     if (warnCount >= warnLimit) {
       await sock.groupParticipantsUpdate(from, [targetUser], 'remove');
-      await sendToChat(sock, from, {
-        message: getRandomMessage(removalMessages, targetUser.split('@')[0], null, null, warnLimit),
+      await sock.sendMessage(from, {
+        text: getRandomMessage(removalMessages, targetUser.split('@')[0], null, null, warnLimit),
         mentions: [targetUser]
       });
       resetWarn(from, botId, targetUser);
@@ -98,7 +97,7 @@ async function warnCommand(sock, msg, args) {
     return true;
   } catch (err) {
     console.error('❌ Error in warn command:', err);
-    await sendToChat(sock, from, { message: '❌ Failed to warn user.' });
+    await sock.sendMessage(from, { text: '❌ Failed to warn user.' });
     return false;
   }
 }

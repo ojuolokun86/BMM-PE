@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const { setAntilinkSettings, getAntilinkSettings } = require('../../database/antilinkDb');
 const { isBotOwner } = require('../../database/database');
 const { checkIfAdmin } = require('../command/groupCommand');
@@ -40,15 +39,15 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
   const groupId = from;
   const senderId = sender?.split('@')[0];
    if (!groupId || !groupId.endsWith('@g.us')) {
-      return sendToChat(sock, groupId, { message: '> ❌ This command only works in groups.' }, { quoted: msg });
+      return sock.sendMessage(groupId, { text: '> ❌ This command only works in groups.' }, { quoted: msg });
     }
     const isBotAdmin = await isGroupAdmin(sock, groupId, sender); 
     if (!isBotAdmin) {
-      return sendToChat(sock, groupId, { message: '> ❌ I need to be an admin to activate antilink.' }, { quoted: msg });
+      return sock.sendMessage(groupId, { text: '> ❌ I need to be an admin to activate antilink.' }, { quoted: msg });
     }
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: '> ❌ Only the bot owner can change the Antilink settings.'
+    return await sock.sendMessage(from, {
+      text: '> ❌ Only the bot owner can change the Antilink settings.'
     });
   }
 
@@ -72,7 +71,7 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
     const option = parseInt(body.trim());
 
     if (isNaN(option) || ![0, 1, 2, 3, 4, 5].includes(option)) {
-      await sendToChat(sock, from, { message: '❌ Invalid choice. Try again.' });
+await sock.sendMessage(from, { text: '❌ Invalid choice. Try again.' });
       sock.ev.off('messages.upsert', listener);
       return;
     }
@@ -80,19 +79,19 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
     switch (option) {
       case 0:
         setAntilinkSettings(groupId, botId, { mode: 'off' });
-        await sendToChat(sock, from, { message: '🔕 Antilink *disabled*.' });
+        await sock.sendMessage(from, { text: '🔕 Antilink *disabled*.' });
         break;
       case 1:
         setAntilinkSettings(groupId, botId, { mode: 'warn' });
-        await sendToChat(sock, from, { message: '⚠️ Antilink set to *warn only*.' });
+        await sock.sendMessage(from, { text: '⚠️ Antilink set to *warn only*.' });
         break;
       case 2:
         setAntilinkSettings(groupId, botId, { mode: 'warn-remove' });
-        await sendToChat(sock, from, { message: '🚫 Antilink set to *warn & remove*.' });
+        await sock.sendMessage(from, { text: '🚫 Antilink set to *warn & remove*.' });
         break;
       case 3:
         setAntilinkSettings(groupId, botId, { mode: 'remove' });
-        await sendToChat(sock, from, { message: '❌ Antilink set to *remove immediately*.' });
+        await sock.sendMessage(from, { text: '❌ Antilink set to *remove immediately*.' });
         break;
       case 4:
         await sock.sendMessage(from, {
@@ -112,11 +111,11 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
           const count = parseInt(text.trim());
 
           if (isNaN(count) || count < 1) {
-            await sendToChat(sock, from, { message: '❌ Invalid number.' });
+            await sock.sendMessage(from, { text: '❌ Invalid option.' });
           } else {
             setAntilinkSettings(groupId, botId, { warnLimit: count });
-            await sendToChat(sock, from, {
-              message: `🔁 Warn limit set to *${count} times*.`
+            await sock.sendMessage(from, {
+              text: `🔁 Warn limit set to *${count} times*.`
             });
           }
 
@@ -129,8 +128,8 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
      case 5:
       const newVal = current.bypassAdmins ? 0 : 1;
       setAntilinkSettings(groupId, botId, { bypassAdmins: newVal });
-      await sendToChat(sock, from, {
-        message: `👮 Admin bypass is now *${newVal ? 'enabled' : 'disabled'}*.`
+      await sock.sendMessage(from, {
+        text: `👮 Admin bypass is now *${newVal ? 'enabled' : 'disabled'}*.`
       });
       break;
     }

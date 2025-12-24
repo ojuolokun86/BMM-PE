@@ -6,7 +6,6 @@ const handleDeletedMessage  = require('./features/antideleteListener');
 const { handleStatusUpdate } = require('./features/statusView');
 const { incrementGroupUserStat } = require('./features/groupStats');
 const globalStore = require('../utils/globalStore');
-const sendToChat = require('../utils/sendToChat');
 const handleNewsletterAutoReact = require('./features/newsletterAutoReact');
 const { handleGameCommand, handleReply, handleWordChain, games } = require('./command/game');
 const { handleTrivia, handleTriviaReply } = require('./command/triviaGame');
@@ -75,8 +74,8 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
     }
 }}
 catch (err) {
-  // await sendToChat(sock, from, {
-  //   message: '❌ Message handler error: ' + err + 'Please use report command with the error message to report this issue.'
+  // await sock.sendMessage(from, {
+  //   text: '❌ Message handler error: ' + err + 'Please use report command with the error message to report this issue.'
   // });
   console.error(`[ERROR] Message handler failed!`, {
     error: err,

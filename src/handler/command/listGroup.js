@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const { isBotOwner } = require('../../database/database');
 
 async function listGroupsCommand(sock, msg) {
@@ -12,8 +11,8 @@ async function listGroupsCommand(sock, msg) {
 
         // Permission check
         if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-            return await sendToChat(sock, from, {
-                message: `⚠️ [ACCESS DENIED]\n> Only *${name}* can execute this system command.`
+            return await sock.sendMessage(from, {
+                text: `⚠️ [ACCESS DENIED]\n> Only *${name}* can execute this system command.`
             });
         }
 
@@ -22,7 +21,7 @@ async function listGroupsCommand(sock, msg) {
         const groups = Object.values(chats);
 
         if (!groups.length) {
-            await sendToChat(sock, jid, { message: `🤖 [SYSTEM LOG]\n> No active groups detected.` });
+            await sock.sendMessage(jid, { text: `🤖 [SYSTEM LOG]\n> No active groups detected.` });
             return;
         }
 
@@ -38,11 +37,11 @@ async function listGroupsCommand(sock, msg) {
         groupList += `✅ [SYSTEM REPORT]\n> Total Groups: ${groups.length}\n`;
         groupList += `> OPERATIONAL STATUS: ACTIVE\n`;
 
-        await sendToChat(sock, jid, { message: groupList });
+        await sock.sendMessage(jid, { text: groupList });
 
     } catch (err) {
-        await sendToChat(sock, sock.user?.id, {
-            message: `❌ [SYSTEM FAILURE]\n> Unable to retrieve group matrix.`
+        await sock.sendMessage(sock.user?.id, {
+            text: `❌ [SYSTEM FAILURE]\n> Unable to retrieve group matrix.`
         });
         console.error('listGroupsCommand error:', err);
     }

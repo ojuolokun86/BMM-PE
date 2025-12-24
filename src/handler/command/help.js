@@ -17,16 +17,16 @@ async function helpCommand(sock, msg, textMsg, prefix, isAdmin = false, isOwner 
             const cmd = commandRegistry[cmdName];
 
             if (!cmd) {
-                return sendToChat(sock, from, {
-                    message: `🖥️ *SYSTEM NOTICE*\n\n❌ Command "${cmdName}" not recognized.\nExecute: \`${prefix}help\` for valid command directory.`,
+                return sock.sendMessage(from, {
+                    text: `🖥️ *SYSTEM NOTICE*\n\n❌ Command "${cmdName}" not recognized.\nExecute: \`${prefix}help\` for valid command directory.`,
                     contextInfo,
                     forwardedContext
                 });
             }
 
             if (cmd.ownerOnly && !isOwner) {
-                return sendToChat(sock, from, {
-                    message: '🖥️ *ACCESS DENIED*\n\n⛔ Insufficient privilege. Root access required.',
+                return sock.sendMessage(from, {
+                    text: '🖥️ *ACCESS DENIED*\n\n⛔ Insufficient privilege. Root access required.',
                 });
             }
 
@@ -43,7 +43,7 @@ async function helpCommand(sock, msg, textMsg, prefix, isAdmin = false, isOwner 
             if (cmd.ownerOnly) response += '> 🔑 **Privilege:** Root Access (Owner)\n';
 
             response += `\n⚙️ *End of manual. Execute responsibly.*`;
-            return sendToChat(sock, from, { message: response});
+            return sock.sendMessage(from, { text: response});
         }
 
         // Show general help
@@ -85,8 +85,8 @@ async function helpCommand(sock, msg, textMsg, prefix, isAdmin = false, isOwner 
 
     } catch (error) {
         console.error('Error in help command:', error);
-        return sendToChat(sock, from, {
-            message: '🖥️ *SYSTEM ERROR*\n❌ Execution failed. Unable to process your request.',
+        return sock.sendMessage(from, {
+            text: '🖥️ *SYSTEM ERROR*\n❌ Execution failed. Unable to process your request.',
             contextInfo,
             forwardedContext
         });

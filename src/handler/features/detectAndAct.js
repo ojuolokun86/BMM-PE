@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const {
   getAntilinkSettings,
   incrementWarn,
@@ -91,29 +90,29 @@ async function detectAndAct({ sock, from, msg, textMsg }) {
       const warnLimit = settings.warnLimit || 2;
 
       // Send random warning
-      await sendToChat(sock, groupId, {
-        message: getRandomMessage(warningMessages, userJid.split('@')[0], warnCount, warnLimit),
+      await sock.sendMessage(groupId, {
+        text: getRandomMessage(warningMessages, userJid.split('@')[0], warnCount, warnLimit),
         mentions: [userJid]
       });
 
       // If user reached limit, remove them with random removal message
       if (warnCount >= warnLimit) {
         await sock.groupParticipantsUpdate(groupId, [userJid], 'remove');
-        await sendToChat(sock, groupId, {
-          message: getRandomMessage(removalMessages, userJid.split('@')[0], null, warnLimit),
+        await sock.sendMessage(groupId, {
+          text: getRandomMessage(removalMessages, userJid.split('@')[0], null, warnLimit),
           mentions: [userJid]
         });
         resetWarn(groupId, botJid, userJid);
       }
     } else if (settings.mode === 'warn') {
-      await sendToChat(sock, groupId, {
-        message: getRandomMessage(simpleWarnMessages, userJid.split('@')[0]),
+      await sock.sendMessage(groupId, {
+        text: getRandomMessage(simpleWarnMessages, userJid.split('@')[0]),
         mentions: [userJid]
       });
     } else if (settings.mode === 'remove') {
       await sock.groupParticipantsUpdate(groupId, [userJid], 'remove');
-      await sendToChat(sock, groupId, {
-        message: getRandomMessage(removalMessages, userJid.split('@')[0], null, settings.warnLimit || 2),
+      await sock.sendMessage(groupId, {
+        text: getRandomMessage(removalMessages, userJid.split('@')[0], null, settings.warnLimit || 2),
         mentions: [userJid]
       });
     }

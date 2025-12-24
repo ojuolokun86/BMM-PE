@@ -1,5 +1,4 @@
 const { getReactToCommand, setReactToCommand } = require('../../database/database');
-const sendToChat = require('../../utils/sendToChat');
 const { isBotOwner } = require('../../database/database');
 
 async function reactCommand(sock, msg, textMsg) {
@@ -12,19 +11,19 @@ async function reactCommand(sock, msg, textMsg) {
   const senderId = sender?.split('@')[0];
   const name = sock.user?.name;
   if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
-    return await sendToChat(sock, from, {
-      message: `❌ Only *${name}* can configure reaction settings.`
+    return await sock.sendMessage(from, {
+      text: `❌ Only *${name}* can configure reaction settings.`
     });
   }
 
   if (arg === 'on') {
     setReactToCommand(userId, true);
-    await sendToChat(sock, msg.key.remoteJid, { message: '✅ Command reaction is now ON.' });
+    await sock.sendMessage(from, { text: '✅ Command reaction is now ON.' });
   } else if (arg === 'off') {
     setReactToCommand(userId, false);
-    await sendToChat(sock, msg.key.remoteJid, { message: '❌ Command reaction is now OFF.' });
+    await sock.sendMessage(from, { text: '❌ Command reaction is now OFF.' });
   } else {
-    await sendToChat(sock, msg.key.remoteJid, { message: 'Usage: react on/off' });
+    await sock.sendMessage(from, { text: 'Usage: react on/off' });
   }
 }
 

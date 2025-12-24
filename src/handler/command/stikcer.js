@@ -42,8 +42,8 @@ async function stickerCommand(sock, msg) {
   }
 
   if (!mediaMessage) {
-    await sendToChat(sock, chatId, {
-      message: '❌ Reply to or send an image/video/GIF to make a sticker.',
+    await sock.sendMessage(chatId, {
+      text: '❌ Reply to or send an image/video/GIF to make a sticker.',
       quoted: messageToQuote,
     });
     return;
@@ -52,7 +52,7 @@ async function stickerCommand(sock, msg) {
   try {
     const mediaBuffer = await downloadMediaMessage(targetMessage, 'buffer', {});
     if (!mediaBuffer) {
-      await sendToChat(sock, chatId, { message: '❌ Failed to download media.' });
+      await sock.sendMessage(chatId, { text: '❌ Failed to download media.' });
       return;
     }
 
@@ -111,7 +111,7 @@ async function stickerCommand(sock, msg) {
     }
   } catch (error) {
     console.error('[stickerCommand] Error in sticker command:', error);
-    await sendToChat(sock, chatId, { message: '❌ Failed to create sticker! Try again later.' });
+    await sock.sendMessage(chatId, { text: '❌ Failed to create sticker! Try again later.' });
   }
 }
 

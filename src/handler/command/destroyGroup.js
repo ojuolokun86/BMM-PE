@@ -30,10 +30,10 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
     const botLid = sock.user?.lid?.split(':')[0]?.split('@')[0] || '';
     const senderNumber = senderId.split('@')[0];
 
-    // Only allow in groups
+    // Only allow in groups 
     if (!groupId.endsWith('@g.us')) {
-        await sendToChat(sock, groupId, { 
-            message: "❌ This command can only be used in groups." 
+        await sock.sendMessage(groupId, { 
+            text: "❌ This command can only be used in groups." 
         }, { quoted: msg });
         return;
     }
@@ -41,24 +41,24 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
     // Check if user is admin
     const isAdmin = await checkIfAdmin(sock, groupId, senderId);
     if (!isAdmin) {
-        await sendToChat(sock, groupId, { 
-            message: "❌ command not accepted \n> sudo need admin previlege." 
+        await sock.sendMessage(groupId, { 
+            text: "❌ command not accepted \n> sudo need admin previlege." 
         }, { quoted: msg });
         return;
     }
 
     const isBotAdmin = await checkIfAdmin(sock, groupId, botLid);
     if (!isBotAdmin) {
-        await sendToChat(sock, groupId, { 
-            message: "❌ I need to be an admin to destroy this group.\n> Admin previlege required." 
+        await sock.sendMessage(groupId, { 
+            text: "❌ I need to be an admin to destroy this group.\n> Admin previlege required." 
         }, { quoted: msg });
         return;
     }
 
     // Check if there's already a pending destroy operation
     if (destroyOperations[groupId]) {
-        await sendToChat(sock, groupId, { 
-            message: "⚠️ There's already a pending destroy operation. Please wait for it to complete or timeout." 
+        await sock.sendMessage(groupId, { 
+            text: "⚠️ There's already a pending destroy operation. Please wait for it to complete or timeout." 
         }, { quoted: msg });
         return;
     }
@@ -101,8 +101,8 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
             timeout: setTimeout(() => {
                 if (destroyOperations[groupId]) {
                     delete destroyOperations[groupId];
-                    sendToChat(sock, groupId, { 
-                        message: "⏰ Destroy group operation timed out." 
+                    sock.sendMessage(groupId, { 
+                        text: "⏰ Destroy group operation timed out." 
                     }).catch(console.error);
                 }
             }, CONFIRM_TIMEOUT_MS)
@@ -115,8 +115,8 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
             clearTimeout(destroyOperations[groupId].timeout);
             delete destroyOperations[groupId];
         }
-        return await sendToChat(sock, groupId, { 
-            message: `❌ Failed to initialize destroy operation: ${error.message || 'Unknown error'}` 
+        return await sock.sendMessage(groupId, { 
+            text: `❌ Failed to initialize destroy operation: ${error.message || 'Unknown error'}` 
         }, { quoted: msg });
     }
 
@@ -169,23 +169,23 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
                 });
                 
                 if (adminsToDemote.length > 0) {
-                    await sendToChat(sock, groupId, { 
-                        message: `⏳ Demoting ${adminsToDemote.length} admin(s)...` 
+                    await sock.sendMessage(groupId, { 
+                        text: `⏳ Demoting ${adminsToDemote.length} admin(s)...` 
                     });
                     
                     for (const admin of adminsToDemote) {
                         try {
                             await sock.groupParticipantsUpdate(groupId, [admin.id], 'demote');
-                            await sendToChat(sock, groupId, {
-                                message: `⬇️ Demoted @${admin.id.split('@')[0]}`,
+                            await sock.sendMessage(groupId, {
+                                text: `⬇️ Demoted @${admin.id.split('@')[0]}`,
                                 mentions: [admin.id]
                             });
                             await new Promise(resolve => setTimeout(resolve, intervalMs));
                         } catch (error) {
                             console.error(`Failed to demote ${admin.id}:`, error);
                             hasErrors = true;
-                            await sendToChat(sock, groupId, {
-                                message: `❌ Failed to demote @${admin.id.split('@')[0]}`,
+                            await sock.sendMessage(groupId, {
+                                text: `❌ Failed to demote @${admin.id.split('@')[0]}`,
                                 mentions: [admin.id]
                             });
                             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -195,8 +195,8 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
 
                 // Check if demotion phase had critical errors
                 if (hasErrors) {
-                    await sendToChat(sock, groupId, {
-                        message: '❌ Destroy group operation cancelled due to demotion failures.'
+                    await sock.sendMessage(groupId, {
+                        text: '❌ Destroy group operation cancelled due to demotion failures.'
                     });
                     return;
                 }
@@ -208,22 +208,22 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
                 });
                 
                 if (membersToRemove.length > 0) {
-                    await sendToChat(sock, groupId, { 
-                        message: `⏳ Removing ${membersToRemove.length} member(s)...` 
+                    await sock.sendMessage(groupId, { 
+                        text: `⏳ Removing ${membersToRemove.length} member(s)...` 
                     });
                     
                     for (const member of membersToRemove) {
                         try {
                             await sock.groupParticipantsUpdate(groupId, [member.id], 'remove');
-                            await sendToChat(sock, groupId, {
-                                message: `❌ Removed @${member.id.split('@')[0]}`,
+                            await sock.sendMessage(groupId, {
+                                text: `❌ Removed @${member.id.split('@')[0]}`,
                                 mentions: [member.id]
                             });
                             await new Promise(resolve => setTimeout(resolve, intervalMs));
                         } catch (error) {
                             console.error(`Failed to remove ${member.id}:`, error);
-                            await sendToChat(sock, groupId, {
-                                message: `❌ Failed to remove @${member.id.split('@')[0]}`,
+                            await sock.sendMessage(groupId, {
+                                text: `❌ Failed to remove @${member.id.split('@')[0]}`,
                                 mentions: [member.id]
                             });
                             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -232,21 +232,21 @@ async function destroyGroupCommand(sock, msg, command, args, from) {
                 }
                 
                 // 3. Finally leave the group
-                await sendToChat(sock, groupId, { 
-                    message: '👋 Leaving the group now...' 
+                await sock.sendMessage(groupId, { 
+                    text: '👋 Leaving the group now...' 
                 });
                 
                 await sock.groupLeave(groupId);
                 
             } catch (error) {
                 console.error('Error destroying group:', error);
-                await sendToChat(sock, groupId, { 
-                    message: `❌ Failed to destroy the group: ${error.message}` 
+                await sock.sendMessage(groupId, { 
+                    text: `❌ Failed to destroy the group: ${error.message}` 
                 }, { quoted: msg });
             }
         } else if (text === 'no') {
-            await sendToChat(sock, groupId, { 
-                message: "✅ Destroy group operation cancelled." 
+            await sock.sendMessage(groupId, { 
+                text: "✅ Destroy group operation cancelled." 
             }, { quoted: reply });
         }
     };
