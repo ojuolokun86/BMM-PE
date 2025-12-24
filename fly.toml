@@ -1,0 +1,26 @@
+# fly.toml app configuration file for bmm-dev-v2
+app = "bmm-dev-v2"
+primary_region = "lhr"   # ✅ London, closer to your backend + Nigeria
+
+[build]
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "1GB"
+  auto_extend_size_limit = "3GB"   # ✅ stay inside free 3GB allowance
+
+[http_service]
+  internal_port = 4000             # ✅ your Node app logs show it runs on port 4000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  max_machines_running = 1         # ✅ only 1 machine, cheapest
+  processes = ["app"]
+
+[[vm]]
+  memory = "512mb"                 # ✅ 512MB plan → $3.84/mo
+  cpu_kind = "shared"
+  cpus = 1

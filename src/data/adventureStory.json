@@ -1,0 +1,236 @@
+{
+  "meta": {
+    "title": "Caverns of Eldreth - The Dark Lord's Rise",
+    "author": "Game System",
+    "version": "2.0"
+  },
+  "levels": [
+    { "level": 1, "requiredExp": 100, "title": "Novice" },
+    { "level": 2, "requiredExp": 150, "title": "Apprentice" },
+    { "level": 3, "requiredExp": 225, "title": "Veteran" },
+    { "level": 4, "requiredExp": 340, "title": "Hero" },
+    { "level": 5, "requiredExp": 510, "title": "Champion" },
+    { "level": 6, "requiredExp": 765, "title": "Warden" },
+    { "level": 7, "requiredExp": 1147, "title": "Knight" },
+    { "level": 8, "requiredExp": 1720, "title": "Commander" },
+    { "level": 9, "requiredExp": 2580, "title": "Legend" },
+    { "level": 10, "requiredExp": 3870, "title": "Dragon Slayer" }
+  ],
+  "locations": {
+    "start": {
+      "title": "Cave Entrance",
+      "description": "The cave mouth yawns like a black tooth. Torches flicker on the walls. A weathered quest board stands nearby.",
+      "minLevel": 1,
+      "options": ["board", "enter", "inspect", "wait"],
+      "actions": {
+        "board": { "text": "The board mentions bandits in the old ruins to the east.", "nextLocation": "camp", "exp": 5, "quest": "bandit_ruins" },
+        "enter": { "text": "You carefully step into the cave...", "nextLocation": "cavern", "exp": 10 },
+        "inspect": { "text": "You find a rusty sword near the entrance!", "item": "Rusty Sword", "exp": 5 },
+        "wait": { "text": "You wait patiently. A gust reveals a hidden footprint." }
+      }
+    },
+    "camp": {
+      "title": "Rangers' Camp",
+      "description": "A small ranger outpost. A ranger offers a map and a lead to the Old Ruins.",
+      "minLevel": 1,
+      "options": ["talk", "map", "leave"],
+      "actions": {
+        "talk": { "text": "A ranger gives a tip about bandit patrols and a small reward if you help.", "gold": 10, "exp": 10 },
+        "map": { "text": "You receive a rough map pointing to the 'Old Ruins'.", "exp": 2, "nextLocation": "start" },
+        "leave": { "text": "You head back to the cave entrance.", "nextLocation": "start" }
+      }
+    },
+    "cavern": {
+      "title": "Gloom Cavern",
+      "description": "Stalactites drip. A faint rumble echoes deeper in.",
+      "minLevel": 1,
+      "options": ["forward", "back", "search"],
+      "actions": {
+        "forward": { "text": "You venture deeper into the cave...", "nextLocation": "crossroads", "exp": 15 },
+        "back": { "text": "You return to the entrance.", "nextLocation": "start" },
+        "search": { "text": "You find 5 gold coins tucked in a crevice.", "gold": 5, "exp": 5 }
+      }
+    },
+    "crossroads": {
+      "title": "Underground Crossroads",
+      "description": "Three tunnels meet here. Scraps of cloth and old bones suggest recent travelers.",
+      "minLevel": 1,
+      "options": ["north", "east", "south", "rest"],
+      "actions": {
+        "north": { "text": "A cold wind blows from the north. You move cautiously.", "nextLocation": "ruins_approach", "exp": 10 },
+        "east": { "text": "You head east into darker tunnels.", "nextLocation": "deep_cave", "exp": 10 },
+        "south": { "text": "You go back to the cavern.", "nextLocation": "cavern", "exp": 2 },
+        "rest": { "text": "You rest and recover a bit of health.", "heal": 15 }
+      }
+    },
+    "ruins_approach": {
+      "title": "Ruins Approach",
+      "description": "You see the crumbling stone of an old watchtower. Bandit voices carry on the wind.",
+      "minLevel": 2,
+      "options": ["sneak", "charge", "observe"],
+      "actions": {
+        "sneak": { "text": "You sneak closer and spot two bandit scouts.", "exp": 5, "encounter": "bandit_scouts" },
+        "charge": { "text": "You charge forward and the bandits are alerted!", "encounter": "bandit_party", "exp": 2 },
+        "observe": { "text": "You observe patrol patterns and find a weak point.", "exp": 5, "nextLocation": "ruins_entry" }
+      }
+    },
+    "ruins_entry": {
+      "title": "Old Ruins",
+      "description": "Broken columns and collapsed roofs. This place reeks of lawlessness.",
+      "minLevel": 2,
+      "options": ["enter", "sneak", "retreat"],
+      "actions": {
+        "enter": { "text": "You enter the ruins carefully.", "exp": 10, "encounter": "bandit_party" },
+        "sneak": { "text": "You slip between shadows and avoid some patrols.", "exp": 12, "nextLocation": "treasure_room" },
+        "retreat": { "text": "You retreat to the crossroads.", "nextLocation": "crossroads" }
+      }
+    },
+    "treasure_room": {
+      "title": "Hidden Chamber",
+      "description": "A small chamber hidden beneath rubble. A faint glimmer hints at treasure.",
+      "minLevel": 3,
+      "options": ["open", "trap", "leave"],
+      "actions": {
+        "open": { "text": "You open a chest and find a silver amulet.", "item": "Silver Amulet", "exp": 25, "gold": 50 },
+        "trap": { "text": "A trap springs! You take damage but salvage a blade.", "item": "Salvaged Blade", "exp": 10, "heal": -20 },
+        "leave": { "text": "You leave the chamber quietly.", "nextLocation": "ruins_entry" }
+      }
+    },
+    "deep_cave": {
+      "title": "Deep Cave",
+      "description": "The air grows thick. Something moves in the dark.",
+      "minLevel": 2,
+      "options": ["advance", "retreat", "light"],
+      "actions": {
+        "advance": { "text": "You advance and encounter a cave beast!", "encounter": "cave_beast" },
+        "retreat": { "text": "You retreat to the crossroads.", "nextLocation": "crossroads" },
+        "light": { "text": "You light a stronger torch, revealing hidden details.", "exp": 2 }
+      }
+    },
+    "crystal_cave": {
+      "title": "Crystal Cave",
+      "description": "Glowing crystals illuminate this beautiful cavern. The air feels charged with ancient magic.",
+      "minLevel": 2,
+      "options": ["mine", "meditate", "explore", "leave"],
+      "actions": {
+        "mine": { "text": "You carefully extract some crystals.", "item": "Magic Crystal", "exp": 15 },
+        "meditate": { "text": "The crystal's energy restores your vitality.", "heal": 30, "exp": 10 },
+        "explore": { "text": "You discover a hidden passage.", "nextLocation": "underground_lake", "exp": 20 },
+        "leave": { "text": "You return to the main cavern.", "nextLocation": "cavern" }
+      }
+    },
+    "underground_lake": {
+      "title": "Underground Lake",
+      "description": "A vast dark lake stretches before you. Ancient pillars rise from the depths.",
+      "minLevel": 3,
+      "options": ["swim", "boat", "fish", "return"],
+      "actions": {
+        "swim": { "text": "Something brushes past you in the water!", "encounter": "lake_serpent", "exp": 30 },
+        "boat": { "text": "You find an old boat and row to a small island.", "nextLocation": "lake_shrine", "exp": 25 },
+        "fish": { "text": "You catch a glowing fish.", "item": "Luminous Fish", "exp": 15 },
+        "return": { "text": "You head back to drier ground.", "nextLocation": "crystal_cave" }
+      }
+    },
+    "dark_throne": {
+      "title": "Dark Throne",
+      "description": "The Dark Lord awaits on his cursed throne. The air crackles with evil energy.",
+      "minLevel": 10,
+      "options": ["challenge", "banish", "surrender"],
+      "actions": {
+        "challenge": {
+          "text": "You challenge the Dark Lord to mortal combat!",
+          "encounter": "dark_lord",
+          "exp": 100,
+          "quest": "final_battle"
+        },
+        "banish": {
+          "text": "You attempt to use the collected artifacts to banish him.",
+          "specialCheck": "has_artifacts",
+          "exp": 200,
+          "victory": true
+        },
+        "surrender": {
+          "text": "The darkness consumes you...",
+          "heal": -999,
+          "gameOver": true
+        }
+      }
+    }
+  },
+  "quests": {
+    "bandit_ruins": {
+      "title": "Bandits in the Ruins",
+      "description": "Clear the bandit presence in the Old Ruins and recover stolen goods.",
+      "steps": ["approach", "clear", "recover"],
+      "reward": { "exp": 100, "gold": 150, "item": "Bandit Token" }
+    },
+    "lost_ranger": {
+      "title": "The Lost Ranger",
+      "description": "Find the missing ranger in the crystal caves.",
+      "steps": ["find_clues", "follow_trail", "rescue_ranger"],
+      "reward": {
+        "exp": 200,
+        "gold": 100,
+        "item": "Ranger's Bow"
+      }
+    },
+    "cursed_amulet": {
+      "title": "The Cursed Amulet",
+      "description": "Cleanse the cursed amulet at the lake shrine.",
+      "steps": ["obtain_amulet", "find_shrine", "perform_ritual"],
+      "reward": {
+        "exp": 300,
+        "gold": 150,
+        "item": "Purified Amulet"
+      }
+    }
+  },
+  "monsters": {
+    "bandit_scouts": { "name": "Bandit Scouts", "hp": 30, "atk": 6, "exp": 25, "gold": 10 },
+    "bandit_party": { "name": "Bandit Party", "hp": 70, "atk": 12, "exp": 70, "gold": 40 },
+    "cave_beast": { "name": "Cave Beast", "hp": 90, "atk": 15, "exp": 120, "gold": 80 },
+    "giant_rat": {
+      "name": "Giant Rat",
+      "hp": 20,
+      "atk": 4,
+      "exp": 15,
+      "gold": 5
+    },
+    "cave_bat": {
+      "name": "Cave Bat",
+      "hp": 15,
+      "atk": 5,
+      "exp": 12,
+      "gold": 3
+    },
+    "undead_warrior": {
+      "name": "Undead Warrior",
+      "hp": 100,
+      "atk": 15,
+      "exp": 80,
+      "gold": 50
+    },
+    "dark_cultist": {
+      "name": "Dark Cultist",
+      "hp": 85,
+      "atk": 18,
+      "exp": 90,
+      "gold": 60
+    },
+    "shadow_dragon": {
+      "name": "Shadow Dragon",
+      "hp": 400,
+      "atk": 45,
+      "exp": 500,
+      "gold": 1000
+    },
+    "dark_lord": {
+      "name": "The Dark Lord",
+      "hp": 1000,
+      "atk": 60,
+      "exp": 2000,
+      "gold": 5000,
+      "special": "final_boss"
+    }
+  }
+}
