@@ -345,6 +345,29 @@ async function startTriviaRounds(sock, groupId) {
 }
 
 // Add showTriviaHelp function
+async function stopTrivia(sock, groupId, sender) {
+    const game = triviaGames.get(groupId);
+    
+    if (!game) {
+        return sock.sendMessage(groupId, {
+            text: '❌ There is no active trivia game to stop!'
+        });
+    }
+
+    // Clear any pending timeouts
+    if (game.timeoutId) {
+        clearTimeout(game.timeoutId);
+        game.timeoutId = null;
+    }
+
+    // Remove the game from active games
+    triviaGames.delete(groupId);
+    
+    return sock.sendMessage(groupId, {
+        text: '⏹️ The trivia game has been stopped by the host.'
+    });
+}
+
 async function showTriviaHelp(sock, groupId) {
     const categoryList = Object.keys(categories)
         .map(cat => `├ ${cat.toLowerCase()}`)

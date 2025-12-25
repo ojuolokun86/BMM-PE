@@ -1,201 +1,249 @@
-//require('dotenv').config();
-const path = require('path');
-const fs = require('fs');
+/**
+ * index.js
+ * Main entry point for the WhatsApp bot
+ * --------------------------------------
+ */
+
 const readline = require('readline');
 const qr = require('qrcode-terminal');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const { Boom } = require('@hapi/boom');
+const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
-const handleIncomingMessage  = require('./handler/messageHandler');
 const NodeCache = require('node-cache');
 
-const logger = pino({
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
-    }
-  }
-});
+// Restart system
+const { restartBot, registerLifecycle, sendRestartMessage } = require('./main/restart');
+
+// SQLite auth
+const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
+
+// Message handler
+const handleIncomingMessage = require('./handler/messageHandler');
+
+/* ─────────── UTILITY FUNCTIONS ─────────── */
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function log(color, text) {
+  const colors = {
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    cyan: '\x1b[36m',
+    red: '\x1b[31m',
+    reset: '\x1b[0m'
+  };
+  console.log(`${colors[color] || ''}${text}${colors.reset}`);
+}
+
+/* ─────────── PROMPTS ─────────── */
 
 function askUserChoice() {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
     console.log('\n🔐 Choose authentication method:');
-    console.log('1️⃣  QR Code (Scan with WhatsApp)');
-    console.log('2️⃣  Pairing Code (Enter 6-digit code)');
-    console.log('');
+    console.log('1️⃣  QR Code');
+    console.log('2️⃣  Pairing Code\n');
 
-    rl.question('Enter your choice (1 or 2): ', (answer) => {
+    rl.question('Enter your choice (1 or 2): ', answer => {
       rl.close();
-      const choice = answer.trim();
-      if (choice === '1' || choice === '2') {
-        resolve(choice === '1' ? 'qrCode' : 'pairingCode');
-      } else {
-        console.log('❌ Invalid choice. Defaulting to QR Code.');
-        resolve('qrCode');
-      }
+      resolve(answer.trim() === '2' ? 'pairingCode' : 'qrCode');
     });
   });
 }
 
 function askPhoneNumber() {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-    console.log('');
-    rl.question('📱 Enter your WhatsApp phone number (with country code, e.g., 1234567890): ', (answer) => {
+    rl.question('\n📱 Enter phone number (with country code): ', answer => {
       rl.close();
-      const phoneNumber = answer.trim();
-      if (phoneNumber) {
-        resolve(phoneNumber);
-      } else {
-        console.log('❌ Invalid phone number. Please try again.');
-        resolve(askPhoneNumber());
-      }
+      answer ? resolve(answer.trim()) : resolve(askPhoneNumber());
     });
   });
 }
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error(' Unhandled Promise Rejection:', reason);
-});
+/* ─────────── GLOBAL STATE ─────────── */
 
-process.on('uncaughtException', (err) => {
-  console.error(' Uncaught Exception:', err);
-});
+let sock = null;
+let restarting = false;
+const BOT_OWNER_NUMBER = '2348026977793'; // CHANGE THIS to your number
 
-async function startBot() {
-  let pairingMethod = null;
-  let phoneNumber = null;
-  let authState = null;
-  const authId = '123456';
-  const groupCache = new NodeCache({ stdTTL: 60 * 60, useClone: false });
-  
-  // Check for existing SQLite sessions
-  const existingSessions = getAllSessions();
-  
-  if (existingSessions.length > 0) {
-    // Use existing session
-    phoneNumber = existingSessions[0];
-    pairingMethod = 'pairingCode';
-    console.log(`\n📱 Loading existing session for: ${phoneNumber}`);
-    authState = await useSQLiteAuthState(authId, phoneNumber);
-  } else {
-    // No existing session, prompt for new registration
-    pairingMethod = await askUserChoice();
-    
-    if (pairingMethod === 'pairingCode') {
-      phoneNumber = await askPhoneNumber();
-      authState = await useSQLiteAuthState(authId, phoneNumber);
-    } else {
-      phoneNumber = await askPhoneNumber();
-      authState = await useSQLiteAuthState(authId, phoneNumber);
-    }
-  }
+/* ─────────── BOOT SEQUENCE ─────────── */
 
-  const { state, saveCreds } = authState;
-  
-  let qrCodeRequested = false;
-  let pairingCodeRequested = false;
-  
-  const sock = makeWASocket({
-    auth: state,
-    logger: pino({ level: 'silent' }),
-    printQRInTerminal: false,
-    markOnlineOnConnect: false,
-    downloadHistory: false,
-    receivedPendingNotifications: true,
-    groupMetadataCache: async (key) => {
-        return groupCache.get(key);
-      },
-    groupMetadataCacheSet: async (key, value) => {
-        groupCache.set(key, value);
-      },
-  });
+async function bootSequence() {
+  log('cyan', '🖥️  SYSTEM BOOT INITIATED');
+  await sleep(1500);
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr: qrCode } = update;
-    
-    if (connection === 'close') {
-      // Get error details with better error handling
-      const error = lastDisconnect?.error;
-      const statusCode = error?.output?.statusCode || error?.statusCode;
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
-      
-      // Get reason with fallbacks
-      let reason = 'Unknown reason';
-      if (error?.output?.reason) reason = error.output.reason;
-      else if (error?.message) reason = error.message;
-      else if (error?.status) reason = `Status ${error.status}`;
-      
-      console.log('\n⚠️ Connection closed with reason:', reason);
-      console.log('Error details:', JSON.stringify(error, null, 2));
-      
-      if (isLoggedOut) {
-        console.log('\n🚫 Logged out. Cleaning session from database...');
-        deleteSession(authId, phoneNumber);
-        console.log('✅ Session cleaned. Please restart the bot to reconnect.');
-        process.exit(0);
-      } else {
-        console.log('\n🔄 Attempting to reconnect in 3 seconds...');
-        setTimeout(() => {
-          console.log('\n🔄 Reconnecting...');
-          startBot().catch(err => {
-            console.error('❌ Failed to restart bot:', err);
-            process.exit(1);
-          });
-        }, 3000);
-      }
-    } else if (connection === 'open') {
-      console.log('✅ Bot connected successfully!');
-      qrCodeRequested = false;
-      pairingCodeRequested = false;
-    }
+  log('yellow', '⚙️  Loading core modules...');
+  await sleep(2000);
 
-    // 📱 QR Code Logic
-    if (pairingMethod === 'qrCode' && qrCode && !qrCodeRequested) {
-      qrCodeRequested = true;
-      console.log('\n📱 QR Code received. Scan with WhatsApp:');
-      qr.generate(qrCode, { small: true });
-    }
+  log('yellow', '🔌 Initializing network interfaces...');
+  await sleep(2000);
 
-    // 🔐 Pairing Code Logic
-    if (pairingMethod === 'pairingCode' && qrCode && !pairingCodeRequested && phoneNumber) {
-      pairingCodeRequested = true;
-      try {
-        const code = await sock.requestPairingCode(phoneNumber);
-        const formattedCode = code.match(/.{1,4}/g).join('-');
-        console.log('\n🔐 Your pairing code:', formattedCode);
-        console.log('📋 Enter this code in WhatsApp to complete pairing.');
-      } catch (err) {
-        console.error('❌ Failed to get pairing code:', err.message);
-      }
-    }
-  });
+  log('yellow', '🧠 Syncing authentication state...');
+  await sleep(2000);
 
-  sock.ev.on('creds.update', saveCreds);
+  log('green', '✅ System integrity verified');
+  await sleep(1000);
 
-  sock.ev.on('messages.upsert', async (m) => {
-    const msg = m.messages[0];
-    
-    if (!msg.message) return;
-    
-    handleIncomingMessage({authId, sock, msg, phoneNumber });
-  });
+  log('cyan', '🚀 Launching WhatsApp engine...\n');
 }
 
-startBot().catch(err => {
-  console.error(' Error starting bot:', err);
-  process.exit(1);
+/* ─────────── START BOT ─────────── */
+
+async function startBot({ restartType = 'manual' } = {}) {
+  await bootSequence();
+
+  try {
+    const authId = '123456';
+    const groupCache = new NodeCache({ stdTTL: 3600, useClone: false });
+
+    let phoneNumber;
+    let pairingMethod;
+
+    const sessions = getAllSessions();
+
+    if (sessions.length) {
+      phoneNumber = sessions[0];
+      pairingMethod = 'pairingCode';
+      console.log(`📱 Loaded session: ${phoneNumber}`);
+    } else {
+      pairingMethod = await askUserChoice();
+      phoneNumber = await askPhoneNumber();
+    }
+
+    const { state, saveCreds } = await useSQLiteAuthState(authId, phoneNumber);
+
+    let qrShown = false;
+    let pairingRequested = false;
+
+    sock = makeWASocket({
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      printQRInTerminal: false,
+      markOnlineOnConnect: false,
+      receivedPendingNotifications: true,
+      groupMetadataCache: key => groupCache.get(key),
+      groupMetadataCacheSet: (key, value) => groupCache.set(key, value)
+    });
+
+    /* ─── CONNECTION EVENTS ─── */
+    sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+      if (connection === 'open') {
+        console.log('✅ Bot connected');
+        qrShown = false;
+        pairingRequested = false;
+
+        // Send online system message if restarting
+        if (restarting) {
+          await sendSystemOnlineMessage();
+        }
+        restarting = false;
+      }
+
+      if (connection === 'close') {
+        const code = lastDisconnect?.error?.output?.statusCode;
+        const loggedOut = code === DisconnectReason.loggedOut;
+
+        console.log('⚠️ Connection closed:', code);
+
+        if (loggedOut) {
+          console.log('🚫 Logged out — clearing session');
+          deleteSession(authId, phoneNumber);
+          process.exit(0);
+        }
+
+        if (!restarting) {
+          console.log('🔄 Auto-restart triggered');
+          await restartBot({ type: 'crash', sock, phoneNumber});
+        }
+      }
+
+      // QR
+      if (pairingMethod === 'qrCode' && qr && !qrShown) {
+        qrShown = true;
+        qrTerminal(qr);
+      }
+
+      // Pairing code
+      if (pairingMethod === 'pairingCode' && qr && !pairingRequested) {
+        pairingRequested = true;
+        const code = await sock.requestPairingCode(phoneNumber);
+        console.log('🔐 Pairing Code:', code.match(/.{1,4}/g).join('-'));
+      }
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+
+    sock.ev.on('messages.upsert', ({ messages }) => {
+      const msg = messages[0];
+      if (!msg?.message) return;
+      handleIncomingMessage({ authId, sock, msg, phoneNumber });
+    });
+
+    // Send online message to owner
+    if (restartType === 'manual') {
+      await sendRestartMessage(sock, phoneNumber, { type: 'initial', additionalInfo: `Bot started successfully on ${phoneNumber}.` });
+    }
+
+  } catch (err) {
+    console.error('❌ Failed to start bot:', err.message);
+    process.exit(1);
+  }
+}
+
+/* ─────────── STOP BOT ─────────── */
+
+async function stopBot() {
+  try {
+    restarting = true;
+    if (sock) {
+      sock.ev.removeAllListeners();
+      sock.ws?.close();
+      sock = null;
+    }
+    console.log('🛑 Bot stopped');
+  } catch (err) {
+    console.error('❌ Stop error:', err.message);
+  }
+}
+
+/* ─────────── SYSTEM ONLINE MESSAGE ─────────── */
+
+async function sendSystemOnlineMessage() {
+  try {
+    if (!sock?.user) return;
+
+    const botJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+
+    await sock.sendMessage(botJid, {
+      text: `🖥️ [SYSTEM ONLINE]\n> STATUS: OPERATIONAL\n> MODE: STABLE\n> UPTIME: RESET`
+    });
+  } catch (err) {
+    console.error('❌ Failed to send system online message:', err.message);
+  }
+}
+
+/* ─────────── REGISTER LIFECYCLE ─────────── */
+
+registerLifecycle({
+  startBot,
+  stopBot
 });
+
+/* ─────────── EXPORTS ─────────── */
+
+module.exports = {
+  startBot,
+  stopBot
+};
+
+/* ─────────── START BOT ─────────── */
+
+// Only start the bot if this file is run directly
+if (require.main === module) {
+  startBot();
+}
