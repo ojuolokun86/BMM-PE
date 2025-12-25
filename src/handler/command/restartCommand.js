@@ -1,23 +1,27 @@
-const { restartBotForUser } = require('../../main/restart');
+const { restartBot } = require('../../main/restart');
 const { isBotOwner } = require('../../database/database');
-const sendToChat = require('../../utils/sendToChat');
 
 const restartState = new Map();
 
 async function restartCommand(authId, sock, msg) {
     const from = msg.key.remoteJid;
-    const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
-    const botLid = sock.user?.lid?.split(':')[0]?.split('@')[0];
+
+    const botId =
+        sock.user?.id?.split(':')[0]?.split('@')[0] ||
+        sock.user?.lid?.split(':')[0]?.split('@')[0];
+
     const sender = msg.key.participant || msg.key.remoteJid;
     const senderId = sender?.split('@')[0];
 
+    // Prevent duplicate restarts
     if (restartState.has(botId)) {
         return await sock.sendMessage(from, {
             text: `🖥️ [SYSTEM ALERT]: Restart protocol is currently ACTIVE.\n> STATUS: Please wait for completion.`
         });
     }
 
-    if (!msg.key.fromMe && !isBotOwner(senderId, botId, botLid)) {
+    // Permission check
+    if (!msg.key.fromMe && !isBotOwner(senderId, botId)) {
         return await sock.sendMessage(from, {
             text: `🖥️ [ACCESS DENIED]: Unauthorized restart attempt detected.\n> STATUS: Only root operator may execute this command.`
         });
@@ -30,53 +34,35 @@ async function restartCommand(authId, sock, msg) {
             text: `🖥️ [RESTART SEQUENCE INITIATED]\n> STATUS: Preparing system reboot...\n> EXECUTION: In 5 seconds`
         });
 
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(r => setTimeout(r, 5000));
 
-        try {
-            await sock.sendMessage(from, {
-                text: `🖥️ [SYSTEM]: Reboot protocol engaged.\n> PROCESS: Shutting down modules...`
-            });
-        } catch (e) {
-            console.warn('Could not send final restart message:', e.message);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const { success, error } = await restartBotForUser({
-            authId: authId,
-            phoneNumber: botId,
-            restartType: 'command',
-            additionalInfo: `🖥️ [SYSTEM NOTICE]: Restart completed successfully.\n> STATUS: OPERATIONAL`,
-            onStatus: async (status) => {
-                if (status === 'stopping') {
-                    console.log(`[SYSTEM] BOT ${botId}: Shutdown sequence in progress...`);
-                } else if (status === 'starting') {
-                    console.log(`[SYSTEM] BOT ${botId}: Reinitializing core modules...`);
-                } else if (status === 'connected') {
-                    console.log(`[SYSTEM] BOT ${botId}: Connection re-established. System online.`);
-                    setTimeout(() => {
-                        restartState.delete(botId);
-                        console.log(`[SYSTEM] BOT ${botId}: Restart state cleared.`);
-                    }, 10000);
-                }
-            }
+        await sock.sendMessage(from, {
+            text: `🖥️ [SYSTEM]: Reboot protocol engaged.\n> PROCESS: Shutting down modules...`
         });
 
-        if (!success) {
-            throw new Error(error || 'Restart protocol failure');
-        }
+        await new Promise(r => setTimeout(r, 1000));
+
+        // 🔄 ACTUAL RESTART (NEW LOGIC)
+        restartBot({
+            type: 'command',
+            additionalInfo: `🖥️ [SYSTEM NOTICE]: Restart completed successfully.\n> STATUS: OPERATIONAL`
+        });
 
     } catch (error) {
-        console.error('Error in restart command:', error);
+        console.error('❌ Error in restart command:', error.message);
         restartState.delete(botId);
 
         try {
             await sock.sendMessage(from, {
                 text: `🖥️ [SYSTEM ERROR]: Restart process aborted.\n> REASON: ${error.message}`
             });
-        } catch (e) {
-            console.error('Could not send error message:', e.message);
-        }
+            console.log(`error in restart ${error.message}`)
+        } catch {}
+    } finally {
+        // Safety unlock
+        setTimeout(() => {
+            restartState.delete(botId);
+        }, 15000);
     }
 }
 

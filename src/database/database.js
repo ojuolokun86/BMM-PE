@@ -120,12 +120,51 @@ function getUserPrefix(user_id) {
   return row?.prefix || '.';
 }
 function getUserStatusViewMode(user_id) {
-  const row = db.prepare(`SELECT status_view_mode FROM users WHERE user_id = ?`).get(user_id);
-  return typeof row?.status_view_mode === 'number' ? row.status_view_mode : 0;
+  try {
+    // First check if user exists
+    const userExists = db.prepare('SELECT 1 FROM users WHERE user_id = ?').get(user_id);
+    
+    if (!userExists) {
+      // If user doesn't exist, create with default status_view_mode of 0
+      db.prepare(
+        `INSERT OR IGNORE INTO users (user_id, status_view_mode) VALUES (?, 0)`
+      ).run(user_id);
+      return 0;
+    }
+    
+    // Get the status_view_mode for existing user
+    const row = db.prepare(`SELECT status_view_mode FROM users WHERE user_id = ?`).get(user_id);
+    
+    // Ensure we return a number (0, 1, or 2)
+    const mode = parseInt(row?.status_view_mode, 10);
+    return isNaN(mode) || mode < 0 || mode > 2 ? 0 : mode;
+  } catch (error) {
+    console.error('Error in getUserStatusViewMode:', error);
+    return 0; // Default to 0 (Silent Mode) on error
+  }
 }
 
 function setUserStatusViewMode(user_id, mode) {
-  db.prepare(`UPDATE users SET status_view_mode = ? WHERE user_id = ?`).run(mode, user_id);
+  // First, ensure the user exists
+  const userExists = db.prepare('SELECT 1 FROM users WHERE user_id = ?').get(user_id);
+  
+  if (userExists) {
+    // Update existing user
+    db.prepare(`UPDATE users SET status_view_mode = ? WHERE user_id = ?`).run(mode, user_id);
+  } else {
+    // If user doesn't exist, create with default values
+    db.prepare(
+      `INSERT INTO users (user_id, status_view_mode) VALUES (?, ?)`
+    ).run(user_id, mode);
+  }
+  
+  // Verify the update was successful
+  const updated = db.prepare('SELECT status_view_mode FROM users WHERE user_id = ?').get(user_id);
+  if (!updated || updated.status_view_mode !== mode) {
+    console.error(`Failed to update status_view_mode for user ${user_id}`);
+    return false;
+  }
+  return true;
 }
 
 function setUserPrefix(user_id, prefix) {
