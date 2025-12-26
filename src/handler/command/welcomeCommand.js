@@ -1,19 +1,19 @@
 const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled } = require('../../database/welcomeDb');
 const { checkIfAdmin } = require('./kick');
 const menu = (welcome, goodbye) => `
-🤖 [WELCOME/GOODBYE CONFIGURATION]
-────────────────────────────
-[CURRENT STATUS]
-• WELCOME: ${welcome ? '🟢 ENABLED' : '🔴 DISABLED'}
-• GOODBYE: ${goodbye ? '🟢 ENABLED' : '🔴 DISABLED'}
-────────────────────────────
-[INSTRUCTIONS]
-• Reply with:
-  1 → TOGGLE WELCOME
-  2 → TOGGLE GOODBYE
-  3 → TOGGLE BOTH
-────────────────────────────
-[SYSTEM STATUS]: AWAITING USER INPUT...
+👋 Welcome & Goodbye Messages
+
+Here’s how things look right now 👇
+• Welcome: ${welcome ? 'ON 🟢' : 'OFF 🔴'}
+• Goodbye: ${goodbye ? 'ON 🟢' : 'OFF 🔴'}
+
+What do you want to change?
+Reply with:
+1️⃣ Turn welcome on/off
+2️⃣ Turn goodbye on/off
+3️⃣ Turn both on/off
+
+Just send the number 🙂
 `;
 
 async function welcomeCommand(sock, msg) {
