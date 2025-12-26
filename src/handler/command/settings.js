@@ -22,17 +22,9 @@ module.exports = async function settingsCommand(authId, sock, msg) {
   const commandReact = settings.commandReact
   const welcomeSettings = settings.welcomeSettings || {};
   const followedTeams = settings.userFollowedTeams || [];
-  const { subscription_level, daysLeft } = settings;
   const version = settings.botVersion;
   
   // Format subscription text
-  let subscriptionText = 'Not subscribed';
-  if (subscription_level) {
-    subscriptionText = `Level: ${subscription_level}`;
-    if (daysLeft !== undefined) {
-      subscriptionText += ` (${daysLeft} days left)`;
-    }
-  }
 
   let welcomeText = "Not configured";
   if (typeof welcomeSettings.welcome === 'boolean' && typeof welcomeSettings.goodbye === 'boolean') {
@@ -80,7 +72,6 @@ module.exports = async function settingsCommand(authId, sock, msg) {
 � *Owner*: ${owner}
 � *Mode*: ${mode}
 � *Prefix*: ${prefix}
-� *Subscription*: ${subscriptionText}
 � *Status View*: ${statusView}
 ${version ? `� *Version*: ${version}` : ''}
 ✨ *Command React*: ${commandReact ? '✅ ON' : '❌ OFF'}

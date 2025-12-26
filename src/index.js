@@ -70,7 +70,7 @@ function askPhoneNumber() {
 let sock = null;
 let restarting = false;
 const BOT_OWNER_NUMBER = '2348026977793'; // CHANGE THIS to your number
-
+const groupCache = new NodeCache({ stdTTL: 3600, useClone: false });
 /* ─────────── BOOT SEQUENCE ─────────── */
 
 async function bootSequence() {
@@ -99,7 +99,7 @@ async function startBot({ restartType = 'manual' } = {}) {
 
   try {
     const authId = '123456';
-    const groupCache = new NodeCache({ stdTTL: 3600, useClone: false });
+    
 
     let phoneNumber;
     let pairingMethod;
@@ -184,6 +184,27 @@ async function startBot({ restartType = 'manual' } = {}) {
       handleIncomingMessage({ authId, sock, msg, phoneNumber });
     });
 
+    sock.ev.on('groups.update', (updates) => {
+  for (const update of updates) {
+    if (update.id) {
+      groupCache.del(update.id); // 🔥 invalidate cache
+      console.log(`♻️ Group cache refreshed: ${update.id}`);
+    }
+  }
+});
+
+
+    sock.ev.on('group-participants.update', async (update) => {
+      //console.log('group participants update:', update);
+      // Handle group participant updates (welcome, goodbye, etc.)
+      try {
+        const handleGroupParticipantsUpdate = require('./handler/features/welcome');
+        await handleGroupParticipantsUpdate(sock, update, groupCache);
+      } catch (err) {
+        console.error('Error in welcome handler:', err);
+      }
+    });
+
     // Send online message to owner
     if (restartType === 'manual') {
       await sendRestartMessage(sock, phoneNumber, { type: 'initial', additionalInfo: `Bot started successfully on ${phoneNumber}.` });
@@ -194,6 +215,16 @@ async function startBot({ restartType = 'manual' } = {}) {
     process.exit(1);
   }
 }
+
+async function getGroupMetadataCached(sock, groupId, cache) {
+  const cached = cache.get(groupId);
+  if (cached) return cached;
+
+  const metadata = await sock.groupMetadata(groupId);
+  cache.set(groupId, metadata);
+  return metadata;
+}
+
 
 /* ─────────── STOP BOT ─────────── */
 
@@ -238,7 +269,8 @@ registerLifecycle({
 
 module.exports = {
   startBot,
-  stopBot
+  stopBot,
+  getGroupMetadataCached
 };
 
 /* ─────────── START BOT ─────────── */
