@@ -226,9 +226,9 @@ async function startBot({ restartType = 'manual' } = {}) {
     });
 
     // Send online message to owner
-    if (restartType === 'manual') {
-      await sendRestartMessage(sock, phoneNumber, { type: 'initial', additionalInfo: `Bot started successfully on ${phoneNumber}.` });
-    }
+    // if (restartType === 'manual') {
+    //   await sendRestartMessage(sock, phoneNumber, { type: 'initial', additionalInfo: `Bot started successfully on ${phoneNumber}.` });
+    // }
 
   } catch (err) {
     console.error('❌ Failed to start bot:', err.message);
@@ -273,6 +273,7 @@ async function sendSystemOnlineMessage() {
     await sock.sendMessage(botJid, {
       text: `🖥️ [SYSTEM ONLINE]\n> STATUS: OPERATIONAL\n> MODE: STABLE\n> UPTIME: RESET`
     });
+    await sendRestartMessage(sock, botJid, { type: 'initial', additionalInfo: `Bot started successfully on ${botJid}.` });
   } catch (err) {
     console.error('❌ Failed to send system online message:', err.message);
   }
