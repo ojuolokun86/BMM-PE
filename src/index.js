@@ -3,12 +3,11 @@
  * Main entry point for the WhatsApp bot
  * --------------------------------------
  */
-
 const readline = require('readline');
-const qr = require('qrcode-terminal');
 const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
+const qrTerminal = require('qrcode-terminal');
 
 // Restart system
 const { restartBot, registerLifecycle, sendRestartMessage } = require('./main/restart');
@@ -162,10 +161,31 @@ async function startBot({ restartType = 'manual' } = {}) {
         }
       }
 
-      // QR
+      // QR Code Display
       if (pairingMethod === 'qrCode' && qr && !qrShown) {
         qrShown = true;
-        qrTerminal(qr);
+        console.log('\n🔐 *Authentication Required*');
+        console.log('┌' + '─'.repeat(48) + '┐');
+        console.log('│ ' + 'Scan the QR code below to log in'.padEnd(47) + '│');
+        console.log('│ ' + '1. Open WhatsApp on your phone'.padEnd(47) + '│');
+        console.log('│ ' + '2. Tap Menu > Linked Devices > Link a Device'.padEnd(47) + '│');
+        console.log('│ ' + '3. Point your phone at the QR code'.padEnd(47) + '│');
+        console.log('└' + '─'.repeat(48) + '┘\n');
+        
+        try {
+          // Generate QR code
+          qrTerminal.generate(qr, { small: true });
+          
+          // Show WhatsApp web link as fallback
+          const qrCode = qr.split('@')[1];
+          if (qrCode) {
+            console.log('\n🔗 Or use this link if scanning fails:');
+            console.log(`https://wa.me/qr/${qrCode}`);
+          }
+        } catch (error) {
+          console.error('❌ Error generating QR code:', error.message);
+          console.log('\n⚠️  Please try restarting the application.');
+        }
       }
 
       // Pairing code
