@@ -1,10 +1,9 @@
 const axios = require('axios');
 const os = require('os');
-const { exec, execSync } = require('child_process');
+const { exec } = require('child_process');
 const https = require('https');
 const { performance } = require('perf_hooks');
-const util = require('util');
-const execPromise = util.promisify(exec);
+
 
 // Latency Check
 function measureLatency(url = 'https://google.com') {
@@ -38,63 +37,26 @@ function measureDownloadSpeed(url = 'https://speed.hetzner.de/1MB.bin') {
     });
 }
 
-// Check if speedtest-cli is installed
-async function isSpeedtestInstalled() {
-    try {
-        await execPromise('speedtest --version');
-        return true;
-    } catch (error) {
-        return false;
-    }
-}
-
-// Install speedtest-cli
-async function installSpeedtest() {
-    try {
-        console.log('Installing speedtest-cli...');
-        if (process.platform === 'win32') {
-            // For Windows
-            await execPromise('pip install speedtest-cli');
-        } else {
-            // For Linux/Mac
-            await execPromise('sudo apt-get update && sudo apt-get install -y speedtest-cli || brew install speedtest-cli');
-        }
-        console.log('speedtest-cli installed successfully');
-        return true;
-    } catch (error) {
-        console.error('Failed to install speedtest-cli:', error);
-        return false;
-    }
-}
-
 // CLI Speedtest
-async function getSpeedTest() {
-    try {
-        // Check if speedtest is installed
-        const isInstalled = await isSpeedtestInstalled();
-        if (!isInstalled) {
-            console.log('speedtest-cli not found, attempting to install...');
-            const installed = await installSpeedtest();
-            if (!installed) {
-                throw new Error('Failed to install speedtest-cli. Please install it manually.');
+function getSpeedTest() {
+    return new Promise((resolve, reject) => {
+        exec('speedtest', (error, stdout) => {
+            if (error) return reject(`⚠️ [SYSTEM ERROR]: Speedtest module failure.`);
+            try {
+                const pingMatch = stdout.match(/Latency:\s+([\d.]+)\s+ms/);
+                const downloadMatch = stdout.match(/Download:\s+([\d.]+)\s+Mbps/);
+                const uploadMatch = stdout.match(/Upload:\s+([\d.]+)\s+Mbps/);
+
+                resolve({
+                    ping: pingMatch ? parseFloat(pingMatch[1]) : 'Error',
+                    download: downloadMatch ? parseFloat(downloadMatch[1]) : 'Error',
+                    upload: uploadMatch ? parseFloat(uploadMatch[1]) : 'Error'
+                });
+            } catch (e) {
+                reject(`⚠️ [SYSTEM ERROR]: Parse failure in speedtest module.`);
             }
-        }
-
-        const { stdout } = await execPromise('speedtest --simple');
-        
-        const pingMatch = stdout.match(/Latency:\s+([\d.]+)\s+ms/);
-        const downloadMatch = stdout.match(/Download:\s+([\d.]+)\s+Mbps/);
-        const uploadMatch = stdout.match(/Upload:\s+([\d.]+)\s+Mbps/);
-
-        return {
-            ping: pingMatch ? `${pingMatch[1]} ms` : 'N/A',
-            download: downloadMatch ? `${downloadMatch[1]} Mbps` : 'N/A',
-            upload: uploadMatch ? `${uploadMatch[1]} Mbps` : 'N/A'
-        };
-    } catch (error) {
-        console.error('Speedtest error:', error);
-        throw new Error(`Speedtest failed: ${error.message}`);
-    }
+        });
+    });
 }
 
 // VPN Info
@@ -143,20 +105,7 @@ async function infoCommand(sock, msg) {
     let vpnBlock = '', botBlock = '', privacyBlock = '', osBlock = '';
 
     try {
-        let speedtest = {};
-        try {
-            speedtest = await getSpeedTest();
-        } catch (speedtestError) {
-            console.error('Speedtest error:', speedtestError);
-            // Continue with other metrics even if speedtest fails
-        }
-        
-        const [latency, download] = await Promise.all([
-            measureLatency(),
-            measureDownloadSpeed()
-        ]);
-
-        const [vpn] = await Promise.all([getVpnInfo()]);
+        const [vpn, speed] = await Promise.all([ getVpnInfo(), getSpeedTest() ]);
         const flag = getFlagEmoji(vpn?.country || '');
         const location = `${vpn?.city}, ${vpn?.region}, ${vpn?.country}`.trim();
         const serverId = `${process.env.MASKED_ID || 'Unknown'}-${vpn?.country || 'XXX'} ${flag}`;
