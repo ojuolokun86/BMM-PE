@@ -196,6 +196,14 @@ async function startBot({ restartType = 'manual' } = {}) {
       }
     });
 
+    
+    try {
+            await sock.assertSessions([`${phoneNumber}@s.whatsapp.net`]);
+            console.log(`✅ session assert  uploaded to WhatsApp for ${phoneNumber}`);
+        } catch (error) {
+            console.warn(`⚠️ Failed to assert session:`, error.message);
+        }
+
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('messages.upsert', ({ messages }) => {
