@@ -35,6 +35,7 @@ const getMainMenu = (
 > 🔄 restart → Reboot system
 > 🚪 logout → Logout session
 > 😎 react → React to commands
+> 📊 disk → Show storage & memory info
 
 🛡️ *MODERATION & SECURITY*
 

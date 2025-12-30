@@ -43,6 +43,12 @@ const commandRegistry = {
     category: 'Core',
     ownerOnly: true
   },
+  disk: {
+    description: 'Show storage & memory info',
+    usage: 'disk',
+    category: 'Core'
+  },
+  
   prefix: {
     description: 'Change command prefix',
     usage: 'prefix <new_prefix>',
