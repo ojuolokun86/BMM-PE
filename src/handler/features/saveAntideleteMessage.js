@@ -51,13 +51,13 @@ async function handleIncomingForAntidelete(sock, msg) {
   // Save text
   if (type === 'conversation') {
     const content = message.conversation;
-    saveTextToStore(msgId, content, senderJid);
+    await saveTextToStore(msgId, content, senderJid);
     return;
   }
-
+  
   if (type === 'extendedTextMessage' && message.extendedTextMessage.text) {
     const content = message.extendedTextMessage.text;
-    saveTextToStore(msgId, content, senderJid);
+    await saveTextToStore(msgId, content, senderJid);
     return;
   }
 
