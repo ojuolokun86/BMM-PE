@@ -58,11 +58,23 @@ async function saveMediaToDisk(messageId, buffer, type, caption, deletedBy) {
 }
 
 async function saveTextToDisk(messageId, content, deletedBy) {
-  const record = { messageId, content, deletedBy, timestamp: Date.now() };
   try {
+    const record = { 
+      messageId, 
+      content, 
+      deletedBy, 
+      timestamp: Date.now() 
+    };
+    
+    // Ensure the directory exists
+    await fs.mkdir(path.dirname(TEXT_FILE), { recursive: true });
+    
+    // Append to file with newline
     await fs.appendFile(TEXT_FILE, JSON.stringify(record) + '\n');
+    return true;
   } catch (error) {
     console.error('Error saving text to disk:', error);
+    return false;
   }
 }
 
@@ -201,18 +213,32 @@ async function getMediaFromDisk(messageId) {
   }
 }
 
-function getTextFromDisk(messageId) {
-  if (!fs.existsSync(TEXT_FILE)) return null;
-
-  const lines = fs.readFileSync(TEXT_FILE, 'utf8').split('\n');
-  for (const line of lines) {
-    if (!line) continue;
+async function getTextFromDisk(messageId) {
+  try {
+    // Check if file exists using async/await
     try {
-      const obj = JSON.parse(line);
-      if (obj.messageId === messageId) return obj;
-    } catch {}
+      await fs.access(TEXT_FILE);
+    } catch {
+      return null; // File doesn't exist
+    }
+
+    const content = await fs.readFile(TEXT_FILE, 'utf8');
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      if (!line) continue;
+      try {
+        const obj = JSON.parse(line);
+        if (obj.messageId === messageId) return obj;
+      } catch (error) {
+        console.error('Error parsing line:', error);
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error in getTextFromDisk:', error);
+    return null;
   }
-  return null;
 }
 
 

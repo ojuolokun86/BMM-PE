@@ -113,30 +113,47 @@ function deleteMediaFromStore(messageId) {
 }
 
 // TEXT
-function saveTextToStore(messageId, content, deletedBy) {
-  textStore.set(messageId, {
-    content,
-    deletedBy,
-    timestamp: Date.now()
-  });
-  saveTextToDisk(messageId, content, deletedBy);
+async function saveTextToStore(messageId, content, deletedBy) {
+  try {
+    // Create the text data object
+    const textData = {
+      messageId,
+      content,
+      deletedBy,
+      timestamp: Date.now()
+    };
+
+    // Save to memory
+    textStore.set(messageId, textData);
+    
+    // Save to disk
+    await saveTextToDisk(messageId, content, deletedBy);
+    
+    return textData;
+  } catch (error) {
+    console.error('Error in saveTextToStore:', error);
+    return null;
+  }
 }
 
-function getTextFromStore(messageId) {
-  const ram = textStore.get(messageId);
-  if (ram) return ram;
-
-  const disk = getTextFromDisk(messageId);
-  if (!disk) return null;
-
-  // optional: re-cache
-  textStore.set(messageId, {
-    content: disk.content,
-    deletedBy: disk.deletedBy,
-    timestamp: Date.now()
-  });
-
-  return disk;
+async function getTextFromStore(messageId) {
+  try {
+    // Check in-memory store first
+    if (textStore.has(messageId)) {
+      return textStore.get(messageId);
+    }
+    
+    // If not in memory, try to load from disk
+    const textData = await getTextFromDisk(messageId);
+    if (textData) {
+      // Cache in memory for future access
+      textStore.set(messageId, textData);
+    }
+    return textData || null;
+  } catch (error) {
+    console.error('Error getting text from store:', error);
+    return null;
+  }
 }
 
 
