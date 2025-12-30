@@ -1,4 +1,4 @@
-const sendToChat = require('../../utils/sendToChat');
+//const sendToChat = require('../../utils/sendToChat');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 
 let lastTagAllEmoji = null; // Store the last used emoji
@@ -89,7 +89,8 @@ async function tagCommand(sock, msg, command, args) {
   else if (quotedType === 'extendedTextMessage') additionalMessage = quoted.extendedTextMessage.text;
 
   // Media types
-  const isMedia = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'voiceMessage'].includes(quotedType);
+  const isMedia = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage'].includes(quotedType);
+
 
   // Handle media reply
   if (isMedia && quoted) {
@@ -105,17 +106,29 @@ async function tagCommand(sock, msg, command, args) {
       return;
     }
 
-    const mediaType = quotedType.replace('Message', '');
     const caption = command === 'tagall'
       ? generateTagAllMessage(groupName, senderName, botOwnerName, additionalMessage || mediaMsg.caption, participants, adminList, getNewRandomEmoji(), senderJid).text
       : (additionalMessage || mediaMsg.caption || '');
 
-    await sock.sendMessage(remoteJid, {
-      media: buffer,
-      mediaType,
+    let mediaPayload = {
       caption,
-      mentions: participants,
-    }, { quotedMessage: msg });
+      mentions: participants
+    };
+
+    if (quotedType === 'imageMessage') {
+      mediaPayload.image = buffer;
+    } else if (quotedType === 'videoMessage') {
+      mediaPayload.video = buffer;
+    } else if (quotedType === 'documentMessage') {
+      mediaPayload.document = buffer;
+      mediaPayload.fileName = mediaMsg.fileName || 'file';
+    } else if (quotedType === 'audioMessage') {
+      mediaPayload.audio = buffer;
+      mediaPayload.mimetype = mediaMsg.mimetype;
+    }
+
+    await sock.sendMessage(remoteJid, mediaPayload, { quoted: msg });
+
 
     return;
   }
