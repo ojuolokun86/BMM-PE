@@ -13,7 +13,7 @@ async function handleDeletedMessage(sock, msg) {
   if (!protocol || protocol.type !== 0) return;
   const chatId = remoteJid;
   const msgId = protocol.key.id;
-  const textData = getTextFromStore(msgId);
+  const textData = await getTextFromStore(msgId);
    if (remoteJid === 'status@broadcast') {
   //console.log(`⏭️ Skipping restore: deleted status message (${msgId})`);
   return;
@@ -79,13 +79,13 @@ async function handleDeletedMessage(sock, msg) {
       text: `♻️ *Restored deleted message*\n\n*Content:* ${textData.content}${deletedByTag ? `\n*By:* ${deletedByTag}` : ''}\n*At:* ${timestamp}`,
       mentions
     });
-    //console.log(`Restoring deleted message to: ${targetJid}, mentioning: ${mentions}`);
-    deleteTextFromStore(msgId);
+    //console.log(`[ANTIDELETE] Restoring deleted message to: ${targetJid}, mentioning: ${mentions}`);
+    await deleteTextFromStore(msgId);
     return;
   }
 
   // Restore media
-  const mediaData = getMediaFromStore(msgId);
+  const mediaData = await getMediaFromStore(msgId);
   if (mediaData) {
     const fullCaption = `♻️ *Deleted media restored*${deletedByTag ? `\n*By:* ${deletedByTag}` : ''}\n*At:* ${timestamp}`
     + (mediaData.caption ? `\n\n📝 *Caption:* ${mediaData.caption}` : '');
@@ -95,7 +95,7 @@ async function handleDeletedMessage(sock, msg) {
     caption: fullCaption,
     mentions
   }, { quoted: msg });
-    deleteMediaFromStore(msgId);
+    await deleteMediaFromStore(msgId);
     return;
   }
 

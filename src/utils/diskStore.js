@@ -241,11 +241,53 @@ async function getTextFromDisk(messageId) {
   }
 }
 
+async function deleteMediaFromDisk(messageId) {
+  try {
+    const files = await fs.readdir(MEDIA_DIR);
+    const targets = files.filter(f => f.startsWith(messageId));
+
+    for (const file of targets) {
+      await fs.unlink(path.join(MEDIA_DIR, file));
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[DiskStore] deleteMediaFromDisk error:', err);
+    return false;
+  }
+}
+
+async function deleteTextFromDisk(messageId) {
+  try {
+    if (!(await fileExists(TEXT_FILE))) return true;
+
+    const content = await fs.readFile(TEXT_FILE, 'utf8');
+    const lines = content.split('\n').filter(Boolean);
+
+    const filtered = lines.filter(line => {
+      try {
+        const obj = JSON.parse(line);
+        return obj.messageId !== messageId;
+      } catch {
+        return false;
+      }
+    });
+
+    await fs.writeFile(TEXT_FILE, filtered.join('\n') + '\n');
+    return true;
+  } catch (err) {
+    console.error('[DiskStore] deleteTextFromDisk error:', err);
+    return false;
+  }
+}
+
 
 module.exports = {
   saveMediaToDisk,
   saveTextToDisk,
   getMediaFromDisk,
   getTextFromDisk,
-  cleanupOldFiles // Export for manual cleanup if needed
+  cleanupOldFiles,
+  deleteMediaFromDisk,
+  deleteTextFromDisk // Export for manual cleanup if needed
 };
