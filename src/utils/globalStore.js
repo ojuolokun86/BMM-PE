@@ -1,4 +1,5 @@
 // utils/globalStore.js
+const { saveMediaToDisk, saveTextToDisk, getMediaFromDisk, getTextFromDisk } = require('./diskStore');
 
 const botInstances = {};
 const botStartTimes = {}; // { botId: timestamp_ms }
@@ -13,6 +14,53 @@ let disappearingChats = new Set();
 const MAX_MEDIA_FILES = 100;
 const MAX_TEXT_FILES = 200;
 const EXPIRATION_TIME = 30 * 60 * 1000; // 30  minutes
+// Add these helper functions at the top of globalStore.js
+function getObjectSize(obj) {
+  return Buffer.byteLength(JSON.stringify(obj), 'utf8');
+}
+
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
+}
+
+// Add these methods to the exports
+function getStoreStats() {
+  let mediaSize = 0;
+  let textSize = 0;
+  
+  // Calculate media store size
+  for (const [key, value] of mediaStore.entries()) {
+    mediaSize += getObjectSize(key) + getObjectSize(value);
+  }
+  
+  // Calculate text store size
+  for (const [key, value] of textStore.entries()) {
+    textSize += getObjectSize(key) + getObjectSize(value);
+  }
+  
+  return {
+    media: {
+      count: mediaStore.size,
+      size: mediaSize,
+      formatted: formatBytes(mediaSize)
+    },
+    text: {
+      count: textStore.size,
+      size: textSize,
+      formatted: formatBytes(textSize)
+    },
+    total: {
+      count: mediaStore.size + textStore.size,
+      size: mediaSize + textSize,
+      formatted: formatBytes(mediaSize + textSize)
+    }
+  };
+}
+
 
 // MEDIA
 // Update saveMediaToStore and getMediaFromStore to handle senderJid
@@ -24,6 +72,7 @@ function saveMediaToStore(messageId, buffer, type, caption, deletedBy) {
     deletedBy,
     timestamp: Date.now()
   });
+  saveMediaToDisk(messageId, buffer, type, caption, deletedBy);
 }
 
 function getBotInstanceCount() {
@@ -33,7 +82,19 @@ function getBotInstanceCount() {
 }
 
 function getMediaFromStore(messageId) {
-  return mediaStore.get(messageId);
+  const ram = mediaStore.get(messageId);
+  if (ram) return ram;
+
+  const disk = getMediaFromDisk(messageId);
+  if (!disk) return null;
+
+  // optional: re-cache in RAM
+  mediaStore.set(messageId, {
+    buffer: disk.buffer,
+    timestamp: Date.now()
+  });
+
+  return disk;
 }
 
 function deleteMediaFromStore(messageId) {
@@ -47,11 +108,26 @@ function saveTextToStore(messageId, content, deletedBy) {
     deletedBy,
     timestamp: Date.now()
   });
+  saveTextToDisk(messageId, content, deletedBy);
 }
 
 function getTextFromStore(messageId) {
-  return textStore.get(messageId);
+  const ram = textStore.get(messageId);
+  if (ram) return ram;
+
+  const disk = getTextFromDisk(messageId);
+  if (!disk) return null;
+
+  // optional: re-cache
+  textStore.set(messageId, {
+    content: disk.content,
+    deletedBy: disk.deletedBy,
+    timestamp: Date.now()
+  });
+
+  return disk;
 }
+
 
 function deleteTextFromStore(messageId) {
   textStore.delete(messageId);
@@ -100,5 +176,8 @@ module.exports = {
   saveTextToStore,
   getTextFromStore,
   deleteTextFromStore,
-  getBotInstanceCount
+  getBotInstanceCount,
+  getStoreStats,
+  mediaStore,
+  textStore,
 };
