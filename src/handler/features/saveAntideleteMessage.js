@@ -75,7 +75,7 @@ if (isMedia) {
     const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: null });
     const caption = message[type]?.caption || '';
     const cleanType = type.replace('Message', '');
-    saveMediaToStore(msgId, buffer, cleanType, caption, senderJid); // <-- add senderJid
+    await saveMediaToStore(msgId, buffer, cleanType, caption, senderJid); // <-- add senderJid
   } catch (e) {
     console.error(`❌ Failed to save media for ${msgId}:`, e.message);
   }

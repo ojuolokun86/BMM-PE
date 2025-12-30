@@ -36,12 +36,21 @@ async function getDirSize(dir) {
   return sizes.reduce((total, size) => total + size, 0);
 }
 
-function saveMediaToDisk(messageId, buffer, type, caption, deletedBy) {
+async function saveMediaToDisk(messageId, buffer, type, caption, deletedBy) {
   try {
     const filename = `${messageId}_${Date.now()}_${type}.bin`;
     const filePath = path.join(MEDIA_DIR, filename);
-    fs.writeFileSync(filePath, buffer);
-    return { filePath, type, caption, deletedBy, timestamp: Date.now() };
+    
+    // Use async/await with promises API
+    await fs.writeFile(filePath, buffer);
+    
+    return {
+      filePath,
+      type,
+      caption,
+      deletedBy,
+      timestamp: Date.now()
+    };
   } catch (error) {
     console.error('Error saving media to disk:', error);
     return null;

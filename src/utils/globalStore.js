@@ -64,15 +64,26 @@ function getStoreStats() {
 
 // MEDIA
 // Update saveMediaToStore and getMediaFromStore to handle senderJid
-function saveMediaToStore(messageId, buffer, type, caption, deletedBy) {
-  mediaStore.set(messageId, {
-    buffer,
-    type,
-    caption,
-    deletedBy,
-    timestamp: Date.now()
-  });
-  saveMediaToDisk(messageId, buffer, type, caption, deletedBy);
+async function saveMediaToStore(messageId, buffer, type, caption, deletedBy) {
+  try {
+    // Save to disk first
+    const mediaInfo = await saveMediaToDisk(messageId, buffer, type, caption, deletedBy);
+    if (!mediaInfo) return null;
+
+    // Then save to memory
+    mediaStore.set(messageId, {
+      buffer,
+      type,
+      caption,
+      deletedBy,
+      timestamp: Date.now()
+    });
+
+    return mediaInfo;
+  } catch (error) {
+    console.error('Error saving media to store:', error);
+    return null;
+  }
 }
 
 function getBotInstanceCount() {
