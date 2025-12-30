@@ -1,5 +1,5 @@
 // utils/globalStore.js
-const { saveMediaToDisk, saveTextToDisk, getMediaFromDisk, getTextFromDisk } = require('./diskStore');
+const { saveMediaToDisk, saveTextToDisk, getMediaFromDisk, getTextFromDisk, deleteMediaFromDisk, deleteTextFromDisk } = require('./diskStore');
 
 const botInstances = {};
 const botStartTimes = {}; // { botId: timestamp_ms }
@@ -108,9 +108,6 @@ function getMediaFromStore(messageId) {
   return disk;
 }
 
-function deleteMediaFromStore(messageId) {
-  mediaStore.delete(messageId);
-}
 
 // TEXT
 async function saveTextToStore(messageId, content, deletedBy) {
@@ -147,7 +144,10 @@ async function getTextFromStore(messageId) {
     const textData = await getTextFromDisk(messageId);
     if (textData) {
       // Cache in memory for future access
-      textStore.set(messageId, textData);
+      textStore.set(messageId, {
+        ...textData,
+        timestamp: Date.now()
+      });
     }
     return textData || null;
   } catch (error) {
@@ -157,8 +157,14 @@ async function getTextFromStore(messageId) {
 }
 
 
-function deleteTextFromStore(messageId) {
+async function deleteMediaFromStore(messageId) {
+  mediaStore.delete(messageId);
+  await deleteMediaFromDisk(messageId);
+}
+
+async function deleteTextFromStore(messageId) {
   textStore.delete(messageId);
+  await deleteTextFromDisk(messageId);
 }
 
 // Auto-cleanup
