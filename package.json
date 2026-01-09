@@ -37,7 +37,7 @@
     "@hapi/boom": "^10.0.1",
     "@rodrigogs/baileys-store": "^1.0.1",
     "@supabase/supabase-js": "^2.57.2",
-    "@whiskeysockets/baileys": "7.0.0-rc.9",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.2.0",
     "colors": "^1.4.0",

@@ -10,7 +10,7 @@ const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
 
 // Restart system
-const { restartBot, registerLifecycle, sendRestartMessage } = require('./main/restart');
+const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource } = require('./main/restart');
 
 // SQLite auth
 const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
@@ -93,7 +93,10 @@ async function bootSequence() {
 
 /* ─────────── START BOT ─────────── */
 
-async function startBot({ restartType = 'manual' } = {}) {
+// Detect restart source if not explicitly provided
+const restartSource = detectRestartSource();
+
+async function startBot({ restartType = 'manual', source = restartSource } = {}) {
   await bootSequence();
 
   try {
@@ -127,6 +130,7 @@ async function startBot({ restartType = 'manual' } = {}) {
       receivedPendingNotifications: true,
       groupMetadataCache: key => groupCache.get(key),
       groupMetadataCacheSet: (key, value) => groupCache.set(key, value)
+      
     });
 
     /* ─── CONNECTION EVENTS ─── */
@@ -136,11 +140,35 @@ async function startBot({ restartType = 'manual' } = {}) {
         qrShown = false;
         pairingRequested = false;
 
-        // Send online system message if restarting
+        // Handle post-connection actions based on restart type
         if (restarting) {
-          await sendSystemOnlineMessage();
+          const restartType = restarting.type || 'manual';
+          console.log(`✅ Reconnected after ${restartType} restart`);
+          
+          // Send appropriate online message based on restart type
+          if (restartType === 'crash') {
+            await sendRestartMessage(sock, phoneNumber, { 
+              type: 'crash',
+              additionalInfo: '🔄 System recovered from unexpected termination.'
+            });
+          } else if (restartType === 'pm2') {
+            await sendRestartMessage(sock, phoneNumber, {
+              type: 'pm2',
+              additionalInfo: '🔄 PM2 process manager has restarted the bot.'
+            });
+          } else if (restartType === 'login') {
+            await sendRestartMessage(sock, phoneNumber, {
+              type: 'login',
+              additionalInfo: '🔑 New login session established.'
+            });
+          } else {
+            // For manual/command restarts
+            await sendSystemOnlineMessage();
+          }
+          
+          restarting = false;
         }
-        restarting = false;
+
       }
 
       if (connection === 'close') {
@@ -157,7 +185,14 @@ async function startBot({ restartType = 'manual' } = {}) {
 
         if (!restarting) {
           console.log('🔄 Auto-restart triggered');
-          await restartBot({ type: 'crash', sock, phoneNumber});
+          const restartType = lastDisconnect?.error?.isTemporary ? 'temporary' : 'crash';
+          await restartBot({ 
+            type: restartType,
+            sock, 
+            phoneNumber,
+            source: 'connection_close',
+            additionalInfo: `🔌 Connection closed with code: ${code}`
+          });
         }
       }
 

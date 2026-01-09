@@ -28,11 +28,29 @@ async function sendRestartMessage(sock, phoneNumber, { type = 'manual', addition
   const { version } = require('../../package.json');
 
   const messageMap = {
+    // Manual restart from command
     manual: `🖥️ [SYSTEM]: Manual reboot protocol engaged.\n> STATUS: Online\n> VERSION: ${version}\n> ACTION: System now stabilized.`,
+    
+    // Restart via restart command
     command: `🖥️ [COMMAND]: Reboot directive acknowledged.\n> SEQUENCE: Completed successfully\n> VERSION: ${version}\n> SYSTEM: Fully operational.`,
+    
+    // Initial startup
     initial: `🖥️ [BOOT]: Initialization sequence complete.\n> STATUS: ACTIVE\n> SYSTEM: All modules loaded\n> VERSION: ${version}`,
+    
+    // Crash recovery
     crash: `🖥️ [ALERT]: Critical failure detected.\n> RECOVERY: Executed successfully\n> STATUS: STABLE\n> VERSION: ${version}`,
-    deployment: `🖥️ [UPDATE]: Firmware upgrade finalized.\n> NEW VERSION: ${version}\n> STATUS: Operational\n> NOTE: Execute 'help' for command reference.`
+    
+    // Deployment/update
+    deployment: `🖥️ [UPDATE]: Firmware upgrade finalized.\n> NEW VERSION: ${version}\n> STATUS: Operational\n> NOTE: Execute 'help' for command reference.`,
+    
+    // PM2 process restart
+    pm2: `🖥️ [SYSTEM]: Process manager restart.\n> SOURCE: PM2\n> VERSION: ${version}\n> STATUS: System refreshed`,
+    
+    // Login-triggered restart
+    login: `🖥️ [SYSTEM]: New login detected.\n> STATUS: Session refreshed\n> VERSION: ${version}\n> ACTION: System reinitialized`,
+    
+    // Scheduled restart
+    scheduled: `🖥️ [MAINTENANCE]: Scheduled restart complete.\n> VERSION: ${version}\n> STATUS: System optimized`
   };
 
   const message = `${messageMap[type] || '🔄 Bot has been restarted'}\n\n${additionalInfo || ''}`.trim();
@@ -94,6 +112,34 @@ async function handleRestartCompletion(sock, phoneNumber, { type, additionalInfo
 
 /* ─────────── LIFECYCLE MANAGEMENT ─────────── */
 
+/**
+ * Detects the source of the restart
+ * @returns {Object} { type: string, source: string }
+ */
+function detectRestartSource() {
+  // Check for PM2 environment variables
+  if (process.env.PM2_HOME || process.env.PM2_USAGE === 'CLI') {
+    return { type: 'pm2', source: 'pm2' };
+  }
+
+  // Check for command line arguments
+  const args = process.argv.slice(2);
+  if (args.includes('--deploy')) {
+    return { type: 'deployment', source: 'cli' };
+  }
+  if (args.includes('--scheduled')) {
+    return { type: 'scheduled', source: 'scheduler' };
+  }
+
+  // Check for environment variables
+  if (process.env.RESTART_TYPE) {
+    return { type: process.env.RESTART_TYPE, source: 'env' };
+  }
+
+  // Default to manual restart
+  return { type: 'manual', source: 'unknown' };
+}
+
 // References to bot lifecycle functions
 let startBotRef = null;
 let stopBotRef = null;
@@ -121,7 +167,18 @@ function registerLifecycle({ startBot, stopBot }) {
  * @param {string} [options.additionalInfo] - Extra info for message
  */
 let restarting = false;
-async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo = '' } = {}) {
+/**
+ * Restart types and their descriptions:
+ * - 'manual': Manual restart (default)
+ * - 'command': Via restart command
+ * - 'initial': First startup
+ * - 'crash': After a crash
+ * - 'deployment': After deployment/update
+ * - 'pm2': PM2 process manager restart
+ * - 'login': New login-triggered restart
+ * - 'scheduled': Scheduled/periodic restart
+ */
+async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo = '', source = 'unknown' } = {}) {
   if (restarting) {
     console.log('⏳ Restart already in progress');
     return;
@@ -133,7 +190,8 @@ async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo =
   }
 
   restarting = true;
-  console.log(`🔄 Restarting bot (${type})`);
+  const restartSource = source !== 'unknown' ? ` (${source})` : '';
+  console.log(`🔄 Restarting bot [${type}]${restartSource}`);
 
   try {
     // Stop the bot
@@ -166,5 +224,6 @@ module.exports = {
   sendRestartMessage,
   handleRestartCompletion,
   restartBot,
-  registerLifecycle
+  registerLifecycle,
+  detectRestartSource
 };

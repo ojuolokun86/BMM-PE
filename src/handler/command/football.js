@@ -248,13 +248,16 @@ class FootballCommands {
       await this.sock.presenceSubscribe(this.from);
       await this.sock.sendPresenceUpdate('composing', this.from);
 
+      // Get the display name for the league
+      const displayLeagueName = this.leagues[leagueKey] || leagueKey;
+      
       // Use the standingByLeague endpoint with the league name
       const result = await footballApp('standingByLeague', leagueKey);
       
       //console.log('Standings response:', JSON.stringify(result, null, 2));
       
       if (result?.error) {
-        console.log(`Error fetching ${leagueName} standings:`, result.error);
+        console.log(`Error fetching ${displayLeagueName} standings:`, result.error);
         
         // Show available leagues if the requested one isn't found
         if (result.error.code === 404) {
@@ -267,7 +270,7 @@ class FootballCommands {
             `Example: *${this.prefix}football league epl*` }, { quoted: this.msg });
         }
         
-        return this.sock.sendMessage(this.from, { text: `❌ Could not fetch ${leagueName} standings. Please try again later.` }, { quoted: this.msg });
+        return this.sock.sendMessage(this.from, { text: `❌ Could not fetch ${displayLeagueName} standings. Please try again later.` }, { quoted: this.msg });
       }
 
       const leagueName = result.leagueName || this.leagues[leagueKey] || leagueKey;
@@ -281,7 +284,7 @@ class FootballCommands {
       let message = `🏆 *${leagueName} Standings* 🏆\n\n`;
       
       // Show all teams in the standings
-      standings.forEach((team) => {
+      standings.forEach((team, index) => {
         const position = team.position.toString().padEnd(2);
         const points = team.points.toString().padStart(2);
         const played = team.matches.toString().padStart(2);
@@ -294,8 +297,10 @@ class FootballCommands {
         
         // Add promotion/relegation emoji if applicable
         let positionEmoji = '';
-        if (team.promotion) {
-          if (team.promotion.text.includes('Champions League')) positionEmoji = '🏆';
+        if (index === 0) {
+          positionEmoji = '🏆🏆🏆';
+        } else if (team.promotion) {
+          if (team.promotion.text.includes('Champions League')) positionEmoji = '🏆🏆';
           else if (team.promotion.text.includes('Europa')) positionEmoji = '🏆';
           else if (team.promotion.text.includes('Relegation')) positionEmoji = '⚠️';
         }
