@@ -4,10 +4,11 @@
  * --------------------------------------
  */
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, makeInMemoryStore } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
+const messageStore = require('./utils/messageStore');
 
 // Restart system
 const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource } = require('./main/restart');
@@ -17,6 +18,31 @@ const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./databas
 
 // Message handler
 const handleIncomingMessage = require('./handler/messageHandler');
+
+
+// Handle process termination
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Received SIGINT. Stopping bot gracefully...');
+  try {
+    await stopBot(true); // Save session before exiting
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error during graceful shutdown:', err);
+    process.exit(1);
+  }
+});
+
+// Also handle other termination signals
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 Received SIGTERM. Stopping bot gracefully...');
+  try {
+    await stopBot(true); // Save session before exiting
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error during graceful shutdown:', err);
+    process.exit(1);
+  }
+});
 
 /* ─────────── UTILITY FUNCTIONS ─────────── */
 
@@ -128,10 +154,16 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       receivedPendingNotifications: true,
+      appStateSyncIntervalMs: 60000,
+      keepAliveIntervalMs: 30000,
+      reconnectIntervalMs: 5000,
+      messageStore: messageStore,
       groupMetadataCache: key => groupCache.get(key),
       groupMetadataCacheSet: (key, value) => groupCache.set(key, value)
       
     });
+    messageStore.bind(sock.ev);
+    sock.authState = { saveCreds };
 
     /* ─── CONNECTION EVENTS ─── */
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
@@ -291,10 +323,23 @@ async function getGroupMetadataCached(sock, groupId, cache) {
 
 /* ─────────── STOP BOT ─────────── */
 
-async function stopBot() {
+async function stopBot(saveSession = true) {
   try {
     restarting = true;
     if (sock) {
+      // Save session before stopping if requested
+      if (saveSession && sock.authState && sock.authState.saveCreds) {
+        try {
+          console.log('💾 Saving session before stopping...');
+          await sock.authState.saveCreds();
+          console.log('✅ Session saved successfully');
+        } catch (saveError) {
+          console.error('❌ Failed to save session before stopping:', saveError.message);
+        }
+      } else if (saveSession) {
+        console.log('⚠️  Cannot save session: authState or saveCreds not available');
+      }
+      
       sock.ev.removeAllListeners();
       sock.ws?.close();
       sock = null;
