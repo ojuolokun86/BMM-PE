@@ -30,7 +30,8 @@ async function pingCommand(authId, sock, msg) {
   const ping = Math.round((Date.now() - t0) / 2);
 
   // Per-bot uptime
-  const startTs = botStartTimes[botId] || Date.now();
+  if (botId && !botStartTimes[botId]) botStartTimes[botId] = Date.now();
+  const startTs = (botId && botStartTimes[botId]) ? botStartTimes[botId] : Date.now();
   const uptime = formatUptime((Date.now() - startTs) / 1000);
   const contextInfo = {
     ...getContextInfo(),
