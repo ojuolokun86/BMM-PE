@@ -4,11 +4,13 @@
  * --------------------------------------
  */
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason, makeInMemoryStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
 const messageStore = require('./utils/messageStore');
+
+const { botStartTimes } = require('./utils/globalStore');
 
 // Restart system
 const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource } = require('./main/restart');
@@ -169,6 +171,8 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (connection === 'open') {
         console.log('✅ Bot connected');
+        const botId = sock?.user?.id?.split(':')[0]?.split('@')[0];
+        if (botId && !botStartTimes[botId]) botStartTimes[botId] = Date.now();
         qrShown = false;
         pairingRequested = false;
 
