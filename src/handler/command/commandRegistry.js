@@ -389,6 +389,12 @@ const commandRegistry = {
     usage: 'Reply to an image with .bg',
     category: 'Media'
   },
+  npm: {
+    description: 'Update Baileys package',
+    usage: 'npm',
+    category: 'Utilities',
+    ownerOnly: true
+  },
 
   // AI
   ai: {

@@ -64,7 +64,7 @@ async function muteGroup(sock, msg, userId) {
   //console.log(`🔒 Attempting to mute group: ${groupJid}`);
 
   // const isAdmin = await checkIfAdmin(sock, groupJid, userId);
-  // const isBotAdmin = await checkIfAdmin(sock, groupJid, botLid);  
+  const isBotAdmin = await checkIfAdmin(sock, groupJid, botLid);  
   // if (!isAdmin) {
   //   ///console.log(`⛔ User ${userId} is not an admin. Abort muting.`);
   //   return sock.sendMessage(groupJid, { text: '> ❌ Only group admins can mute the group.' }, { quoted: msg });
@@ -114,7 +114,7 @@ async function requestList(sock, msg, userId) {
   }
 
   // const isAdmin = await checkIfAdmin(sock, groupJid, sender);
-  // const isBotAdmin = await checkIfAdmin(sock, groupJid, botLid);
+  const isBotAdmin = await checkIfAdmin(sock, groupJid, botLid);
   // if (!isAdmin) {
   //   return sock.sendMessage(groupJid, { text: '> ❌ Only group admins can use this command.' }, { quoted: msg });
   // }
@@ -143,10 +143,10 @@ async function acceptAllRequests(sock, msg, userId) {
   }
 
       // const isAdmin = await checkIfAdmin(sock, groupJid, userId);
-      // const isBotAdmin = await checkIfAdmin(sock, groupJid, userId);
-      // if (!isAdmin) {
-      //   return sock.sendMessage(groupJid, { text: '> ❌ Only group admins can use this command.' }, { quoted: msg });
-      // }
+  const isBotAdmin = await checkIfAdmin(sock, groupJid, userId);
+  // if (!isAdmin) {
+  //   return sock.sendMessage(groupJid, { text: '> ❌ Only group admins can use this command.' }, { quoted: msg });
+  // }
   if (!isBotAdmin) {
     return sock.sendMessage(groupJid, { text: '> ❌ I need to be an admin to accept join requests.' }, { quoted: msg });
   }
