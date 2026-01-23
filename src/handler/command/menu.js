@@ -36,6 +36,7 @@ const getMainMenu = (
 > 🚪 logout → Logout session
 > 😎 react → React to commands
 > 📊 disk → Show storage & memory info
+> 📦 npm → Update Baileys package
 
 🛡️ *MODERATION & SECURITY*
 
@@ -90,6 +91,7 @@ const getMainMenu = (
 🎮 *GAME*
 > 🎮 game wordchain → Start a word chain game in group
 > 🎯 trivia → start Trivia Game
+> 🎮 rpg → start rpg game
 
 🔧 *UTILITIES*
 

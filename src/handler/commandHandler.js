@@ -66,6 +66,8 @@ const { handleTrivia } = require('./command/triviaGame');
 const { handleAdventure } = require('./command/adventureGame');
 const { handleBgRemoval } = require('./command/bg');
 const diskCommand = require('./command/disk');
+const { updateBaileysCommand } = require('./command/baileyUpdate');
+
 
 
 
@@ -350,15 +352,18 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       case 'trivia':
         await handleTrivia(sock, msg, args);
         break;
-      // case 'rpg':
-      //   await handleAdventure(sock, msg, args);
-      //   console.log('Adventure command executed');
-      //   break;
+      case 'rpg':
+        await handleAdventure(sock, msg, args);
+        console.log('Adventure command executed');
+        break;
       case 'bg':
         await handleBgRemoval(sock, msg);
         break;
       case 'disk':
         await diskCommand(sock, msg, args, prefix);
+        break;
+      case 'npm':
+        await updateBaileysCommand(sock, msg, isOwner);
         break;
       default:
         await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });

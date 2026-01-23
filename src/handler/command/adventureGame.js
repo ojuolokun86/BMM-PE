@@ -538,46 +538,48 @@ async function handleMerchantAction(sock, chatId, game, actionText) {
     await saveGameState(game.botId, game.toJSON()).catch(()=>{});
     return true;
 }
-// /**
-//  * Handle replies for adventure game.
-//  * - In groups: only accept replies that quote the bot prompt (quoted message id must match game's lastPromptId).
-//  * - In DMs: accept plain text actions (no quoting required).
-//  */
-// async function handleAdventureReply(sock, msg) {
-//     if (!msg?.key?.remoteJid) return false;
-//     const chatId = msg.key.remoteJid;
-//     const botId = sock.user.id;
-//     const isGroup = chatId.endsWith('@g.us');
+/**
+ * Handle replies for adventure game.
+ * - In groups: only accept replies that quote the bot prompt (quoted message id must match game's lastPromptId).
+ * - In DMs: accept plain text actions (no quoting required).
+ */
+async function handleAdventureReply(sock, msg) {
+    if (!msg?.key?.remoteJid) return false;
+    const chatId = msg.key.remoteJid;
+    const botId = sock.user.id;
+    const isGroup = chatId.endsWith('@g.us');
     
-//     // Get text from message
-//     const text = msg.message?.conversation || 
-//                  msg.message?.extendedTextMessage?.text || '';
-//     if (!text.trim()) return false;
+    // Get text from message
+    const text = msg.message?.conversation || 
+                 msg.message?.extendedTextMessage?.text || '';
+    if (!text.trim()) return false;
 
-//     // Check for valid game
-//     const game = adventureGames.get(botId);
-//     if (!game) return false;
+    // Check for valid game
+    const game = adventureGames.get(botId);
+    if (!game) return false;
 
-//     // In groups, validate reply matches last prompt
-//     if (isGroup) {
-//         const lastPromptId = getLastPromptId(chatId, botId);
-//         const quotedId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
-//         if (!lastPromptId || !quotedId || quotedId !== lastPromptId) {
-//             return false;
-//         }
-//     }
+    // In groups, validate reply matches last prompt
+    if (isGroup) {
+        const lastPromptId = getLastPromptId(chatId, botId);
+        const quotedId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
+        if (!lastPromptId || !quotedId || quotedId !== lastPromptId) {
+            return false;
+        }
+    }
 
-//     // Process action
-//     try {
-//         await handleAdventureAction(sock, msg, text.trim());
-//         return true;
-//     } catch (err) {
-//         console.error('Adventure reply error:', err);
-//         return false;
-//     }
-// }
-// Reply handler
-// Extract text from any message structure
+    // Process action
+    try {
+        await handleAdventureAction(sock, msg, text.trim());
+        return true;
+    } catch (err) {
+        console.error('Adventure reply error:', err);
+        return false;
+    }
+    }
+    /**
+     * Reply handler
+     * Extract text from any message structure
+     */
 function extractText(msg) {
     return msg.message?.conversation
         || msg.message?.extendedTextMessage?.text
