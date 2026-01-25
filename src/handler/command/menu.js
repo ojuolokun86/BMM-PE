@@ -37,6 +37,7 @@ const getMainMenu = (
 > 😎 react → React to commands
 > 📊 disk → Show storage & memory info
 > 📦 npm → Update Baileys package
+> 🔄 update → Update bot from GitHub
 
 🛡️ *MODERATION & SECURITY*
 
