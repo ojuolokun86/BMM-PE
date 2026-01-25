@@ -44,7 +44,6 @@ const {
 const pollCommand = require('./command/poll');
 const stickerCommand = require('./command/stikcer');
 const { checkIfAdmin } = require('./command/kick');
-const report = require('./command/report');
 const helpCommand = require('./command/help');
 const { downloadVideo } = require('./command/video');
 const { logoutCommand } = require('./command/logout');
@@ -279,9 +278,6 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'listinactive':
         await handleListInactiveCommand(sock, from);
-        break;
-      case 'report':
-        await report.execute({ sock, msg, textMsg, args });
         break;
       case 'restart':
         await restartCommand(authId, sock, msg);
