@@ -2,7 +2,8 @@ const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdat
 const { exec } = require('child_process');
 
 async function updateCommand(sock, msg, isOwner, args) {
-  if (!isOwner) {
+  const fromMe = msg.key.fromMe;
+  if (!fromMe) {
     return sock.sendMessage(msg.key.remoteJid, {
       text: '❌ Owner only command'
     });
@@ -15,7 +16,7 @@ async function updateCommand(sock, msg, isOwner, args) {
     /* 🔍 CHECK */
     if (sub === 'check') {
       const res = await checkUpdate();
-
+      console.log(`Update command executed ${res.localVersion} and ${res.remoteVersion}`);
       return sock.sendMessage(jid, {
         text: res.upToDate
           ? `✅ Bot is up to date
@@ -23,6 +24,8 @@ async function updateCommand(sock, msg, isOwner, args) {
 📦 Version: v${res.localVersion}
 🔖 Commit: ${res.localCommit}`
           : `⬆️ Update available
+
+
 
 📦 Version:
 From: v${res.localVersion}
@@ -35,6 +38,7 @@ Remote: ${res.remoteCommit}
 Use *.update* to apply`
       });
     }
+    
 
     /* 🔥 FORCE */
     if (sub === 'force') {

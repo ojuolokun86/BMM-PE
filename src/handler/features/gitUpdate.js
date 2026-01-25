@@ -1,5 +1,6 @@
-// gitUpdate.js
 const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 function run(cmd) {
   return new Promise((resolve, reject) => {
@@ -10,63 +11,75 @@ function run(cmd) {
   });
 }
 
-async function getCommits() {
-  await run('git fetch');
-  const local = await run('git rev-parse --short HEAD');
-  const remote = await run('git rev-parse --short @{u}');
-  return { local, remote };
+function getLocalVersion() {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')
+  );
+  return pkg.version;
 }
 
+/* 🔍 CHECK UPDATE */
 async function checkUpdate() {
-  const { local, remote } = await getCommits();
+  await run('git fetch origin');
+
+  const localCommit = await run('git rev-parse --short HEAD');
+  const remoteCommit = await run('git rev-parse --short origin/main');
+
+  const localVersion = getLocalVersion();
+
+  const remotePkg = await run('git show origin/main:package.json');
+  const remoteVersion = JSON.parse(remotePkg).version;
 
   return {
-    upToDate: local === remote,
-    local,
-    remote
+    upToDate:
+      localCommit === remoteCommit &&
+      localVersion === remoteVersion,
+    localCommit,
+    remoteCommit,
+    localVersion,
+    remoteVersion
   };
 }
 
+/* 🔄 NORMAL UPDATE */
 async function normalUpdate() {
-  const status = await run('git status --porcelain');
-  if (status) {
-    return { failed: true, reason: 'Local changes detected. Use `.update force`' };
-  }
+  const fromVersion = getLocalVersion();
+  const fromCommit = await run('git rev-parse --short HEAD');
 
-  const before = await run('git rev-parse --short HEAD');
-  const pull = await run('git pull');
-  const after = await run('git rev-parse --short HEAD');
+  await run('git pull origin main');
+  await run('npm install --production');
 
-  if (before === after) {
-    return { updated: false, commit: before };
-  }
-
-  const npm = await run('npm install');
+  const toVersion = getLocalVersion();
+  const toCommit = await run('git rev-parse --short HEAD');
 
   return {
-    updated: true,
-    from: before,
-    to: after,
-    pull,
-    npm
+    updated:
+      fromVersion !== toVersion ||
+      fromCommit !== toCommit,
+    fromVersion,
+    toVersion,
+    fromCommit,
+    toCommit
   };
 }
 
+/* 🔥 FORCE UPDATE */
 async function forceUpdate() {
-  const before = await run('git rev-parse --short HEAD');
+  const fromVersion = getLocalVersion();
+  const fromCommit = await run('git rev-parse --short HEAD');
 
-  await run('git reset --hard');
-  await run('git clean -fd');
-  await run('git pull');
+  await run('git fetch origin');
+  await run('git reset --hard origin/main');
+  await run('npm install --production');
 
-  const after = await run('git rev-parse --short HEAD');
-  const npm = await run('npm install');
+  const toVersion = getLocalVersion();
+  const toCommit = await run('git rev-parse --short HEAD');
 
   return {
-    updated: before !== after,
-    from: before,
-    to: after,
-    npm
+    fromVersion,
+    toVersion,
+    fromCommit,
+    toCommit
   };
 }
 
