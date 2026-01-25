@@ -159,7 +159,7 @@ const getMainMenu = (
 🖥️ *EXECUTION MODE*: Reply with a command to run.
 ℹ️ *Use help <command> for command details.*
 ⚠️ *Root access unlocks advanced privileges.*
-©️ *2025 BMM V2. All rights reserved.*
+©️ *2025 BMM V${version}. All rights reserved.*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 Follow us on whatsapp channel click view channel
 `;

@@ -4,7 +4,7 @@
  * --------------------------------------
  */
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
@@ -152,6 +152,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
     sock = makeWASocket({
       auth: state,
+      browser: Browsers.ubuntu('Chrome'),
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
       markOnlineOnConnect: false,
