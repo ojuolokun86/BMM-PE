@@ -99,4 +99,4 @@ To:   ${res.toCommit}
   }
 }
 
-module.exports = updateCommand;
+module.exports = { updateCommand };
