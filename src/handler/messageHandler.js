@@ -66,10 +66,10 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
         const triedTrivia = await handleTriviaReply(sock, msg);
         if (!triedTrivia) {
           // Only try adventure replies if there is an active adventure for this bot
-          // const advGame = adventureGames.get(botId);
-          // if (advGame?.isActive) {
-          //   await handleAdventureReply(sock, msg);
-          // }
+          const advGame = adventureGames.get(botId);
+          if (advGame?.isActive) {
+            await handleAdventureReply(sock, msg);
+          }
         }
     }
 }}

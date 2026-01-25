@@ -67,16 +67,7 @@ const { handleAdventure } = require('./command/adventureGame');
 const { handleBgRemoval } = require('./command/bg');
 const diskCommand = require('./command/disk');
 const { updateBaileysCommand } = require('./command/baileyUpdate');
-
-
-
-
-
-
-
-
-
-
+const updateCommand = require('./command/updateCommand');
 
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -354,7 +345,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'rpg':
         await handleAdventure(sock, msg, args);
-        console.log('Adventure command executed');
+        //console.log('Adventure command executed');
         break;
       case 'bg':
         await handleBgRemoval(sock, msg);
@@ -364,6 +355,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'npm':
         await updateBaileysCommand(sock, msg, isOwner);
+        break;
+      case 'update':
+        await updateCommand(sock, msg, isOwner, args);
         break;
       default:
         await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });

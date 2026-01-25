@@ -393,7 +393,13 @@ const commandRegistry = {
     description: 'Update Baileys package',
     usage: 'npm',
     category: 'Utilities',
-    ownerOnly: true
+    ownerOnly: true 
+  },
+  update: {
+    description: 'Update bot from GitHub',
+    usage: 'update',
+    category: 'Utilities',
+    ownerOnly: true 
   },
 
   // AI
