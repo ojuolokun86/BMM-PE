@@ -67,7 +67,7 @@ const { handleAdventure } = require('./command/adventureGame');
 const { handleBgRemoval } = require('./command/bg');
 const diskCommand = require('./command/disk');
 const { updateBaileysCommand } = require('./command/baileyUpdate');
-const updateCommand = require('./command/updateCommand');
+const { updateCommand } = require('./command/updateCommand');
 
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -365,9 +365,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     }
   } catch (err) {
     console.error('❌ Command error:', err);
-    // await sendToChat(sock, from, {
-    //   message: `❌ Error: ${err.message || err.toString()}`
-    // });
+    await sendToChat(sock, from, {
+      message: `❌ Error: ${err.message || err.toString()}`
+    });
   }
 }
 
