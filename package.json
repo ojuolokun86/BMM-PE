@@ -1,6 +1,6 @@
 {
   "name": "bmm",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "A powerful WhatsApp bot framework using Baileys and Supabase, designed for group automation and AI interaction.",
   "main": "src/index.js",
   "bin": {
