@@ -1,4 +1,3 @@
-const sendToChat = require('../../utils/sendToChat');
 const { botStartTimes } = require('../../utils/globalStore');
 const { version } = require('../../../package.json');
 const { getContextInfo, getForwardedContext } = require('../../utils/contextInfo');
@@ -16,7 +15,7 @@ function formatUptime(totalSeconds) {
 async function pingCommand(authId, sock, msg) {
   const chatId = msg?.key?.remoteJid;
   const botId = sock?.user?.id?.split(':')[0]?.split('@')[0];
-  const botName = 'BMM V2 ENGINE';
+  const botName = `BMM V${version} ENGINE`;
   const ownerName = sock.user.name;
   const randomEmoji = reactionEmojis[Math.floor(Math.random() * reactionEmojis.length)];
 
@@ -39,7 +38,7 @@ async function pingCommand(authId, sock, msg) {
   };
 
   const text = [
-    '╭─ BMM V2 ─────────╮',
+    `╭─ BMM V${version} ─────────╮`,
     `│ • Ping: ${ping}ms ⚡`,
     `│ • Uptime: ${uptime}`,
     `│ • Version: v${version}`,
@@ -47,7 +46,7 @@ async function pingCommand(authId, sock, msg) {
     `│ • Owner: ${ownerName || '—'}`,
     '╰─ ✅ Running ───────╯',
     '> Note: Subscription is active and fully functional.',
-    '> ©️ 2025 BMM V2. All rights reserved.'
+    `> ©️ 2025 BMM V${version}. All rights reserved.` 
   ].join('\n');
 
   // Final styled message via sendToChat so your context/forwarding/quoted applies
