@@ -5,9 +5,12 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 
 // Track active restarts to avoid duplicate triggers
 const activeRestarts = new Map();
+
+const pendingRestartFile = path.join(__dirname, '../../.pending_restart.json');
 
 /* ─────────── UTILITY: Send restart message ─────────── */
 
@@ -217,6 +220,38 @@ async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo =
   }
 }
 
+async function setPendingRestartNotification({ jid, type = 'manual', additionalInfo = '' } = {}) {
+  try {
+    if (!jid) return false;
+    const payload = {
+      jid,
+      type,
+      additionalInfo,
+      createdAt: Date.now()
+    };
+    await fs.promises.writeFile(pendingRestartFile, JSON.stringify(payload, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('❌ Failed to write pending restart notification:', err?.message || err);
+    return false;
+  }
+}
+
+function consumePendingRestartNotification() {
+  try {
+    if (!fs.existsSync(pendingRestartFile)) return null;
+    const raw = fs.readFileSync(pendingRestartFile, 'utf8');
+    fs.unlinkSync(pendingRestartFile);
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('❌ Failed to consume pending restart notification:', err?.message || err);
+    try {
+      if (fs.existsSync(pendingRestartFile)) fs.unlinkSync(pendingRestartFile);
+    } catch (_) {}
+    return null;
+  }
+}
+
 /* =========================================
  * EXPORTS
  * ========================================= */
@@ -225,5 +260,7 @@ module.exports = {
   handleRestartCompletion,
   restartBot,
   registerLifecycle,
-  detectRestartSource
+  detectRestartSource,
+  setPendingRestartNotification,
+  consumePendingRestartNotification
 };

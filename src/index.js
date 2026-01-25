@@ -13,7 +13,7 @@ const messageStore = require('./utils/messageStore');
 const { botStartTimes } = require('./utils/globalStore');
 
 // Restart system
-const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource } = require('./main/restart');
+const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource, consumePendingRestartNotification } = require('./main/restart');
 
 // SQLite auth
 const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
@@ -96,6 +96,7 @@ function askPhoneNumber() {
 
 let sock = null;
 let restarting = false;
+let pm2BootNotified = false;
 const BOT_OWNER_NUMBER = '2348026977793'; // CHANGE THIS to your number
 const groupCache = new NodeCache({ stdTTL: 3600, useClone: false });
 /* ─────────── BOOT SEQUENCE ─────────── */
@@ -204,6 +205,14 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
           }
           
           restarting = false;
+        }
+
+        const pending = consumePendingRestartNotification();
+        if (pending?.jid) {
+          await sendRestartMessage(sock, pending.jid, {
+            type: pending.type || 'manual',
+            additionalInfo: pending.additionalInfo || ''
+          });
         }
 
       }

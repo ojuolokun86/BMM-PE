@@ -1,4 +1,5 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
+const { setPendingRestartNotification } = require('../../main/restart');
 const { exec } = require('child_process');
 
 async function updateCommand(sock, msg, isOwner, args) {
@@ -39,6 +40,12 @@ async function updateCommand(sock, msg, isOwner, args) {
 🔁 Restarting bot...`
       });
 
+      await setPendingRestartNotification({
+        jid,
+        type: 'pm2',
+        additionalInfo: `🔖 From: ${res.from}\n🔖 To:   ${res.to}`
+      });
+
       return setTimeout(() => exec('pm2 restart 0'), 1500);
     }
 
@@ -67,6 +74,12 @@ async function updateCommand(sock, msg, isOwner, args) {
 🔖 To:   ${res.to}
 
 🔁 Restarting bot...`
+    });
+
+    await setPendingRestartNotification({
+      jid,
+      type: 'pm2',
+      additionalInfo: `🔖 From: ${res.from}\n🔖 To:   ${res.to}`
     });
 
     setTimeout(() => exec('pm2 restart 0'), 1500);
