@@ -1,5 +1,4 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
-const { setPendingRestartNotification } = require('../../main/restart');
 const { exec } = require('child_process');
 
 async function updateCommand(sock, msg, isOwner, args) {
@@ -19,8 +18,21 @@ async function updateCommand(sock, msg, isOwner, args) {
 
       return sock.sendMessage(jid, {
         text: res.upToDate
-          ? `✅ Bot is up to date\n\n🔖 Commit: ${res.local}`
-          : `⬆️ Update available\n\n🔖 Local:  ${res.local}\n🔖 Remote: ${res.remote}\n\nUse *.update* to apply`
+          ? `✅ Bot is up to date
+
+📦 Version: v${res.localVersion}
+🔖 Commit: ${res.localCommit}`
+          : `⬆️ Update available
+
+📦 Version:
+From: v${res.localVersion}
+To:   v${res.remoteVersion}
+
+🔖 Commit:
+Local:  ${res.localCommit}
+Remote: ${res.remoteCommit}
+
+Use *.update* to apply`
       });
     }
 
@@ -34,35 +46,32 @@ async function updateCommand(sock, msg, isOwner, args) {
         text:
 `✅ Force update completed
 
-🔖 From: ${res.from}
-🔖 To:   ${res.to}
+📦 Version:
+From: v${res.fromVersion}
+To:   v${res.toVersion}
+
+🔖 Commit:
+From: ${res.fromCommit}
+To:   ${res.toCommit}
 
 🔁 Restarting bot...`
-      });
-
-      await setPendingRestartNotification({
-        jid,
-        type: 'pm2',
-        additionalInfo: `🔖 From: ${res.from}\n🔖 To:   ${res.to}`
       });
 
       return setTimeout(() => exec('pm2 restart 0'), 1500);
     }
 
     /* 🔄 NORMAL UPDATE */
-    await sock.sendMessage(jid, { text: '🔄 Updating bot from GitHub...' });
+    await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
 
     const res = await normalUpdate();
 
-    if (res.failed) {
-      return sock.sendMessage(jid, {
-        text: `❌ Update blocked\n${res.reason}`
-      });
-    }
-
     if (!res.updated) {
       return sock.sendMessage(jid, {
-        text: `✅ Already up to date\n🔖 Commit: ${res.commit}`
+        text:
+`✅ Already up to date
+
+📦 Version: v${res.toVersion}
+🔖 Commit: ${res.toCommit}`
       });
     }
 
@@ -70,16 +79,15 @@ async function updateCommand(sock, msg, isOwner, args) {
       text:
 `⬆️ Bot updated successfully
 
-🔖 From: ${res.from}
-🔖 To:   ${res.to}
+📦 Version:
+From: v${res.fromVersion}
+To:   v${res.toVersion}
+
+🔖 Commit:
+From: ${res.fromCommit}
+To:   ${res.toCommit}
 
 🔁 Restarting bot...`
-    });
-
-    await setPendingRestartNotification({
-      jid,
-      type: 'pm2',
-      additionalInfo: `🔖 From: ${res.from}\n🔖 To:   ${res.to}`
     });
 
     setTimeout(() => exec('pm2 restart 0'), 1500);
@@ -91,4 +99,4 @@ async function updateCommand(sock, msg, isOwner, args) {
   }
 }
 
-module.exports = { updateCommand };
+module.exports = updateCommand;
