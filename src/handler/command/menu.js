@@ -124,7 +124,7 @@ const getMainMenu = (
 🖥️ *EXECUTION MODE*: Reply with a command to run.
 ℹ️ *Use help <command> for command details.*
 ⚠️ *Root access unlocks advanced privileges.*
-©️ *2025 BMM V${version}. All rights reserved.*
+©️ *2026 BMM V${version}. All rights reserved.*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 Follow us on whatsapp channel click view channel
 `;
@@ -175,6 +175,18 @@ const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
 > 🐤 baka → baka at someone
 > 🌐 translate → Translate text
 `;
+async function funMenu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
+  const funMenuText = getFunMenu(ownerName, mode, phoneNumber, prefix, version);
+  const contextInfo = {
+    ...getContextInfo(),
+    ...getForwardedContext()
+  };
+  const sent = await sock.sendMessage(chatId, {
+    text: funMenuText,
+    contextInfo,
+    quoted: message
+  });
+}
 
 async function menu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
   //console.log('Menu called with authId:', authId);
@@ -235,4 +247,4 @@ async function menu(sock, chatId, message, ownerName, mode, phoneNumber, groupId
   sock.ev.on('messages.upsert', listener);
 }
 
-module.exports = { menu };
+module.exports = { menu, funMenu };
