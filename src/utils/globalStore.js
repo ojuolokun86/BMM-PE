@@ -3,7 +3,7 @@ const { saveMediaToDisk, saveTextToDisk, getMediaFromDisk, getTextFromDisk, dele
 
 const botInstances = {};
 const botStartTimes = {}; // { botId: timestamp_ms }
-const mediaStore = new Map(); // { messageId: { buffer, caption, type, timestamp } }
+const mediaStore = new Map(); // { messageId: { filePath, caption, type, timestamp, deletedBy } }
 const textStore = new Map();  // { messageId: { content, timestamp, deletedBy } }
 let globalPresenceType = null;
 let presenceTypeStore = {};
@@ -70,13 +70,13 @@ async function saveMediaToStore(messageId, buffer, type, caption, deletedBy) {
     const mediaInfo = await saveMediaToDisk(messageId, buffer, type, caption, deletedBy);
     if (!mediaInfo) return null;
 
-    // Then save to memory
+    // Save only metadata in memory
     mediaStore.set(messageId, {
-      buffer,
-      type,
-      caption,
-      deletedBy,
-      timestamp: Date.now()
+      filePath: mediaInfo.filePath,
+      type: mediaInfo.type,
+      caption: mediaInfo.caption,
+      deletedBy: mediaInfo.deletedBy,
+      timestamp: mediaInfo.timestamp
     });
 
     return mediaInfo;
@@ -92,20 +92,19 @@ function getBotInstanceCount() {
   return count;
 }
 
-function getMediaFromStore(messageId) {
+async function getMediaFromStore(messageId) {
   const ram = mediaStore.get(messageId);
-  if (ram) return ram;
 
-  const disk = getMediaFromDisk(messageId);
+  const disk = await getMediaFromDisk(messageId);
   if (!disk) return null;
 
-  // optional: re-cache in RAM
-  mediaStore.set(messageId, {
-    buffer: disk.buffer,
-    timestamp: Date.now()
-  });
-
-  return disk;
+  return {
+    ...disk,
+    type: ram?.type || disk.type,
+    caption: ram?.caption || disk.caption,
+    deletedBy: ram?.deletedBy || disk.deletedBy,
+    timestamp: ram?.timestamp || disk.timestamp
+  };
 }
 
 

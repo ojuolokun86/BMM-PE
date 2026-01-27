@@ -1,7 +1,6 @@
 // utils/diskStore.js
 const fs = require('fs').promises;
 const path = require('path');
-const os = require('os');
 
 const BASE_DIR = path.join(process.cwd(), 'data');
 const MEDIA_DIR = path.join(BASE_DIR, 'media');
@@ -9,7 +8,7 @@ const TEXT_DIR = path.join(BASE_DIR, 'text');
 const TEXT_FILE = path.join(TEXT_DIR, 'messages.jsonl');
 
 // Constants
-const MAX_DISK_USAGE = 5 * 1024 * 1024 * 1024; // 5GB in bytes
+const MAX_DISK_USAGE = 2 * 1024 * 1024 * 1024; // 2GB in bytes
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -40,12 +39,22 @@ async function saveMediaToDisk(messageId, buffer, type, caption, deletedBy) {
   try {
     const filename = `${messageId}_${Date.now()}_${type}.bin`;
     const filePath = path.join(MEDIA_DIR, filename);
+    const metaPath = filePath.replace(/\.bin$/i, '.json');
     
     // Use async/await with promises API
     await fs.writeFile(filePath, buffer);
+    await fs.writeFile(metaPath, JSON.stringify({
+      messageId,
+      type,
+      caption,
+      deletedBy,
+      timestamp: Date.now(),
+      filePath
+    }));
     
     return {
       filePath,
+      metaPath,
       type,
       caption,
       deletedBy,
@@ -89,17 +98,27 @@ async function cleanupOldFiles() {
     const mediaFiles = await fs.readdir(MEDIA_DIR);
     for (const file of mediaFiles) {
       try {
+        if (!file.toLowerCase().endsWith('.bin')) continue;
         const filePath = path.join(MEDIA_DIR, file);
+        const metaPath = filePath.replace(/\.bin$/i, '.json');
         const stats = await fs.stat(filePath);
         
         // Check if file is older than 7 days
         if (now - stats.mtimeMs > SEVEN_DAYS) {
           await fs.unlink(filePath);
+          try {
+            await fs.unlink(metaPath);
+          } catch {}
           continue;
         }
         
         // Add to size calculation for files we're keeping
         totalSize += stats.size;
+        try {
+          const metaStats = await fs.stat(metaPath);
+          totalSize += metaStats.size;
+          fileStats.push({ path: metaPath, size: metaStats.size, mtimeMs: metaStats.mtimeMs });
+        } catch {}
         fileStats.push({ path: filePath, size: stats.size, mtimeMs: stats.mtimeMs });
       } catch (error) {
         console.error(`Error processing file ${file}:`, error);
@@ -188,10 +207,11 @@ function formatBytes(bytes, decimals = 2) {
 async function getMediaFromDisk(messageId) {
   try {
     const files = await fs.readdir(MEDIA_DIR);
-    const file = files.find(f => f.startsWith(messageId));
+    const file = files.find(f => f.startsWith(messageId) && f.toLowerCase().endsWith('.bin'));
     if (!file) return null;
 
     const filePath = path.join(MEDIA_DIR, file);
+    const metaPath = filePath.replace(/\.bin$/i, '.json');
     const buffer = await fs.readFile(filePath);
     
     // Update file access time to prevent immediate deletion of frequently accessed files
@@ -202,10 +222,19 @@ async function getMediaFromDisk(messageId) {
     const typeWithExt = parts[parts.length - 1];
     const type = typeWithExt.replace('.bin', '');
 
+    let meta = null;
+    try {
+      const rawMeta = await fs.readFile(metaPath, 'utf8');
+      meta = JSON.parse(rawMeta);
+    } catch {}
+
     return {
       buffer,
       type,
-      filePath
+      filePath,
+      caption: meta?.caption || '',
+      deletedBy: meta?.deletedBy || null,
+      timestamp: meta?.timestamp || null
     };
   } catch (error) {
     console.error('Error reading media from disk:', error);

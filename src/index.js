@@ -4,11 +4,11 @@
  * --------------------------------------
  */
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers, jidDecode } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
-const messageStore = require('./utils/messageStore');
+const store = require('./utils/store');
 
 const { botStartTimes } = require('./utils/globalStore');
 
@@ -21,7 +21,25 @@ const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./databas
 // Message handler
 const handleIncomingMessage = require('./handler/messageHandler');
 
+store.readFromFile()
+setInterval(() => store.writeToFile(), 10000)
+//console.log(store.contacts)
+// Memory optimization - Force garbage collection if available
+setInterval(() => {
+    if (global.gc) {
+        global.gc()
+        console.log('🧹 Garbage collection completed')
+    }
+}, 60_000) // every 1 minute
 
+// Memory monitoring - Restart if RAM gets too high
+setInterval(() => {
+    const used = process.memoryUsage().rss / 1024 / 1024
+    if (used > 300) {
+        console.log('⚠️ RAM too high (>300MB), restarting bot...')
+        process.exit(1) // Panel will auto-restart
+    }
+}, 30_000) // check every 30 seconds
 // Handle process termination
 process.on('SIGINT', async () => {
   console.log('\n🛑 Received SIGINT. Stopping bot gracefully...');
@@ -150,6 +168,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
     let qrShown = false;
     let pairingRequested = false;
+    const msgRetryCounterCache = new NodeCache()
 
     sock = makeWASocket({
       auth: state,
@@ -158,15 +177,31 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       receivedPendingNotifications: true,
-      appStateSyncIntervalMs: 60000,
-      keepAliveIntervalMs: 30000,
+      defaultQueryTimeoutMs: 60000,
+      connectTimeoutMs: 60000,
+      keepAliveIntervalMs: 10000,
       reconnectIntervalMs: 5000,
-      messageStore: messageStore,
+      getMessage: async (key) => {
+        const msg = await store.loadMessage(key.remoteJid, key.id)
+        return msg?.message || undefined
+      },
+      syncFullHistory: false,
       groupMetadataCache: key => groupCache.get(key),
-      groupMetadataCacheSet: (key, value) => groupCache.set(key, value)
+      groupMetadataCacheSet: (key, value) => groupCache.set(key, value),
+      msgRetryCounterCache
       
     });
-    messageStore.bind(sock.ev);
+
+    sock.decodeJid = (jid) => {
+      if (!jid) return jid
+      if (/:\d+@/gi.test(jid)) {
+        const decode = jidDecode(jid) || {}
+        return (decode.user && decode.server) ? `${decode.user}@${decode.server}` : jid
+      }
+      return jid
+    }
+
+    store.bind(sock.ev, { decodeJid: sock.decodeJid });
     sock.authState = { saveCreds };
 
     /* ─── CONNECTION EVENTS ─── */
@@ -289,6 +324,12 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
     sock.ev.on('messages.upsert', ({ messages }) => {
       const msg = messages[0];
+      if (msg.key.id.startsWith('BAE5') && msg.key.id.length === 16) return
+
+      // Clear message retry cache to prevent memory bloat
+      if (sock?.msgRetryCounterCache) {
+        sock.msgRetryCounterCache.clear()
+      }
       if (!msg?.message) return;
       handleIncomingMessage({ authId, sock, msg, phoneNumber });
     });

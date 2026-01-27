@@ -42,7 +42,7 @@ async function getDiskUsage() {
     }
 
     const totalSize = mediaSize + textSize;
-    const maxSize = 5 * 1024 * 1024 * 1024; // 5GB
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
     const usagePercent = ((totalSize / maxSize) * 100).toFixed(2);
 
     return {

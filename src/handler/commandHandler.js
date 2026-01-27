@@ -68,6 +68,8 @@ const diskCommand = require('./command/disk');
 const { updateBaileysCommand } = require('./command/baileyUpdate');
 const { updateCommand } = require('./command/updateCommand');
 const { menu, funMenu } = require('./command/menu');
+const contactCommand = require('./command/contact');
+const broadcastCommand = require('./command/broadcast');
 
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -135,6 +137,13 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
 
     // Command switch
     switch (command) {
+      case 'contacts':
+      case 'savedcontacts':
+        await contactCommand(sock, msg, args, prefix);
+        break;
+      case 'broadcast':
+        await broadcastCommand(sock, msg, args, prefix);
+        break;
       case 'help':
         await helpCommand(sock, msg, textMsg, prefix, isAdmin, isOwner);
         break;

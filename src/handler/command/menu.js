@@ -38,6 +38,7 @@ const getMainMenu = (
 > 📊 disk → Show storage & memory info
 > 📦 npm → Update Baileys package
 > 🔄 update → Update bot from GitHub
+> 🛂 contacts → See all Your Saved contact by bot
 
 🛡️ *MODERATION & SECURITY*
 
@@ -71,6 +72,7 @@ const getMainMenu = (
 > 🖼️ group pic → Reply to image to set group picture
 > 👻 listinactive → View inactive members
 > 💥 destroy → Destroy the group
+> 📤 broadcast → Broadcast message to all groups Member
 
 📁 *MEDIA*
 
