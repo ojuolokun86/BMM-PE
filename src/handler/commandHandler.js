@@ -67,6 +67,7 @@ const { handleBgRemoval } = require('./command/bg');
 const diskCommand = require('./command/disk');
 const { updateBaileysCommand } = require('./command/baileyUpdate');
 const { updateCommand } = require('./command/updateCommand');
+const { menu, funMenu } = require('./command/menu');
 
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -138,8 +139,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         await helpCommand(sock, msg, textMsg, prefix, isAdmin, isOwner);
         break;
       case 'menu':
-        const { menu } = require('./command/menu');
         await menu(sock, from, msg, botName, mode, botId, botLid, prefix, authId);
+        break;
+      case 'fun':
+        await funMenu(sock, from, msg, botName, mode, botId, botLid, prefix, authId);
         break;
       case 'ai':
       case 'gpt':
@@ -361,8 +364,8 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     }
   } catch (err) {
     console.error('❌ Command error:', err);
-    await sendToChat(sock, from, {
-      message: `❌ Error: ${err.message || err.toString()}`
+    await sock.sendMessage(from, {
+      text: `❌ Error: ${err.message || err.toString()}`
     });
   }
 }
