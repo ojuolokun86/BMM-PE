@@ -118,6 +118,26 @@ const getMainMenu = (
 > 🔮 deepseek → Chat with DeepSeek V3 AI
 
 🎨 *FUN*
+> 🎨 fun → to show Fun commands
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🖥️ *EXECUTION MODE*: Reply with a command to run.
+ℹ️ *Use help <command> for command details.*
+⚠️ *Root access unlocks advanced privileges.*
+©️ *2025 BMM V${version}. All rights reserved.*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Follow us on whatsapp channel click view channel
+`;
+
+const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
+🎨 *FUN COMMAND*
+━━━━━━━━━━━━━━━━━━━━━━━━
+> 👤 Operator: ${ownerName || 'Not Set'}
+> ⚙️ Mode: ${mode ? mode.toUpperCase() : 'PRIVATE'}
+> 📱 System ID: ${phoneNumber || 'Not Available'}
+> 🔤 Prefix: ${prefix || 'Not Set'}
+> 🧩 Firmware: v${version || '1.0.0'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 > 🪄 sticker → Convert image/video to sticker
 > 🖼️ stimage → Sticker to image
@@ -154,17 +174,7 @@ const getMainMenu = (
 > 😏 smug → smug at someone
 > 🐤 baka → baka at someone
 > 🌐 translate → Translate text
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-🖥️ *EXECUTION MODE*: Reply with a command to run.
-ℹ️ *Use help <command> for command details.*
-⚠️ *Root access unlocks advanced privileges.*
-©️ *2025 BMM V${version}. All rights reserved.*
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-Follow us on whatsapp channel click view channel
 `;
-
-
 
 async function menu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
   //console.log('Menu called with authId:', authId);
