@@ -70,6 +70,7 @@ const { updateCommand } = require('./command/updateCommand');
 const { menu, funMenu } = require('./command/menu');
 const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
+const { handleChatbotCommand } = require('./command/chatBot');
 
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -142,7 +143,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         await contactCommand(sock, msg, args, prefix);
         break;
       case 'broadcast':
-        await broadcastCommand(sock, msg, args, prefix);
+        await broadcastCommand(sock, msg);
+        break;
+      case 'chatbot':
+        await handleChatbotCommand(sock, msg, args);
         break;
       case 'help':
         await helpCommand(sock, msg, textMsg, prefix, isAdmin, isOwner);

@@ -15,9 +15,17 @@ db.prepare(`
     status_view_mode INTEGER DEFAULT 0, -- 0: default, 1: compact, 2: detailed
     react_to_command INTEGER DEFAULT 0, -- 0: off, 1: on
     followed_teams TEXT DEFAULT '[]',
+    chatbot_enabled INTEGER DEFAULT 0, -- 0: off, 1: on
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
+
+// Add chatbot_enabled column to existing users table if it doesn't exist
+try {
+  db.prepare(`ALTER TABLE users ADD COLUMN chatbot_enabled INTEGER DEFAULT 0`).run();
+} catch (e) {
+  // Column already exists, ignore error
+}
 
 // 🛡️ Antilink Settings Table
 db.prepare(`
@@ -107,6 +115,7 @@ try {
 try {
   db.prepare("ALTER TABLE users ADD COLUMN react_to_command INTEGER DEFAULT 0;").run();
 } catch (e) {}
+
 // 🔧 User Management Functions
 function saveUserToDb({ user_id, user_lid, user_name, auth_id, mode = 'private', prefix = '.', status_view_mode = 0 }) {
   db.prepare(
@@ -266,6 +275,15 @@ function setReactToCommand(user_id, enabled) {
   db.prepare(`UPDATE users SET react_to_command = ? WHERE user_id = ?`).run(enabled ? 1 : 0, user_id);
 }
 
+function isChatbotEnabled(user_id) {
+  const row = db.prepare(`SELECT chatbot_enabled FROM users WHERE user_id = ?`).get(user_id);
+  return row?.chatbot_enabled === 1;
+}
+
+function setChatbotEnabled(user_id, enabled) {
+  db.prepare(`UPDATE users SET chatbot_enabled = ? WHERE user_id = ?`).run(enabled ? 1 : 0, user_id);
+}
+
 function recordBotActivity({ user, bot, action }) {
   if (!user || !bot || !action) {
     throw new Error('Missing required parameters for recordBotActivity');
@@ -307,6 +325,22 @@ function loadGameState(playerId) {
 function deleteGameState(playerId) {
   db.prepare(`DELETE FROM adventure_games WHERE player_id = ?`).run(playerId);
 }
+function isChatbotEnabled(user_id) {
+  const row = db.prepare(
+    `SELECT chatbot_enabled FROM users WHERE user_id = ?`
+  ).get(user_id);
+  return row?.chatbot_enabled === 1;
+}
+
+function setChatbotEnabled(user_id, enabled) {
+  db.prepare(`
+    INSERT INTO users (user_id, chatbot_enabled)
+    VALUES (?, ?)
+    ON CONFLICT(user_id)
+    DO UPDATE SET chatbot_enabled = excluded.chatbot_enabled
+  `).run(user_id, enabled ? 1 : 0);
+}
+
 
 module.exports = {
   // Database instance
@@ -326,6 +360,8 @@ module.exports = {
   isBotOwner,
   getReactToCommand,
   setReactToCommand,
+  isChatbotEnabled,
+  setChatbotEnabled,
   recordBotActivity,
   followedTeams,
   addFollowedTeam,

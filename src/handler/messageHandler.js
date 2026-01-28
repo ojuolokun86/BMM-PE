@@ -3,13 +3,14 @@ const detectAndAct = require('./features/detectAndAct');
 const { getUserPrefix } = require('../database/database');
 const  handleIncomingForAntidelete = require('../handler/features/saveAntideleteMessage');
 const handleDeletedMessage  = require('./features/antideleteListener');
+const { handleChatbotResponse } = require('./command/chatBot');
 const { handleStatusUpdate } = require('./features/statusView');
 const { incrementGroupUserStat } = require('./features/groupStats');
 const globalStore = require('../utils/globalStore');
 const handleNewsletterAutoReact = require('./features/newsletterAutoReact');
-const { handleGameCommand, handleReply, handleWordChain, games } = require('./command/game');
-const { handleTrivia, handleTriviaReply } = require('./command/triviaGame');
-const { handleAdventure, handleAdventureReply, adventureGames } = require('./command/adventureGame');
+const { handleReply, handleWordChain, games } = require('./command/game');
+const { handleTriviaReply } = require('./command/triviaGame');
+const { handleAdventureReply, adventureGames } = require('./command/adventureGame');
 
 
 /*
@@ -43,6 +44,7 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   await handleNewsletterAutoReact(sock, msg);
   await handleDeletedMessage(sock, msg); // <- important
   await handleIncomingForAntidelete(sock, msg);
+  await handleChatbotResponse(sock, msg); // DM auto-reply when enabled
   await handleStatusUpdate(sock, msg, botId); // Handle status updates
   if (await detectAndAct({ sock, from, msg, textMsg })) return;
   const presenceType =

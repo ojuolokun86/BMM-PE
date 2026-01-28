@@ -72,7 +72,6 @@ const getMainMenu = (
 > 🖼️ group pic → Reply to image to set group picture
 > 👻 listinactive → View inactive members
 > 💥 destroy → Destroy the group
-> 📤 broadcast → Broadcast message to all groups Member
 
 📁 *MEDIA*
 
@@ -97,7 +96,7 @@ const getMainMenu = (
 > 🎮 rpg → start rpg game
 
 🔧 *UTILITIES*
-
+> 📤 broadcast → Broadcast message to all groups Member and more
 > 📌 status → To setup status view and status reactions
 > 👁️ vv → View once media
 > 📤 view → Send View once to your DM
@@ -118,6 +117,7 @@ const getMainMenu = (
 > 🦙 llama → Chat with Meta Llama AI
 > 🌌 mistral → Chat with Mistral AI
 > 🔮 deepseek → Chat with DeepSeek V3 AI
+> 🤖 chatbot → Chat with chatbot
 
 🎨 *FUN*
 > 🎨 fun → to show Fun commands

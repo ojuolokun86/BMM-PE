@@ -90,6 +90,8 @@ const commandRegistry = {
     ownerOnly: true
   },
 
+
+
   // Moderation & Security
   antilink: {
     description: 'Block external links',
@@ -400,6 +402,26 @@ const commandRegistry = {
     usage: 'update',
     category: 'Utilities',
     ownerOnly: true 
+  },
+  contacts: {
+    description: 'See all Your Saved contact by bot',
+    usage: 'contacts',
+    category: 'Utilities'
+  },
+  fun: {
+    description: 'See all fun commands',
+    usage: 'fun',
+    category: 'Utilities'
+  },
+  broadcast: {
+    description: 'Broadcast message to all groups Member',
+    usage: 'broadcast <message>',
+    category: 'Utilities'
+  },
+  chatbot: {
+    description: 'Chat with chatbot',
+    usage: 'chatbot',
+    category: 'Utilities'
   },
 
   // AI
