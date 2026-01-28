@@ -46,7 +46,7 @@ async function pingCommand(authId, sock, msg) {
     `│ • Owner: ${ownerName || '—'}`,
     '╰─ ✅ Running ───────╯',
     '> Note: Subscription is active and fully functional.',
-    `> ©️ 2025 BMM V${version}. All rights reserved.` 
+    `> ©️ 2026 BMM V${version}. All rights reserved.` 
   ].join('\n');
 
   // Final styled message via sendToChat so your context/forwarding/quoted applies
