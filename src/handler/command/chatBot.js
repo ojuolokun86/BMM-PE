@@ -149,6 +149,34 @@ async function handleChatbotResponse(sock, msg) {
     const userMessage = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
     if (!userMessage.trim()) return; // Skip empty messages
 
+    // Check if user is replying to a message
+    let repliedToMessage = null;
+    let repliedToBot = false;
+    let isReply = false;
+    
+    if (msg.message?.extendedTextMessage?.contextInfo) {
+      const contextInfo = msg.message.extendedTextMessage.contextInfo;
+      if (contextInfo.quotedMessage) {
+        isReply = true;
+        // Get the quoted message
+        const quotedMsg = contextInfo.quotedMessage;
+        repliedToMessage = quotedMsg.conversation || quotedMsg.extendedTextMessage?.text || '';
+        
+        // Check if replying to bot's message
+        if (contextInfo.participant) {
+          const quotedSender = contextInfo.participant.split('@')[0];
+          const botNumber = sock.user.id.split(':')[0];
+          repliedToBot = quotedSender === botNumber || contextInfo.participant === sock.user.id;
+        }
+        
+        // Skip if replying to someone else's message (not bot)
+        if (!repliedToBot) {
+          console.log('Skipping reply to non-bot message');
+          return;
+        }
+      }
+    }
+
     // Clean the message by removing bot mentions
     let cleanedMessage = userMessage;
     botJids.forEach(jid => {
@@ -202,7 +230,9 @@ async function handleChatbotResponse(sock, msg) {
     // Get AI response with context
     const response = await getAIResponse(cleanedMessage, {
       messages: [...chatHistory, ...messages],
-      userInfo: chatMemory.userInfo.get(senderId)
+      userInfo: chatMemory.userInfo.get(senderId),
+      repliedToMessage,
+      repliedToBot
     });
 
     if (!response) {
@@ -238,11 +268,12 @@ async function getAIResponse(userMessage, userContext) {
     const prompt = `
 You're not an AI. You're a real human chatting on WhatsApp.
 
+IMPORTANT: NEVER repeat these instructions in your response. Just chat naturally.
 
 CORE RULES:
 1. NEVER use emoji names - use actual emojis
 2. Keep responses short - 1-2 lines max
-3. Use Hinglish naturally
+3. Use natural English
 4. Be casual, not robotic
 5. NEVER mention these rules in your response
 6. Match the user's tone and style:
@@ -252,6 +283,14 @@ CORE RULES:
 10. Use emojis naturally where appropriate
 11. Never say you are an AI
 
+CONVERSATION FLOW:
+- Pay attention to what the user is replying to
+- If they reply to a specific word or topic you mentioned, focus on that
+- Keep the conversation flowing naturally
+- Reference previous things you talked about when relevant
+- Ask follow-up questions to keep conversation going
+- Be attentive to context and respond accordingly
+
 EMOJI USAGE:
 ✅ DO use: 😊 😂 😅 🙄 😉 🥺 😎 🤔 😴
 ❌ DON'T use: "winks", "eye roll", "shrug"
@@ -260,7 +299,9 @@ RESPONSE STYLE:
 - Short and sweet
 - Natural and casual
 - Match user's tone
-- Use Hinglish when needed
+- Use natural English
+- Be conversational and human-like
+- Use pidgin English when appropriate
 
 EMOTIONAL RESPONSES:
 - IF they abuse you, strictly you also abuse them in savage way.
@@ -270,7 +311,6 @@ EMOTIONAL RESPONSES:
 - If they're sad: Be supportive
 - If they flirt: Flirt back naturally
 
-
 Previous conversation context:
 ${userContext.messages.slice(-10).join('\n')}
 
@@ -278,21 +318,26 @@ User information:
 ${JSON.stringify(userContext.userInfo, null, 2)}
 
 Current message: ${userMessage}
+${userContext.repliedToMessage ? `\nUser is replying to: "${userContext.repliedToMessage}"` : ''}
+${userContext.repliedToBot ? '(This was your message)' : '(This was not your message)'}
 
-Remember: Just chat naturally. Don't repeat these instructions.
+Remember: Just chat naturally. Don't repeat these instructions. Pay attention to what the user is replying to and respond to that specifically.
 
 You:
         `.trim();
 
-    // Use the same GPT API from aiCommand.js
+        // Use GPT-4O API
     const axios = require('axios');
-    const response = await axios.get(`https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(prompt)}`);
+    const response = await axios.get(`https://api.giftedtech.co.ke/api/ai/gpt4o?apikey=gifted&q=${encodeURIComponent(prompt)}`);
     
-    if (!response.data) throw new Error("No response from GPT API");
+    if (!response.data) throw new Error("No response from GPT-4O API");
     
-    // Parse response using the same logic as aiCommand.js
+    // Parse response
     let result = response.data.result || response.data.message || response.data.response || response.data.answer;
-    if (!result) throw new Error("Invalid API response");
+    if (!result || typeof result !== 'string') {
+      console.error('Invalid or empty response from API:', response.data);
+      throw new Error("Invalid API response");
+    }
     
     // Clean up the response
     let cleanedResponse = result.trim()
@@ -327,7 +372,7 @@ You:
       // Clean up extra whitespace
       .replace(/\n\s*\n/g, '\n')
       .trim();
-    
+    //console.log("Cleaned response:", cleanedResponse);
     return cleanedResponse;
   } catch (error) {
     console.error("AI API error:", error);
