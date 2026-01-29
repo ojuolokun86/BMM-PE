@@ -159,10 +159,6 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'ai':
       case 'gpt':
-      case 'llama':
-      case 'mistral':
-      case 'deepseek':
-      case 'ds':
           await aiCommand(sock, from, msg, { prefix, args, command });
           break;  
       case 'ping':

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const imagePath = path.join(__dirname, '../assets/BMM2.jpg');
+const imagePath = path.join(__dirname, '../assets/BMM.jpg');
 let imageBuffer = null;
 
 if (fs.existsSync(imagePath)) {
@@ -15,7 +15,7 @@ if (fs.existsSync(imagePath)) {
  */
 function getContextInfo(options = {}) {
   const {
-    title = '🤖 BMM WhatsApp Bot',
+    title = '🤖 BMM ',
     body = 'Powering smart automation.',
     thumbnail = imageBuffer,
     renderLargerThumbnail = false

@@ -11,6 +11,7 @@ const getMainMenu = (
   prefix = 'Unknown',
   version = 'Unknown',
   authId = 'Unknown',
+  v = '1'
 ) => `
 🖥️ *SYSTEM CONTROL PANEL INITIALIZED*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -126,7 +127,7 @@ const getMainMenu = (
 🖥️ *EXECUTION MODE*: Reply with a command to run.
 ℹ️ *Use help <command> for command details.*
 ⚠️ *Root access unlocks advanced privileges.*
-©️ *2026 BMM V${version}. All rights reserved.*
+©️ *2026 BMM V${v}. All rights reserved.*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 Follow us on whatsapp channel click view channel
 `;
@@ -191,6 +192,7 @@ async function funMenu(sock, chatId, message, ownerName, mode, phoneNumber, grou
 }
 
 async function menu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
+  const v = version.split('.')[0];
   //console.log('Menu called with authId:', authId);
   
   // Get subscription info with proper error handling
@@ -206,6 +208,7 @@ async function menu(sock, chatId, message, ownerName, mode, phoneNumber, groupId
     prefix,
     version, 
     authId,
+    v
   );
   //console.log('Generated menu text with subscription:', { 
   //  level: subscription.subscription_level, 

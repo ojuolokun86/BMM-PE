@@ -2,6 +2,7 @@ const { getUserStatusViewMode } = require('../../database/database');
 
 const viewedStatusMap = new Map(); // Map to store id => timestamp
 const statusEmojis = ['❤️', '💚', '🔥', '🥳', '😍', '🤩', '🙌', '💯'];
+const statusStaticEmoji = '💚';
 const STATUS_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Periodically clean expired IDs every hour
@@ -73,7 +74,7 @@ async function handleStatusUpdate(sock, msg, userId) {
         console.log(`👀 Viewed status from ${participant}`);
 
         if (mode === 2) {
-            const emoji = statusEmojis[Math.floor(Math.random() * statusEmojis.length)];
+            const emoji = statusStaticEmoji;
 
             if (!participant || typeof participant !== 'string') {
                 console.warn('⚠️ Invalid participant. Skipping reaction.');

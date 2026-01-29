@@ -3,57 +3,18 @@ const axios = require('axios');
 
 const AI_PROVIDERS = {
     'gpt': {
-        name: "🤖 GPT-3.5",
-        url: (query) => `https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(query)}`,
+        name: "🤖 GPT-4O-Mini",
+        url: (query) => `https://api.giftedtech.co.ke/api/ai/gpt4o-mini?apikey=gifted&q=${encodeURIComponent(query)}`,
         method: 'GET',
         responseParser: (data) => {
             if (data && data.result) return data.result;
             if (data && data.message) return data.message;
             if (data && data.response) return data.response;
-            return "No response from GPT-3.5";
-        },
-        errorMessage: "GPT-3.5 is currently unavailable."
-    },
-    'llama': {
-        name: "🦙 Meta Llama",
-        url: (query) => `https://api.giftedtech.co.ke/api/ai/meta-llama?apikey=gifted&q=${encodeURIComponent(query)}`,
-        method: 'GET',
-        responseParser: (data) => {
-            if (data && data.result) return data.result;
             if (data && data.answer) return data.answer;
-            if (data && data.response) return data.response;
-            return "No response from Llama";
+            return "No response from GPT-4O-Mini";
         },
-        errorMessage: "Llama AI is currently unavailable."
-    },
-    'mistral': {
-        name: "🌬️ Mistral AI",
-        url: (query) => `https://api.giftedtech.co.ke/api/ai/mistral?apikey=gifted&q=${encodeURIComponent(query)}`,
-        method: 'GET',
-        responseParser: (data) => {
-            if (data && data.result) return data.result;
-            if (data && data.answer) return data.answer;
-            if (data && data.response) return data.response;
-            return "No response from Mistral";
-        },
-        errorMessage: "Mistral AI is currently unavailable."
-    },
-   'deepseek': {
-            name: "🔍 DeepSeek V3",
-            url: (query) => `https://api.giftedtech.co.ke/api/ai/deepseek-v3?apikey=gifted&q=${encodeURIComponent(query)}`,
-            method: 'GET',
-            responseParser: (data) => {
-                // Handle case when API returns success but no result
-                if (data && data.status === 200 && data.success) {
-                    return "I'm sorry, I couldn't generate a response. Please try again or ask a different question.";
-                }
-                if (data && data.result) return data.result;
-                if (data && data.answer) return data.answer;
-                if (data && data.response) return data.response;
-                return "No response from DeepSeek";
-            },
-            errorMessage: "DeepSeek V3 is currently unavailable."
-        }
+        errorMessage: "GPT-4O-Mini is currently unavailable."
+    }
 };
 
 function formatAIResponse(provider, response) {
@@ -123,16 +84,7 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
 │   └─ Use any available AI model
 │
 │ • *${prefix}gpt <message>*
-│   └─ Chat with GPT-3.5
-│
-│ • *${prefix}llama <message>*
-│   └─ Chat with Meta Llama
-│
-│ • *${prefix}mistral <message>*
-│   └─ Chat with Mistral AI
-│
-│ • *${prefix}deepseek <message>*
-│   └─ Chat with DeepSeek V3
+│   └─ Chat with GPT-4O-Mini
 │
 │ Example: *${prefix}ai* How does quantum computing work?
 
@@ -147,19 +99,7 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
             text: "⏳ *Processing your request...*"
         });
 
-        let providersToTry = [];
-        
-        if (cmd === 'gpt') {
-            providersToTry = [AI_PROVIDERS.gpt, AI_PROVIDERS.llama, AI_PROVIDERS.mistral, AI_PROVIDERS.deepseek];
-        } else if (cmd === 'llama') {
-            providersToTry = [AI_PROVIDERS.llama, AI_PROVIDERS.gpt, AI_PROVIDERS.mistral];
-        } else if (cmd === 'mistral') {
-            providersToTry = [AI_PROVIDERS.mistral, AI_PROVIDERS.gpt, AI_PROVIDERS.llama];
-        } else if (cmd === 'deepseek' || cmd === 'ds') {
-            providersToTry = [AI_PROVIDERS.deepseek, AI_PROVIDERS.gpt, AI_PROVIDERS.mistral];
-        } else {
-            providersToTry = Object.values(AI_PROVIDERS).sort(() => Math.random() - 0.5);
-        }
+        let providersToTry = [AI_PROVIDERS.gpt];
 
         for (const [index, currentProvider] of providersToTry.entries()) {
             try {

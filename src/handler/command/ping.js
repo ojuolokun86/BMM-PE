@@ -13,9 +13,10 @@ function formatUptime(totalSeconds) {
 }
 
 async function pingCommand(authId, sock, msg) {
+  const v = version.split('.')[0];
   const chatId = msg?.key?.remoteJid;
   const botId = sock?.user?.id?.split(':')[0]?.split('@')[0];
-  const botName = `BMM V${version} ENGINE`;
+  const botName = `BMM V${v} ENGINE`;
   const ownerName = sock.user.name;
   const randomEmoji = reactionEmojis[Math.floor(Math.random() * reactionEmojis.length)];
 
@@ -36,9 +37,8 @@ async function pingCommand(authId, sock, msg) {
     ...getContextInfo(),
     ...getForwardedContext()
   };
-
   const text = [
-    `╭─ BMM V${version} ─────────╮`,
+    `╭─ BMM V${v} ─────────╮`,
     `│ • Ping: ${ping}ms ⚡`,
     `│ • Uptime: ${uptime}`,
     `│ • Version: v${version}`,
@@ -46,7 +46,7 @@ async function pingCommand(authId, sock, msg) {
     `│ • Owner: ${ownerName || '—'}`,
     '╰─ ✅ Running ───────╯',
     '> Note: Subscription is active and fully functional.',
-    `> ©️ 2026 BMM V${version}. All rights reserved.` 
+    `> ©️ 2026 BMM V${v}. All rights reserved.` 
   ].join('\n');
 
   // Final styled message via sendToChat so your context/forwarding/quoted applies
