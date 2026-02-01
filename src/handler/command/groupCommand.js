@@ -27,7 +27,7 @@ const getGroupAdmins = async (sock, groupId) => {
       .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
       .map(p => p.id);
 
-    console.log(`✅ Admins in group ${groupId}:`, admins);
+   // console.log(`✅ Admins in group ${groupId}:`, admins);
     return admins;
   } catch (err) {
     console.error(`❌ Error getting admins for ${groupId}:`, err);

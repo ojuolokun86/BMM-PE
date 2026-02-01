@@ -25,7 +25,7 @@ function getTimezone(userInput) {
     return match?.[1]?.[0] || null;
 }
 
-async function handleTimeCommand(sock, chatId, remoteJid, message, args) {
+async function handleTimeCommand(sock, remoteJid, message, args) {
     const country = args.join(' ').trim();
 
     if (!country) {

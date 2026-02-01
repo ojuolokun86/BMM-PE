@@ -71,7 +71,7 @@ const { menu, funMenu } = require('./command/menu');
 const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
 const { handleChatbotCommand } = require('./command/chatBot');
-
+const { addFame, showFame } = require('./command/hallOfFame');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
   if (senderLid && (senderLid === botId || senderLid === botLid)) return senderLid;
@@ -369,6 +369,12 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       default:
         await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
+        break;
+      case 'hall':
+        await addFame(sock, msg, from, senderId, args,);
+        break;
+      case 'fame':
+        await showFame(sock, from);
         break;
     }
   } catch (err) {

@@ -1,18 +1,21 @@
-const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled } = require('../../database/welcomeDb');
+const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled, setShowFameEnabled } = require('../../database/welcomeDb');
 const { checkIfAdmin } = require('./kick');
-const menu = (welcome, goodbye) => `
+const { showFame } = require('./hallOfFame');
+
+const menu = (welcome, goodbye, showFame) => `
 👋 Welcome & Goodbye Messages
 
-Here’s how things look right now 👇
+Here's how things look right now 👇
 • Welcome: ${welcome ? 'ON 🟢' : 'OFF 🔴'}
 • Goodbye: ${goodbye ? 'ON 🟢' : 'OFF 🔴'}
+• Show Hall of Fame: ${showFame ? 'ON 🟢' : 'OFF 🔴'}
 
 What do you want to change?
 Reply with:
 1️⃣ Turn welcome on/off
 2️⃣ Turn goodbye on/off
 3️⃣ Turn both on/off
-
+4️⃣ Toggle Hall of Fame for new users
 Just send the number 🙂
 `;
 
@@ -35,7 +38,7 @@ async function welcomeCommand(sock, msg) {
     return;
   }
 
-  const sentMenu = await sock.sendMessage(groupId, { text: menu(settings.welcome, settings.goodbye), quoted: msg });
+  const sentMenu = await sock.sendMessage(groupId, { text: menu(settings.welcome, settings.goodbye, settings.showFame), quoted: msg });
   const menuMsgId = sentMenu.key.id;
 
   const listener = async (m) => {
@@ -57,6 +60,9 @@ async function welcomeCommand(sock, msg) {
       setWelcomeEnabled(groupId, botId, !settings.welcome);
       setGoodbyeEnabled(groupId, botId, !settings.goodbye);
       await sock.sendMessage(groupId, { text: `Welcome and Goodbye messages are now ${!settings.welcome && !settings.goodbye ? 'ON' : 'OFF'}.` });
+    } else if (input === '4') {
+      setShowFameEnabled(groupId, botId, !settings.showFame);
+      await sock.sendMessage(groupId, { text: `Hall of Fame for new users is now ${!settings.showFame ? 'ON' : 'OFF'}.` });
     } else {
       await sock.sendMessage(groupId, { text: '❌ Invalid option.' });
     }

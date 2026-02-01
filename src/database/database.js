@@ -116,6 +116,11 @@ try {
   db.prepare("ALTER TABLE users ADD COLUMN react_to_command INTEGER DEFAULT 0;").run();
 } catch (e) {}
 
+// Add show_fame column to welcome_settings table
+try {
+  db.prepare("ALTER TABLE welcome_settings ADD COLUMN show_fame INTEGER DEFAULT 0").run();
+} catch (e) {} // Ignore if already exists
+
 // 🔧 User Management Functions
 function saveUserToDb({ user_id, user_lid, user_name, auth_id, mode = 'private', prefix = '.', status_view_mode = 0 }) {
   db.prepare(

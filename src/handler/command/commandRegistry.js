@@ -119,6 +119,18 @@ const commandRegistry = {
   },
 
   // Group Management
+  hall: {
+    description: 'Add user to Hall of Fame',
+    usage: 'hall @user League, Team',
+    category: 'Group',
+    adminOnly: true
+  },
+  fame: {
+    description: 'Show Hall of Fame',
+    usage: 'fame',
+    category: 'Group',
+    adminOnly: true
+  },
   listgroup: {
     description: 'List all groups the bot is in',
     usage: 'listgroup',
