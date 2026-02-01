@@ -92,7 +92,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     const prefix = getUserPrefix(botId);
     const mode = getUserMode(botId);
     const matchedOwner = getMatchedOwner(senderId, senderLid, botId, botLid);
-    console.log('sender', senderId)
+    //console.log('sender', senderId)
 
     // Always define isGroup, isOwner, isAdmin
     const isGroup = from.endsWith('@g.us');

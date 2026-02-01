@@ -1,455 +1,485 @@
-# Development Notes
+# BMM V3 - Development Documentation
 
-## Project: BMM DEV V2 - WhatsApp Multi-Instance Bot
+## 🏗️ Architecture Overview
 
-### Backend
+BMM V3 is a modular WhatsApp bot framework built with Node.js, utilizing the Baileys library for WhatsApp Web API integration and Supabase for cloud database operations.
 
-- **User Authentication**
-  - Registration and login endpoints using Express and Supabase.
-  - Passwords are hashed with bcrypt.
-  - Unique 6-digit `auth_id` generated for each user.
-  - Duplicate email registration is handled gracefully.
+### Core Components
 
-- **Bot Deployment**
-  - `/api/deploy-bot` endpoint accepts `authId`, `phoneNumber`, `country`, and `pairingMethod`.
-  - Registration and deployment logic separated into `deployment.js`.
-  - Registration flow emits QR code or pairing code to the frontend via **Socket.IO** (migrated from native WebSocket).
-  - After successful registration, `startBmmBot` is called to start the user’s WhatsApp session.
-  - Each user session is isolated and managed for performance and low memory usage.
-  - Session directories are structured as `/sessions/{authId}/{phoneNumber}` to support multiple bots per user.
+#### 1. **Entry Point** (`src/index.js`)
+- Main application bootstrap
+- WhatsApp connection management
+- Session initialization and restoration
+- Memory management and monitoring
+- Graceful shutdown handling
 
-- **Socket.IO Integration**
-  - Dedicated `socket.js` handles Socket.IO server setup and user/bot-specific event emission.
-  - Live QR code, pairing code, and status updates are sent to the correct user/bot in real time.
-  - Frontend registers each bot session with `{authId, phoneNumber}` for targeted event delivery.
+#### 2. **Message Handler** (`src/handler/messageHandler.js`)
+- Central message processing hub
+- Command routing and execution
+- Feature integration and coordination
+- Event-driven architecture
 
-- **Session Management**
-  - Each user’s WhatsApp session uses its own folder for credentials.
-  - On disconnect:
-    - If reason is `badSession`, `loggedOut`, or `Failure`, the session is deleted and not restarted.
-    - For other reasons (e.g., `connectionClosed`, `restartRequired`), the bot is automatically restarted.
-  - Cleanup and error handling ensure unused sessions are closed and memory is freed.
-  - On server startup, all existing sessions in the `/sessions` directory are auto-started.
+#### 3. **Command System** (`src/handler/command/`)
+- Modular command handlers
+- Dynamic menu system
+- Permission-based access control
+- Command registry and aliases
 
-### Frontend
+#### 4. **Database Layer** (`src/database/`)
+- SQLite for local storage
+- Supabase integration for cloud sync
+- Session management
+- Configuration persistence
 
-- **Modern UI**
-  - All pages use a unified, mobile-friendly, modern card-based design (`style.css`).
-  - Responsive layouts for dashboard, login, register, and deploy pages.
+#### 5. **Feature Modules** (`src/handler/features/`)
+- Specialized functionality
+- Reusable components
+- Event handlers
+- Automation systems
 
-- **Authentication**
-  - Login and registration forms use email and password.
-  - Session info (`authId`, `email`) is stored in `sessionStorage` for dashboard and deployment use.
+## 📊 Database Schema
 
-- **Bot Deployment Page**
-  - Custom country dropdown with flag, search, and code, populated from API or local JSON.
-  - Phone number input is validated and formatted for WhatsApp (E.164, no `+`).
-  - Pairing method selection (QR code or pairing code).
-  - On deploy, the frontend connects to the backend via **Socket.IO** to receive live QR or pairing code and status updates.
-  - Pairing code display is now styled with a glowing/shining effect and clear instructions for the user.
+### SQLite Tables
 
-- **Socket.IO Client**
-  - Each user connects to the backend Socket.IO server and registers their bot session.
-  - UI updates in real time as registration progresses, showing QR or pairing code and status.
+#### `users`
+```sql
+CREATE TABLE users (
+  user_id TEXT PRIMARY KEY,
+  user_lid TEXT,
+  user_name TEXT,
+  auth_id TEXT,
+  mode TEXT DEFAULT 'private',
+  prefix TEXT DEFAULT '.',
+  status_view_mode INTEGER DEFAULT 0,
+  react_to_command INTEGER DEFAULT 0,
+  followed_teams TEXT DEFAULT '[]',
+  chatbot_enabled INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `welcome_settings`
+```sql
+CREATE TABLE welcome_settings (
+  group_id TEXT,
+  bot_id TEXT,
+  welcome_enabled INTEGER DEFAULT 0,
+  goodbye_enabled INTEGER DEFAULT 0,
+  show_fame INTEGER DEFAULT 1,
+  PRIMARY KEY (group_id, bot_id)
+);
+```
+
+#### `antilink_settings`
+```sql
+CREATE TABLE antilink_settings (
+  group_id TEXT,
+  bot_id TEXT,
+  mode TEXT DEFAULT 'off',
+  warn_limit INTEGER DEFAULT 2,
+  bypass_admins INTEGER DEFAULT 1,
+  PRIMARY KEY (group_id, bot_id)
+);
+```
+
+#### `antidelete_settings`
+```sql
+CREATE TABLE antidelete_settings (
+  user_id TEXT PRIMARY KEY,
+  mode TEXT DEFAULT 'off',
+  forward_to_dm INTEGER DEFAULT 0
+);
+```
+
+#### `bot_activity`
+```sql
+CREATE TABLE bot_activity (
+  user TEXT,
+  bot TEXT,
+  action TEXT,
+  time INTEGER
+);
+```
+
+#### `adventure_games`
+```sql
+CREATE TABLE adventure_games (
+  player_id TEXT PRIMARY KEY,
+  game_state TEXT,
+  last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Supabase Tables
+
+#### `hall_of_fame`
+```sql
+CREATE TABLE hall_of_fame (
+  id SERIAL PRIMARY KEY,
+  community_jid TEXT,
+  community_name TEXT,
+  user_jid TEXT,
+  league TEXT,
+  team TEXT,
+  trophies INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+## 🔧 Command System Architecture
+
+### Command Registry
+Located in `src/handler/command/commandRegistry.js`, this central registry defines:
+- Command metadata (description, usage, category)
+- Permission levels (owner, admin, user)
+- Command aliases
+- Category organization
+
+### Command Handler Flow
+1. **Message Reception**: `messageHandler.js` receives incoming messages
+2. **Command Extraction**: Extracts command and arguments from message
+3. **Permission Check**: Validates user permissions
+4. **Command Execution**: Routes to appropriate command handler
+5. **Response Generation**: Returns formatted response to user
+
+### Command Categories
+1. **Core**: Bot control, settings, information
+2. **Moderation**: Anti-link, warnings, admin tools
+3. **Group**: Management, statistics, settings
+4. **Media**: Stickers, images, video downloads
+5. **Sports**: Football updates, team tracking
+6. **Games**: Word chain, trivia, adventure
+7. **Utilities**: Time, disk, system tools
+8. **AI**: Chatbot, status automation
+9. **Fun**: Emoji reactions, quotes, facts
+10. **Features**: Advanced bot capabilities
+
+## 🎯 Feature Modules
+
+### Hall of Fame System
+**Location**: `src/handler/command/hallOfFame.js`
+
+**Key Functions**:
+- `addFame()`: Add users to Hall of Fame
+- `showFame()`: Display Hall of Fame rankings
+- `getCommunityInfo()`: Fetch community metadata
+
+**Database Integration**:
+- Uses Supabase for cloud storage
+- Trophy counting and ranking
+- Community-based organization
+
+### Welcome System
+**Location**: `src/handler/features/welcome.js`
+
+**Features**:
+- Customizable welcome messages
+- Group information display
+- Rule presentation
+- Hall of Fame integration
+- Goodbye messages
+
+**Configuration**:
+- Per-group enable/disable
+- Hall of Fame toggle
+- Custom message templates
+
+### Update System
+**Location**: `src/handler/command/updateCommand.js`, `src/handler/features/gitUpdate.js`
+
+**Update Commands**:
+- `.update`: Check for updates
+- `.update bot`: Normal update
+- `.update force`: Force update
+
+**Git Integration**:
+- Automatic version checking
+- Safe update procedures
+- Rollback capabilities
+- Automatic restart
+
+## 🔐 Security Architecture
+
+### Permission System
+Three-tier permission model:
+
+1. **Owner Only**: Critical operations
+   - Bot restart/shutdown
+   - System configuration
+   - Update deployment
+
+2. **Admin Only**: Group management
+   - Member management
+   - Group settings
+   - Moderation tools
+
+3. **User Level**: General features
+   - Entertainment commands
+   - Information requests
+   - Personal settings
+
+### Session Management
+**Location**: `src/database/sqliteAuthState.js`
+
+**Features**:
+- Encrypted session storage
+- Automatic session restoration
+- Multi-device support
+- Session cleanup on disconnect
+
+### Data Protection
+- Local SQLite backup
+- Optional cloud sync with Supabase
+- Secure API key management
+- Memory optimization
+
+## 🚀 Performance Optimization
+
+### Memory Management
+```javascript
+// Automatic garbage collection
+setInterval(() => {
+    if (global.gc) {
+        global.gc()
+        console.log('🧹 Garbage collection completed')
+    }
+}, 60_000) // Every 1 minute
+
+// Memory monitoring with auto-restart
+setInterval(() => {
+    const used = process.memoryUsage().rss / 1024 / 1024
+    if (used > 300) {
+        console.log('⚠️ RAM too high (>300MB), restarting bot...')
+        process.exit(1)
+    }
+}, 30_000) // Every 30 seconds
+```
+
+### Session Optimization
+- Efficient session storage
+- Automatic cleanup
+- Memory leak prevention
+- Connection pooling
+
+### Message Processing
+- Event-driven architecture
+- Async message handling
+- Queue management
+- Error recovery
+
+## 🔌 API Integration
+
+### Supabase Client
+**Location**: `src/supabaseClient.js`
+
+```javascript
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+```
+
+### External APIs
+- **Football Data**: League updates, match results
+- **YouTube**: Video downloads, metadata
+- **Timezone**: World clock functionality
+- **Media Processing**: Image/video manipulation
+
+## 🧩 Development Guidelines
+
+### Adding New Commands
+
+1. **Create Command Handler**
+```javascript
+// src/handler/command/newCommand.js
+async function newCommand(sock, msg, args) {
+  // Command logic here
+}
+
+module.exports = newCommand;
+```
+
+2. **Register Command**
+```javascript
+// src/handler/command/commandRegistry.js
+newCommand: {
+  description: 'Command description',
+  usage: 'newCommand [args]',
+  category: 'Category',
+  ownerOnly: false // or adminOnly: true
+}
+```
+
+3. **Add to Handler**
+```javascript
+// src/handler/commandHandler.js
+case 'newCommand':
+  await newCommand(sock, msg, args);
+  break;
+```
+
+### Adding New Features
+
+1. **Create Feature Module**
+```javascript
+// src/handler/features/newFeature.js
+async function handleNewFeature(sock, msg) {
+  // Feature logic here
+}
+
+module.exports = handleNewFeature;
+```
+
+2. **Integrate with Message Handler**
+```javascript
+// src/handler/messageHandler.js
+const handleNewFeature = require('./features/newFeature');
+
+// Add to message processing pipeline
+await handleNewFeature(sock, msg);
+```
+
+### Database Operations
+
+#### SQLite Operations
+```javascript
+const { db } = require('./database');
+
+// Query
+const result = db.prepare('SELECT * FROM users WHERE user_id = ?').get(userId);
+
+// Insert
+db.prepare('INSERT INTO users (user_id, user_name) VALUES (?, ?)').run(userId, userName);
+
+// Update
+db.prepare('UPDATE users SET mode = ? WHERE user_id = ?').run(newMode, userId);
+```
+
+#### Supabase Operations
+```javascript
+const { supabase } = require('../supabaseClient');
+
+// Query
+const { data, error } = await supabase
+  .from('hall_of_fame')
+  .select('*')
+  .eq('community_jid', communityJid);
+
+// Insert
+const { data, error } = await supabase
+  .from('hall_of_fame')
+  .insert([newEntry]);
+
+// Update
+const { data, error } = await supabase
+  .from('hall_of_fame')
+  .update({ trophies: newCount })
+  .eq('id', entryId);
+```
+
+## 🐛 Debugging & Testing
+
+### Logging Strategy
+- Structured logging with Pino
+- Error tracking and reporting
+- Performance monitoring
+- Debug mode for development
+
+### Common Issues
+
+1. **Session Problems**
+   - Check SQLite database integrity
+   - Verify Supabase connection
+   - Clear corrupted sessions
+
+2. **Memory Leaks**
+   - Monitor RAM usage
+   - Check for event listener leaks
+   - Review async operations
+
+3. **Command Failures**
+   - Verify command registration
+   - Check permission settings
+   - Review argument parsing
+
+### Testing Commands
+```bash
+# Test bot responsiveness
+.ping
+
+# Check system status
+.settings
+
+# Verify database connection
+.group stats
+
+# Test update system
+.update
+```
+
+## 📦 Deployment
+
+### Environment Setup
+```bash
+# Production dependencies
+npm install --production
+
+# Environment variables
+cp .env.example .env
+# Edit .env with configuration
+```
+
+### Docker Deployment
+```dockerfile
+FROM node:21-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --production
+COPY . .
+CMD ["npm", "start"]
+```
+
+### Process Management
+- PM2 for production
+- Automatic restart on failure
+- Log rotation
+- Health checks
+
+## 🔮 Future Development
+
+### Planned Features
+1. **Web Dashboard**: Real-time bot management
+2. **API Endpoints**: RESTful API for integration
+3. **Plugin System**: Dynamic feature loading
+4. **Multi-Language**: Internationalization support
+5. **Analytics**: Advanced usage analytics
+
+### Architecture Improvements
+1. **Microservices**: Service separation
+2. **Message Queuing**: Redis integration
+3. **Caching**: Redis for performance
+4. **Load Balancing**: Multi-instance support
+
+## 📚 Resources
+
+### Documentation
+- [Baileys Documentation](https://github.com/WhiskeySockets/Baileys)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+
+### Tools & Libraries
+- **Baileys**: WhatsApp Web API
+- **Supabase**: Backend-as-a-Service
+- **SQLite**: Local database
+- **Pino**: Structured logging
+- **Socket.IO**: Real-time communication
 
 ---
 
-**All code is modular:**  
-- CSS in `style.css`  
-- JS per page (e.g., `deploy.js`)  
-- Backend logic split by responsibility (auth, deployment, Socket.IO, bot session)
-
-**Focus:**  
-- Fast, scalable, and memory-efficient multi-user, multi-bot WhatsApp automation.
-
-# Development Notes (Latest Updates - 2025-09-12)
-
-## Version 2.4.3 Updates
-
-### Backend Improvements
-- **Package Updates**
-  - Upgraded to `@whiskeysockets/baileys@6.7.19` for improved stability
-  - Updated `@supabase/supabase-js` to v2.57.2 with enhanced error handling
-  - Added `moment-timezone` for better timezone management
-
-- **Session Management**
-  - Enhanced session restoration with better error recovery
-  - Improved cleanup of stale sessions
-  - Added support for multiple bot instances per user with isolated sessions
-
-- **Deployment**
-  - Added GitHub Actions workflow for automated deployment to Azure
-  - Improved environment variable handling with `.env` validation
-  - Added version tracking in `package.json`
-
-### Frontend Updates
-- **UI/UX**
-  - Added loading states for bot deployment
-  - Improved error messages and user feedback
-  - Enhanced mobile responsiveness
-
-- **Authentication**
-  - Added session timeout handling
-  - Improved security with token refresh mechanism
-  - Better error handling for expired sessions
-
-### New Features
-- **Bot Management**
-  - Added ability to restart individual bot instances
-  - Improved bot status monitoring
-  - Added detailed logging for debugging
-
-- **Command System**
-  - New settings command with detailed bot information
-  - Improved error handling for commands
-  - Added rate limiting for commands
-
-### Bug Fixes
-- Fixed memory leaks in long-running sessions
-- Resolved issues with session restoration after disconnection
-- Fixed command parsing for special characters
-- Addressed security vulnerabilities in dependencies
-
----
-
-# Development Notes (Day 2)
-
-## Project: BMM DEV V2 - WhatsApp Multi-Instance Bot
-
----
-
-### Backend
-
-- **Session Persistence**
-  - Switched from file-based sessions to a single SQLite database (`sessions.db`) using `better-sqlite3`.
-  - All WhatsApp session credentials and keys are stored and loaded from the database.
-  - On startup, all sessions in the database are loaded and bots are started automatically.
-
-- **Bot Lifecycle**
-  - `startBmmBot` loads session from SQLite and starts a Baileys socket for each bot.
-  - Robust disconnect handling:
-    - If disconnect reason is `badSession`, `loggedOut`, `Failure`, or custom code `405`, the session is deleted from SQLite and not restarted.
-    - For other disconnect reasons (`connectionClosed`, `restartRequired`, etc.), the bot is automatically restarted.
-  - Each bot instance is tracked in a `sessions` map for fast access and cleanup.
-  - `deleteBmmBot` and `stopBmmBot` handle session removal and cleanup.
-
-- **Message Handling**
-  - All incoming messages are routed through a central `handleMessage` function.
-  - Features include anti-link detection (`antiLink.js`) and command handling (`commandHandler.js`).
-  - Commands like `.ping` and `.echo` are supported.
-
-- **Bot Manager**
-  - `botManager.js` tracks all active bot instances by phone number for easy management.
-
-- **Startup Logic**
-  - On server start, the app ensures the `database` directory exists, then loads all sessions from SQLite and starts bots for each.
-
----
-
-### Frontend
-
-- **Modern UI**
-  - Stylish, mobile-friendly input fields for login and registration.
-  - Consistent card-based design across all pages.
-  - Pairing code display is glowing and easy to read.
-
-- **Authentication**
-  - Login and registration forms use email and password.
-  - Session info (`authId`, `email`) is stored in `sessionStorage` for dashboard and deployment use.
-
-- **Bot Deployment**
-  - Users can deploy bots by providing phone number and pairing method (QR or pairing code).
-  - Frontend receives live QR or pairing code and status updates via Socket.IO.
-
----
-
-### Infrastructure
-
-- **Socket.IO**
-  - Real-time communication for registration, QR/pairing code, and status updates.
-  - CORS is configured for both REST and Socket.IO endpoints.
-
-- **Docker/Deployment**
-  - `.env` and Dockerfile setup for environment variables and deployment.
-  - Ensures database directory exists before SQLite is used.
-
----
-
-**Summary:**  
-- All session data is now in SQLite for reliability and speed.
-- Bots auto-load from the database on startup.
-- Codebase is modular, robust, and ready for multi-user, multi-bot scaling.
-
-# Development Notes (Day 3)
-
-## What We Have Done (Not Yet in Dev Note)
-
----
-
-### BMM Manager (Load Manager Layer)
-
-- **Built a BMM Manager (middleware/proxy) between frontend and backend bot servers.**
-  - Proxies all REST API and Socket.IO traffic.
-  - Handles room-based event routing for QR and pairing codes.
-  - Caches last QR/pairing code per session for reliable delivery.
-  - Health monitoring for backend bot servers (HTTP and Socket.IO checks).
-  - Load balancing logic for assigning users/bots to backend servers.
-
-- **Socket.IO Event Delivery**
-  - Ensures frontend joins the correct session room (`authId:phoneNumber`) before deployment.
-  - LM receives backend events (`backend-event`) and emits to the correct frontend room.
-  - Added detailed logging for all event flows (backend → LM → frontend).
-  - Fixed race condition where frontend missed events by joining room before deploy.
-
-- **Frontend Improvements**
-  - Dashboard lists all bots for the logged-in user, each clickable to view details.
-  - Added `bot.html` and `bot.js` for per-bot info display.
-  - Improved error handling and user feedback for deploy and registration flows.
-  - Ensured session info (`authId`, `email`) is always stored and used for API calls and Socket.IO.
-
-- **Backend Improvements**
-  - All backend event emissions (`emitToBot`) now include both `authId` and `phoneNumber` for precise routing.
-  - Unified event naming and payload structure for QR, pairing code, and status.
-  - Added logs for every emission and event received by LM.
-
-- **Reliability**
-  - Fixed all issues where QR/pairing code was not delivered to frontend.
-  - Ensured frontend always joins the room before backend emits events.
-  - Added caching and replay of last QR/pairing code on reconnect.
-
----
-
-### Summary
-
-- **BMM Manager** now reliably proxies and delivers all bot events to the correct frontend session.
-- **Frontend** and **backend** are fully decoupled and communicate only via the manager.
-- **All event delivery is robust, race-condition free, and logged for debugging.**
-- **User experience:** Bots are listed, deploy is reliable, and QR/pairing code always displays correctly.
-
-# Development Notes (Day 4+)
-
-## Recent Updates (Not Yet in Dev Note)
-
----
-
-### Admin Features
-
-- **Admin Dashboard**
-  - Admin can view all registered users, including their email, auth ID, subscription level, and days left.
-  - Clicking a user shows all bots associated with that user's auth ID.
-  - Admin can restart or delete any bot for any user directly from the admin interface.
-  - All admin API routes are now separated into `adminApi.js` for better structure.
-
-- **Admin Bot Management**
-  - `/api/admin/bots/:authId` returns all bots for a given user.
-  - Admin can restart or delete individual bots for any user from the UI.
-  - Actions are proxied through the manager and routed to the correct backend server.
-
----
-
-### User & Bot Management
-
-- **Per-Bot Actions**
-  - Users and admins can restart or delete any bot instance.
-  - Deleting a bot removes all related session info from SQLite, Supabase, and the users table.
-  - Restarting a bot sends a WhatsApp message indicating if the restart was user-initiated (from web) or automatic.
-
-- **Subscription Enforcement**
-  - Bot deployment checks subscription level and days left (from Supabase) before allowing deploy.
-  - Enforces per-subscription bot limits and subscription expiration.
-  - User receives clear error/status messages if limits are reached or subscription is expired.
-
----
-
-### UI/UX Improvements
-
-- **Mobile-First Responsive Design**
-  - All pages (dashboard, deploy, admin, user list, bot info) are now highly mobile-friendly.
-  - Improved button, card, and modal layouts for small screens.
-  - Table and list views adapt to mobile with better spacing and font sizes.
-
-- **Bot Info Page**
-  - Each bot has a dedicated info/settings page (`bot.html`), with restart and delete actions.
-  - Settings (mode, prefix) can be edited per bot.
-
-- **Admin User Info Page**
-  - Admin can see all bots for a user and perform actions per bot.
-
----
-
-### Backend & Infrastructure
-
-- **API Gateway/Manager**
-  - All admin routes moved to `adminApi.js`.
-  - User and bot routes remain in `api.js`.
-  - Manager proxies all REST and Socket.IO traffic, including admin actions.
-
-- **Session Management**
-  - All session and bot actions are routed through the manager for multi-server support.
-  - SQLite remains the source of truth for sessions, with regular sync to Supabase.
-
-- **Antilink & Group Features**
-  - Antilink settings and warnings are stored in SQLite for persistence.
-  - Admins can configure anti-link protection, warn limits, and admin bypass per group.
-
----
-
-### Miscellaneous
-
-- **Menu Command**
-  - New, emoji-rich, modern menu for all commands, grouped by category.
-  - Usage instructions and owner-only command notes included.
-
-- **Error Handling**
-  - Improved error messages and defensive checks throughout backend and frontend.
-  - All unhandled promise rejections and exceptions are logged.
-
----
-
-# Development Notes (Recent Features)
-
-## WhatsApp Bot Features (BMM DEV V2)
-
-### New Features & Improvements
-
-- **Status View Automation**
-  - Per-user status view mode: Off, View Only, View & React.
-  - Bot auto-views and reacts to statuses with random emoji.
-  - Settings saved in user table and configurable via `.status` command.
-
-- **Welcome/Goodbye Messages**
-  - Per-group welcome/goodbye settings.
-  - Rich, customizable welcome and goodbye messages.
-  - Settings stored in `welcome_settings` table, configurable via `.welcome` command.
-
-- **View-Once Media Repost**
-  - Detects and reposts view-once media (image, video, audio, document, voice).
-  - `.vv` command reposts to current chat; `.view` sends to owner's DM.
-  - Deep sender detection ensures correct user is mentioned.
-
-- **Antidelete & Antilink**
-  - Per-group and per-bot settings for antidelete and antilink.
-  - Owner-only configuration menus.
-  - Warn, remove, and restore logic for deleted messages and links.
-
-- **Menu Command**
-  - Modern, emoji-rich menu with numeric and command mapping.
-  - All features accessible via reply or command name.
-
-- **Settings Command**
-  - Shows all bot, group, and feature settings in a readable format.
-  - Includes status view, welcome/goodbye, antilink, antidelete, and owner info.
-
-- **Multi-Instance & Subscription**
-  - SQLite and Supabase session sync for multi-bot, multi-user support.
-  - Subscription enforcement and bot limits per user.
-
-- **Admin Dashboard**
-  - Admin can view, restart, and delete any bot.
-  - All actions routed through Socket.IO and manager layer.
-
----
-
-**Summary:**  
-All features are modular, persistent, and owner-configurable.  
-Bot supports advanced automation, group management, and media handling for WhatsApp....
-
-# Development Notes
-
-## Project: BMM DEV V2 - WhatsApp Multi-Instance Bot
-
----
-
-### Backend
-
-- **User Authentication**
-  - Registration and login endpoints using Express and Supabase.
-  - Passwords are hashed with bcrypt.
-  - Unique 6-digit `auth_id` generated for each user.
-  - Duplicate email registration is handled gracefully.
-
-- **Bot Deployment & Session Management**
-  - `/api/deploy-bot` endpoint accepts `authId`, `phoneNumber`, `country`, and `pairingMethod`.
-  - Registration and deployment logic separated into `deployment.js`.
-  - Registration flow emits QR code or pairing code to the frontend via **Socket.IO**.
-  - Each user session is isolated and managed for performance and low memory usage.
-  - Session directories: `/sessions/{authId}/{phoneNumber}` to support multiple bots per user.
-  - On disconnect:
-    - If reason is `badSession`, `loggedOut`, or `Failure`, the session is deleted and not restarted.
-    - For other reasons (e.g., `connectionClosed`, `restartRequired`), the bot is automatically restarted.
-  - Session persistence with SQLite (local) and Supabase (cloud).
-
-- **Socket.IO Integration**
-  - Dedicated `socket.js` handles Socket.IO server setup and user/bot-specific event emission.
-  - Live QR code, pairing code, and status updates are sent to the correct user/bot in real time.
-  - Frontend registers each bot session with `{authId, phoneNumber}` for targeted event delivery.
-
----
-
-### Command System & Menu
-
-- **Modular Command Handlers**
-  - All commands are modularized in [/handler/command/](cci:7://file:///e:/Bot%20development/BOT%20V2/BMM%20DEV%20V2/src/handler/command:0:0-0:0).
-  - Dynamic menu and help system with reply-number mapping for WhatsApp-friendly UX.
-  - Commands are grouped: Core, Moderation, Group Controls, Fun & Media.
-  - Command aliases and subcommands supported (e.g. `.group stats`, `.group revoke`).
-
-- **Menu & Help**
-  - WhatsApp-friendly menu with emoji, reply numbers, and clear grouping.
-  - `.menu` and `.help` commands show all commands and their descriptions.
-  - One-to-one mapping between reply numbers and commands for quick access.
-
-- **Emoji Reactions**
-  - Centralized emoji mapping in [features/commandEmoji.js](cci:7://file:///e:/Bot%20development/BOT%20V2/BMM%20DEV%20V2/src/handler/features/commandEmoji.js:0:0-0:0) for all commands.
-  - Bot reacts with the correct emoji for known commands, and a random fun emoji for unknown/undefined commands.
-  - Emoji reactions are used both in menu/help and as feedback to user commands.
-
-- **Error Handling & UX**
-  - Consistent user feedback for all command actions (success, error, permission).
-  - Permission checks for admin/owner commands (e.g., group desc, pic, link, revoke).
-  - Fallback/random emoji reactions for unknown commands to enhance UX.
-
----
-
-### Group & Stats Features
-
-- **Group Management**
-  - Group subcommands: `.group stats`, `.group revoke`, `.group desc`, `.group pic`, etc.
-  - Group stats command provides detailed 30-day activity, top members, and owner/group info.
-  - Group invite link revoke and refresh via `.group revoke`.
-  - Improved admin checks for sensitive group actions.
-
----
-
-### Frontend & Management
-
-- **Web Dashboard**
-  - Shows live bot status, group stats, and command usage.
-  - Real-time updates for QR/pairing, session status, and group events via Socket.IO.
-  - User-friendly menu and help documentation accessible from WhatsApp and the dashboard.
-
----
-
-### Deployment & Architecture
-
-- **Tech Stack**
-  - Node.js backend with modular handlers.
-  - SQLite for local, Supabase for cloud session/data.
-  - Socket.IO for real-time frontend/backend sync.
-  - Docker and Fly.io deployment ready.
-
----
-
-### Miscellaneous
-
-- **Consistent Code Organization**
-  - All utility functions in `/utils/`.
-  - Database operations in `/database/`.
-  - Feature handlers in `/handler/features/`.
-
-- **Extensibility**
-  - Easy to add new commands, features, and integrations due to modular design.
-
----
-
-_Last updated: 2025-07-30_
+**Version**: 3.6.4  
+**Last Updated**: 2026-02-01  
+**Maintainer**: Toluwalase Ojabineni
+
+For technical support or questions, please refer to the main README.md or create an issue on GitHub.
