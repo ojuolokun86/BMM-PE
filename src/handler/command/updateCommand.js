@@ -13,8 +13,8 @@ async function updateCommand(sock, msg, isOwner, args) {
   const sub = args[0];
 
   try {
-    /* 🔍 CHECK */
-    if (sub === 'check') {
+    /* 🔍 CHECK - DEFAULT BEHAVIOR */
+    if (!sub || sub === 'check') {
       const res = await checkUpdate();
       console.log(`Update command executed ${res.localVersion} and ${res.remoteVersion}`);
       return sock.sendMessage(jid, {
@@ -35,12 +35,45 @@ To:   v${res.remoteVersion}
 Local:  ${res.localCommit}
 Remote: ${res.remoteCommit}
 
-Use *.update* to apply`
+Use *.update bot* to apply`
       });
     }
     
+    /* 🤖 UPDATE BOT */
+    if (sub === 'bot') {
+      await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
 
-    /* 🔥 FORCE */
+      const res = await normalUpdate();
+
+      if (!res.updated) {
+        return sock.sendMessage(jid, {
+          text:
+`✅ Already up to date
+
+📦 Version: v${res.toVersion}
+🔖 Commit: ${res.toCommit}`
+        });
+      }
+
+      await sock.sendMessage(jid, {
+        text:
+`⬆️ Bot updated successfully
+
+📦 Version:
+From: v${res.fromVersion}
+To:   v${res.toVersion}
+
+🔖 Commit:
+From: ${res.fromCommit}
+To:   ${res.toCommit}
+
+🔁 Restarting bot...`
+      });
+
+      return setTimeout(() => exec('pm2 restart 0'), 1500);
+    }
+
+    /* 🔥 FORCE UPDATE */
     if (sub === 'force') {
       await sock.sendMessage(jid, { text: '🔥 Force updating bot...' });
 
@@ -63,38 +96,6 @@ To:   ${res.toCommit}
 
       return setTimeout(() => exec('pm2 restart 0'), 1500);
     }
-
-    /* 🔄 NORMAL UPDATE */
-    await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
-
-    const res = await normalUpdate();
-
-    if (!res.updated) {
-      return sock.sendMessage(jid, {
-        text:
-`✅ Already up to date
-
-📦 Version: v${res.toVersion}
-🔖 Commit: ${res.toCommit}`
-      });
-    }
-
-    await sock.sendMessage(jid, {
-      text:
-`⬆️ Bot updated successfully
-
-📦 Version:
-From: v${res.fromVersion}
-To:   v${res.toVersion}
-
-🔖 Commit:
-From: ${res.fromCommit}
-To:   ${res.toCommit}
-
-🔁 Restarting bot...`
-    });
-
-    setTimeout(() => exec('pm2 restart 0'), 1500);
 
   } catch (err) {
     await sock.sendMessage(jid, {
