@@ -32,6 +32,10 @@ async function getCommunityInfo(sock, groupJid) {
 async function addFame(sock, msg, chatId, sender, args) {
   try {
     const isAdmin = await checkIfAdmin(sock, chatId, sender)
+    // console.log('isAdmin', isAdmin)
+    // console.log('chatId', chatId)
+    // console.log('sender', sender)
+    // console.log('args', args)
     const community = await getCommunityInfo(sock, chatId)
     if (!community) {
       return sock.sendMessage(chatId, {

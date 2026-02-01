@@ -83,7 +83,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
   try {
     from = msg.key.remoteJid;
     const jid = msg.key.fromMe ? msg.key.remoteJid : msg.key.participant || msg.key.remoteJid;
-    const senderId = jid.split(':')[0].split('@')[0];
+    const senderId = msg?.key?.participant || msg?.key?.remoteJid;
     const senderLid = jid.includes(':') ? jid.split(':')[1] : undefined;
 
     const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
@@ -92,6 +92,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     const prefix = getUserPrefix(botId);
     const mode = getUserMode(botId);
     const matchedOwner = getMatchedOwner(senderId, senderLid, botId, botLid);
+    console.log('sender', senderId)
 
     // Always define isGroup, isOwner, isAdmin
     const isGroup = from.endsWith('@g.us');
