@@ -73,6 +73,8 @@ const getMainMenu = (
 > 🖼️ group pic → Reply to image to set group picture
 > 👻 listinactive → View inactive members
 > 💥 destroy → Destroy the group
+> 🏆 hall → Add user to Hall of Fame
+> 🏆 fame → Hall of Fame
 
 📁 *MEDIA*
 

@@ -1,5 +1,6 @@
 const { getWelcomeSettings } = require('../../database/welcomeDb');
 const { getGroupMetadataCached } = require('../../index')
+const { showFame } = require('../command/hallOfFame');
 const axios = require('axios');
 
 /**
@@ -103,6 +104,17 @@ Enjoy your stay and keep it respectful 🤝`;
                 thumbnail: groupPicBuffer
             })
         });
+
+        // Show Hall of Fame to new users after welcome message if enabled
+        if (settings.showFame) {
+            setTimeout(async () => {
+                try {
+                    await showFame(sock, groupId);
+                } catch (error) {
+                    console.error('Error showing Hall of Fame to new user:', error);
+                }
+            }, 2000); // Wait 2 seconds before showing Hall of Fame
+        }
     }
 
         // ✅ Robotic Goodbye Messages (Random)
