@@ -1,6 +1,6 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
 const { exec } = require('child_process');
-
+//procees pm2
 const pmId = process.env.PM2_PROCESS_NAME || process.env.PM2_PROCESS_ID
 console.log('PM2 NAME:', process.env.PM2_PROCESS_NAME)
 console.log('PM2 ID:', process.env.PM2_PROCESS_ID)
