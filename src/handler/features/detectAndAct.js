@@ -6,9 +6,31 @@ const {
 const { markMessageAsBotDeleted } = require('../../utils/botDeletedMessages');
 
 const WA_DEFAULT_LINK_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+|wa\.me\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|t\.me\/[^\s]+|bit\.ly\/[^\s]+|[\w-]+\.(com|net|org|info|biz|xyz|live|tv|me|link)(\/\S*)?)/gi;
+
+// Individual platform detection functions
 function isTikTokLink(message) {
   const tiktokRegex = /(https?:\/\/)?(www\.)?(tiktok\.com|vm\.tiktok\.com|vt\.tiktok\.com)\/[^\s]+/gi;
   return tiktokRegex.test(message);
+}
+
+function isFacebookLink(message) {
+  const facebookRegex = /(https?:\/\/)?(www\.)?(facebook\.com|fb\.com|fb\.watch|m\.facebook\.com)\/[^\s]+/gi;
+  return facebookRegex.test(message);
+}
+
+function isInstagramLink(message) {
+  const instagramRegex = /(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am|www\.instagram\.com)\/[^\s]+/gi;
+  return instagramRegex.test(message);
+}
+
+function isYouTubeLink(message) {
+  const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com|youtube\.shorts)\/[^\s]+/gi;
+  return youtubeRegex.test(message);
+}
+
+function isTwitchLink(message) {
+  const twitchRegex = /(https?:\/\/)?(www\.)?(twitch\.tv|go\.twitch\.tv|m\.twitch\.tv)\/[^\s]+/gi;
+  return twitchRegex.test(message);
 }
 // ✅ Random warning messages for warn-remove
 const warningMessages = [
@@ -19,7 +41,7 @@ const warningMessages = [
   "⚠️ SYSTEM ALERT: @user, you broke the rules. Warning {count}/{limit}. Respect the rules or you’re out!"
 ];
 
-// ✅ Random messages for when user gets removed
+// ✅ Random messages for when user gets removed//
 const removalMessages = [
   "🚫 @user has been removed for repeated link sharing. Rules are rules!",
   "❌ @user was kicked out after {limit} warnings for posting links.",
@@ -56,7 +78,15 @@ async function detectAndAct({ sock, from, msg, textMsg }) {
   if (!userJid) return false;
 
   if (settings.mode === 'off') return false;
+  
+  // Check for allowed platforms (these will be skipped)
   if (isTikTokLink(textMsg)) return false;
+  if (isFacebookLink(textMsg)) return false;
+  if (isInstagramLink(textMsg)) return false;
+  if (isYouTubeLink(textMsg)) return false;
+  if (isTwitchLink(textMsg)) return false;
+  
+  // Check for other links (these will be caught)
   if (!WA_DEFAULT_LINK_REGEX.test(textMsg)) return false;
   if (userJid.includes(botJid)) return false;
 
