@@ -1,6 +1,5 @@
 const { setAntilinkSettings, getAntilinkSettings } = require('../../database/antilinkDb');
 const { isBotOwner } = require('../../database/database');
-const { checkIfAdmin } = require('../command/groupCommand');
 const menu = (settings) => 
 `🛡️ [*Antilink Security Module*]
   
@@ -16,7 +15,8 @@ const menu = (settings) =>
 > 3 → Remove User Immediately
 > 4 → Set Warn Limit (Current: ${settings.warnLimit || 2})
 > 5 → Toggle Admin Bypass
-  
+
+*You can allow some set of links to be shared in Your group*
 *Action Required: Reply with a number to execute command.*`;
   
 async function isGroupAdmin(sock, chatId, userId) {

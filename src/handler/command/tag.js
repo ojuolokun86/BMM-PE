@@ -1,5 +1,8 @@
 //const sendToChat = require('../../utils/sendToChat');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const {  getGroupProfilePicBuffer, getContextInfo} = require('../../utils/groupImagePreview');
+
+
 
 let lastTagAllEmoji = null; // Store the last used emoji
 const generateTagAllMessage = (groupName, sender, botOwnerName, messageContent, mentions, adminList, emoji, senderJid) => {
@@ -128,8 +131,6 @@ async function tagCommand(sock, msg, command, args) {
     }
 
     await sock.sendMessage(remoteJid, mediaPayload, { quoted: msg });
-
-
     return;
   }
 
@@ -155,11 +156,17 @@ async function tagCommand(sock, msg, command, args) {
     const mentionsWithSender = tagAllMsgObj.mentions.includes(senderJid)
       ? tagAllMsgObj.mentions
       : [senderJid, ...tagAllMsgObj.mentions];
+      const groupPicBuffer = await getGroupProfilePicBuffer(sock, remoteJid);
 
     await sock.sendMessage(remoteJid, {
       text: tagAllMsgObj.text,
       mentions: mentionsWithSender,
-      quotedMessage: msg
+      quotedMessage: msg,
+      contextInfo: getContextInfo({
+        title: groupName,
+        body: `Tag All Notification for ${groupName}`,
+        thumbnail: groupPicBuffer
+      })
     });
   } else if (command === 'admin') {
     const admins = groupMetadata.participants.filter(p => p.admin);
@@ -171,7 +178,12 @@ async function tagCommand(sock, msg, command, args) {
     await sock.sendMessage(remoteJid, {
       text: adminMsg,
       mentions: adminIds,
-      quotedMessage: msg
+      quotedMessage: msg,
+      contextInfo: getContextInfo({
+        title: groupName,
+        body: `Admin List Notification for ${groupName}`,
+        thumbnail: groupPicBuffer
+      })
     });
   } else {
     await sock.sendMessage(remoteJid, { text: '❌ Unknown tag command. Use tag, tagall, or admin.' });

@@ -1,5 +1,6 @@
 const supabase = require('../../supabaseClient')
 const { checkIfAdmin } = require('./kick')
+const { getGroupProfilePicBuffer, getContextInfo } = require('../../utils/groupImagePreview')
 
 async function getCommunityInfo(sock, groupJid) {
   try {
@@ -119,6 +120,7 @@ function normalizeLeague(name) {
 
 async function showFame(sock, chatId) {
   try {
+    const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const community = await getCommunityInfo(sock, chatId)
     if (!community) return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.' })
 
@@ -174,7 +176,11 @@ async function showFame(sock, chatId) {
     text += `━━━━━━━━━━━━━━━━━━\n`
     text += `🔥 Only Legends made it up here 🔥`
 
-    await sock.sendMessage(chatId, { text, mentions })
+    await sock.sendMessage(chatId, { text, mentions, contextInfo: getContextInfo({
+      title: community.communityName,
+      body: 'Hall of Fame',
+      thumbnail: groupPicBuffer
+    }) })
   } catch (e) {
     console.error(e)
     await sock.sendMessage(chatId, { text: '❌ Failed to load Hall of Fame.' })
