@@ -29,7 +29,7 @@ async function resetWarnCommand(sock, msg, textMsg) {
   const args = textMsg.trim().split(/\s+/).slice(1);
   const target = args[0];
 
-  // Reset ALL in the group
+  // Reset ALL in the group must reset all warnings
   if (target === 'all') {
     db.prepare(`DELETE FROM warns WHERE group_id = ? AND bot_id = ?`)
       .run(from, botId);
