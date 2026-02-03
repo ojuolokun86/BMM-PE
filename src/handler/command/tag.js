@@ -12,7 +12,7 @@ const generateTagAllMessage = (groupName, sender, botOwnerName, messageContent, 
   // Header
   let text = `📢 *TAG ALL NOTIFICATION* 📢\n\n`;
   
-  // Group info
+  // Group info/ omom no good
   text += `🏷 *Group*: ${groupName}\n`;
   text += `📊 *Members*: ${totalMembers} (👑 ${adminList.length} | 👥 ${totalMembers - adminList.length})\n`;
   text += `⏰ *Time*: ${timestamp}\n\n`;
