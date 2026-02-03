@@ -1,5 +1,7 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
 const { exec } = require('child_process');
+const pmName = process.env.PM2_NAME;
+const pmId =  PM2_PROCESS_NAME
 
 async function updateCommand(sock, msg, isOwner, args) {
   const fromMe = msg.key.fromMe;
@@ -69,8 +71,8 @@ To:   ${res.toCommit}
 
 🔁 Restarting bot...`
       });
-
-      return setTimeout(() => exec('pm2 restart 0'), 1500);
+      console.log(`Restarting bot with pm2 process ID: ${pmId}`);
+      return setTimeout(() => exec(`pm2 restart ${pmId}`), 1500);
     }
 
     /* 🔥 FORCE UPDATE */
@@ -93,8 +95,8 @@ To:   ${res.toCommit}
 
 🔁 Restarting bot...`
       });
-
-      return setTimeout(() => exec('pm2 restart 0'), 1500);
+      console.log(`Restarting bot with pm2 process ID: ${pmId}`);
+      return setTimeout(() => exec(`pm2 restart ${pmId}`), 1500);
     }
 
   } catch (err) {
