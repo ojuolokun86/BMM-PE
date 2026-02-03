@@ -39,35 +39,64 @@ function getContextInfo({
 
 
 async function handleGroupParticipantsUpdate(sock, update, groupCache) {
-    if (!update?.id) return;
+    if (!update?.id || !Array.isArray(update.participants)) return;
 
     const groupId = update.id;
     const botId = sock.user.id.split(':')[0];
 
     const settings = getWelcomeSettings(groupId, botId);
-     const groupMetadata = await getGroupMetadataCached(sock, groupId, groupCache);
+    if (!settings) return;
+
+    let groupMetadata;
+    try {
+        groupMetadata = await getGroupMetadataCached(sock, groupId, groupCache);
+    } catch {
+        console.warn('⚠️ Failed to fetch group metadata');
+        return;
+    }
+
     const groupName = groupMetadata.subject;
-    const groupDesc = groupMetadata.desc || "No description provided.";
+    const groupDesc = groupMetadata.desc || 'No description provided.';
     const membersCount = groupMetadata.participants.length;
 
-    // Find owner & admins
-    const ownerId = groupMetadata.owner || groupMetadata.participants.find(p => p.admin === 'superadmin')?.id;
-    const admins = groupMetadata.participants.filter(p => p.admin).map(p => p.id);
+    const ownerId =
+        groupMetadata.owner ||
+        groupMetadata.participants.find(p => p.admin === 'superadmin')?.id;
+
+    const admins = groupMetadata.participants
+        .filter(p => p.admin)
+        .map(p => p.id);
+
     const adminMentions = admins.map(a => `@${a.split('@')[0]}`).join(', ');
     const ownerMention = ownerId ? `@${ownerId.split('@')[0]}` : 'Unknown';
 
+    const actor = update.author || null; // can be null
+
     for (const participant of update.participants) {
-        // Extract the ID from the participant object, which could be a string or an object
         const participantId = participant.id || participant;
-        const username = String(participantId).split('@')[0];
+        if (!participantId) continue;
 
-        // ✅ Robotic Welcome Message
+        const username = participantId.split('@')[0];
+
+
+        /* ================= WELCOME ================= */
         if (update.action === 'add' && settings.welcome) {
-           const groupPicBuffer = await getGroupProfilePicBuffer(sock, groupId);
+            let greeting;
 
-    const welcomeMsg = `👋 *Welcome to ${groupName}*
+            if (!actor) {
+                greeting = `Hello @${username},\nYou joined the group using an invite link or from the community.`;
+            } else if (actor === participantId) {
+                // This case is rare now, but keep for backward compatibility
+                greeting = `Hello @${username},\nYou joined via an invite link.`;
+            } else {
+                greeting = `Hello @${username},\n@${actor.split('@')[0]} added you to the group.`;
+            }
 
-Hello @${username},  
+            const groupPicBuffer = await getGroupProfilePicBuffer(sock, groupId);
+
+            const welcomeMsg = `👋 *Welcome to ${groupName}*
+
+${greeting}  
 We’re glad to have you join us.
 
 _${groupDesc}_
@@ -76,63 +105,49 @@ _${groupDesc}_
 • *Admins:* ${adminMentions || 'None'}
 
 📌 *Group Rules*
-1️⃣ No cheating of any kind  
-2️⃣ No insults, harassment, or hate speech  
-3️⃣ No spamming or irrelevant content  
-4️⃣ Respect all members and admins  
+1️⃣ No cheating  
+2️⃣ No insults or hate  
+3️⃣ No spamming  
+4️⃣ Respect everyone  
 
-⚠️ *Important:*  
-Breaking any of these rules may result in *automatic removal* from the group.
+⚠️ Breaking rules may result in removal.
 
-You are member *#${membersCount}*.  
-Enjoy your stay and keep it respectful 🤝`;
+You are member *#${membersCount}*. 🤝`;
 
-
-            // Ensure we only pass string IDs in mentions
             const mentionIds = [
-            participantId,
-            ...(ownerId ? [ownerId] : []),
-            ...admins
-        ].filter(Boolean);
-
-        await sock.sendMessage(groupId, {
-            text: welcomeMsg,
-            mentions: mentionIds,
-            contextInfo: getContextInfo({
-                title: groupName,
-                body: `Welcome @${username}`,
-                thumbnail: groupPicBuffer
-            })
-        });
-
-        // Show Hall of Fame to new users after welcome message if enabled
-        if (settings.showFame) {
-            setTimeout(async () => {
-                try {
-                    await showFame(sock, groupId);
-                } catch (error) {
-                    console.error('Error showing Hall of Fame to new user:', error);
-                }
-            }, 2000); // Wait 2 seconds before showing Hall of Fame
-        }
-    }
-
-        // ✅ Robotic Goodbye Messages (Random)
-        if (update.action === 'remove' && settings.goodbye) {
-            const remainingCount = (await sock.groupMetadata(groupId)).participants.length;
-
-            const goodbyeMessages = [
-                `🤖 @${username} has been ejected from the system. Remaining nodes: *${remainingCount}*.`,
-                `⚠️ ALERT: @${username} disconnected. ${remainingCount} members remain operational.`,
-                `🛡️ Security Notice: @${username} exited the network. Active units: *${remainingCount}*.`,
-                `❌ Termination Complete: @${username} removed. Current status: *${remainingCount} members online*.`
-            ];
-
-            const randomGoodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
+                participantId,
+                ...(actor && actor !== participantId ? [actor] : []),
+                ...(ownerId ? [ownerId] : []),
+                ...admins
+            ].filter(Boolean);
 
             await sock.sendMessage(groupId, {
-                text: randomGoodbye,
-                mentions: [participantId].filter(Boolean) // Ensure we only pass the ID
+                text: welcomeMsg,
+                mentions: mentionIds,
+                contextInfo: getContextInfo({
+                    title: groupName,
+                    body: `Welcome @${username}`,
+                    thumbnail: groupPicBuffer
+                })
+            });
+
+            if (settings.showFame) {
+                setTimeout(() => showFame(sock, groupId).catch(() => {}), 2000);
+            }
+        }
+
+        /* ================= GOODBYE ================= */
+        if (update.action === 'remove' && settings.goodbye) {
+            const remainingCount = groupMetadata.participants.length - 1;
+            const isVoluntary = actor === participantId;
+
+            const goodbyeMessage = isVoluntary
+                ? `👋 @${username} left the group. Remaining members: *${remainingCount}*.`
+                : `🚫 @${username} was removed by an admin. Members left: *${remainingCount}*.`;
+
+            await sock.sendMessage(groupId, {
+                text: goodbyeMessage,
+                mentions: [participantId].filter(Boolean)
             });
         }
     }

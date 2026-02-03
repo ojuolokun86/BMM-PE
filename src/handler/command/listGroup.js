@@ -21,7 +21,7 @@ async function listGroupsCommand(sock, msg) {
         const groups = Object.values(chats);
 
         if (!groups.length) {
-            await sock.sendMessage(jid, { text: `🤖 [SYSTEM LOG]\n> No active groups detected.` });
+            await sock.sendMessage(from, { text: `🤖 [SYSTEM LOG]\n> No active groups detected.` });
             return;
         }
 
@@ -37,7 +37,7 @@ async function listGroupsCommand(sock, msg) {
         groupList += `✅ [SYSTEM REPORT]\n> Total Groups: ${groups.length}\n`;
         groupList += `> OPERATIONAL STATUS: ACTIVE\n`;
 
-        await sock.sendMessage(jid, { text: groupList });
+        await sock.sendMessage(from, { text: groupList });
 
     } catch (err) {
         await sock.sendMessage(sock.user?.id, {

@@ -178,7 +178,6 @@ async function kickCommand(sock, msg, command, args, from) {
 
     // .kick inactive (confirmation)
     const { getInactiveMembersDetailed } = require('./groupStatsCommand');
-    console.log(getInactiveMembersDetailed);
 
     if (subCmd === 'inactive') {
         await loadGroupStatsFromDB(groupId);
@@ -188,12 +187,24 @@ async function kickCommand(sock, msg, command, args, from) {
         const botJid = `${botId}@s.whatsapp.net`;
         const excludeJids = admins.concat([botJid]);
     
+        // Wait a moment for stats to be fully loaded
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const stats = getGroupStats(groupId);
+    
+        // Debug: Check if stats are loaded
+        if (!stats || Object.keys(stats).length === 0) {
+            await sock.sendMessage(groupId, { text: "⚠️ No group statistics available. The bot needs to collect message data first." }, { quoted: msg });
+            return;
+        }
     
         // Use the same days threshold as your list command
         const inactivityDays = 30;
-        const { getInactiveMembersDetailed } = require('./groupStatsCommand');
         const inactiveArr = getInactiveMembersDetailed(stats, inactivityDays, excludeJids);
+        
+        // Debug: Log what we found
+        // console.log(`Found ${inactiveArr.length} inactive members for group ${groupId}`);
+        // console.log('Inactive members:', inactiveArr);
     
         // Map bareId to full JID for current group participants
         function bareId(jid) { return jid.split('@')[0]; }

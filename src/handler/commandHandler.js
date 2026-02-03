@@ -92,11 +92,11 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     const prefix = getUserPrefix(botId);
     const mode = getUserMode(botId);
     const matchedOwner = getMatchedOwner(senderId, senderLid, botId, botLid);
+    const isOwner = msg.key.fromMe || !!matchedOwner;
     //console.log('sender', senderId)
 
     // Always define isGroup, isOwner, isAdmin
     const isGroup = from.endsWith('@g.us');
-    const isOwner = !!matchedOwner;
     let isAdmin = false;
     if (isGroup) {
       isAdmin = await checkIfAdmin(sock, from, senderId);
