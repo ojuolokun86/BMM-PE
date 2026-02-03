@@ -28,7 +28,7 @@ async function handleIncomingMessage({ authId, sock, msg, phoneNumber }) {
   const botId = sock.user.id.split(':')[0]?.split('@')[0];
   const botLid = sock.user.lid.split(':')[0]?.split('@')[0];
   const botPhoneNumber = botId && botLid;
-  onsole.log(`[MSG] User: ${sender} | Bot: ${botId} | Chat: ${from}`);  
+  console.log(`[MSG] User: ${sender} | Bot: ${botId} | Chat: ${from}`);  
   // Only increment for group messages with a participant
 if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   const groupId = msg.key.remoteJid;
