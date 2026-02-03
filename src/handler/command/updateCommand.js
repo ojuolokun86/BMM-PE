@@ -2,6 +2,8 @@ const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdat
 const { exec } = require('child_process');
 
 const pmId = process.env.PM2_PROCESS_NAME || process.env.PM2_PROCESS_ID
+console.log('PM2 NAME:', process.env.PM2_PROCESS_NAME)
+console.log('PM2 ID:', process.env.PM2_PROCESS_ID)
 
 
 async function updateCommand(sock, msg, isOwner, args) {
