@@ -13,6 +13,8 @@ const commandEmojis = {
   delete: '🗑️',
   del: '❌',
   time: '⏰',
+  disk: '💾',
+  react: '😊',
 
   // Moderation & Security
   antilink: '🔗',
@@ -43,12 +45,20 @@ const commandEmojis = {
   'group pic': '🖼️',
   listinactive: '👻',
   destroy: '💥',
+  hall: '🏆',
+  fame: '🏆',
+  requestlist: '📋',
+  acceptall: '✅',
+  rejectall: '❌',
+  welcome: '👋',
 
   // Media & Fun
   sticker: '🖼️',
   stimage: '🖼️',
+  sttoimg: '🖼️',
   stgif: '🎞️',
   ss: '📸',
+  screenshot: '📸',
   imagine: '🎨',
   song: '🎵',
   play: '▶️',
@@ -57,6 +67,20 @@ const commandEmojis = {
   'yt video': '📹',
   'yt audio': '🎧',
   'yt search': '🔍',
+  yt: '📺',
+  bg: '🎨',
+
+  // Sports
+  football: '⚽',
+
+  // Games
+  game: '🎮',
+  chain: '🔗',
+  wordgame: '📝',
+  trivia: '🧠',
+  rpg: '⚔️',
+  adv: '🗺️',
+  adventure: '🗺️',
 
   // Utilities
   status: '📌',
@@ -67,7 +91,13 @@ const commandEmojis = {
   report: '📝',
   news: '📰',
   translate: '🌐',
-  football: '⚽',
+  npm: '📦',
+  update: '🔄',
+  contacts: '📇',
+  fun: '🎉',
+  broadcast: '📢',
+  chatbot: '💬',
+  echo: '🔊',
 
   // AI
   ai: '🤖',
@@ -75,6 +105,7 @@ const commandEmojis = {
   llama: '🦙',
   mistral: '🌌',
   deepseek: '🔮',
+  ds: '🔮',
 
   // Fun Commands
   kill: '⚔️',
@@ -103,7 +134,14 @@ const commandEmojis = {
   pout: '😡',
   bite: '🦷',
   smug: '😏',
-  baka: '🐤'
+  baka: '🐤',
+  fun_kick: '👟',
+  tickle: '🤣',
+  cry: '😢',
+  wave: '👋',
+  bored: '😴',
+  dance: '💃',
+  thumbsup: '👍'
 };
 
 const randomEmojis = ['🤖', '✨', '🎲', '🚀', '💡', '🎯', '🧠', '🎉', '⚙️', '💥'];
