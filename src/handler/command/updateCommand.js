@@ -54,7 +54,8 @@ async function updateCommand(sock, msg, isOwner, args) {
       });
     }
 
-    /* 🤖 UPDATE BOT */
+    /* 🤖 UPDATE BOT */ 
+    //not funny
     if (sub === 'bot') {
       await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
       const res = await normalUpdate();
