@@ -1,10 +1,36 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
-const { exec } = require('child_process');
-//procees pm2
-const pmId = process.env.PM2_PROCESS_NAME || process.env.PM2_PROCESS_ID
-console.log('PM2 NAME:', process.env.PM2_PROCESS_NAME)
-console.log('PM2 ID:', process.env.PM2_PROCESS_ID)
+const pm2 = require('pm2');
 
+async function restartCurrentBot() {
+  return new Promise((resolve, reject) => {
+    pm2.connect(err => {
+      if (err) return reject(err);
+
+      const currentPid = process.pid;
+
+      pm2.list((err, list) => {
+        if (err) {
+          pm2.disconnect();
+          return reject(err);
+        }
+
+        const proc = list.find(p => p.pid === currentPid);
+        if (!proc) {
+          pm2.disconnect();
+          return reject(new Error('❌ Could not find this process in PM2 list'));
+        }
+
+        console.log(`🔁 Restarting bot: ${proc.name} (PM2 ID: ${proc.pm_id})`);
+
+        pm2.restart(proc.pm_id, (err) => {
+          pm2.disconnect();
+          if (err) return reject(err);
+          resolve(proc.pm_id);
+        });
+      });
+    });
+  });
+}
 
 async function updateCommand(sock, msg, isOwner, args) {
   const fromMe = msg.key.fromMe;
@@ -21,88 +47,55 @@ async function updateCommand(sock, msg, isOwner, args) {
     /* 🔍 CHECK - DEFAULT BEHAVIOR */
     if (!sub || sub === 'check') {
       const res = await checkUpdate();
-      console.log(`Update command executed ${res.localVersion} and ${res.remoteVersion}`);
       return sock.sendMessage(jid, {
         text: res.upToDate
-          ? `✅ Bot is up to date
-
-📦 Version: v${res.localVersion}
-🔖 Commit: ${res.localCommit}`
-          : `⬆️ Update available
-
-
-
-📦 Version:
-From: v${res.localVersion}
-To:   v${res.remoteVersion}
-
-🔖 Commit:
-Local:  ${res.localCommit}
-Remote: ${res.remoteCommit}
-
-Use *.update bot* to apply`
+          ? `✅ Bot is up to date\n\n📦 Version: v${res.localVersion}\n🔖 Commit: ${res.localCommit}`
+          : `⬆️ Update available\n\n📦 Version:\nFrom: v${res.localVersion}\nTo:   v${res.remoteVersion}\n\n🔖 Commit:\nLocal:  ${res.localCommit}\nRemote: ${res.remoteCommit}\n\nUse *.update bot* to apply`
       });
     }
-    
+
     /* 🤖 UPDATE BOT */
     if (sub === 'bot') {
       await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
-
       const res = await normalUpdate();
 
       if (!res.updated) {
         return sock.sendMessage(jid, {
-          text:
-`✅ Already up to date
-
-📦 Version: v${res.toVersion}
-🔖 Commit: ${res.toCommit}`
+          text: `✅ Already up to date\n\n📦 Version: v${res.toVersion}\n🔖 Commit: ${res.toCommit}`
         });
       }
 
       await sock.sendMessage(jid, {
-        text:
-`⬆️ Bot updated successfully
-
-📦 Version:
-From: v${res.fromVersion}
-To:   v${res.toVersion}
-
-🔖 Commit:
-From: ${res.fromCommit}
-To:   ${res.toCommit}
-
-🔁 Restarting bot...`
+        text: `⬆️ Bot updated successfully\n\n📦 Version:\nFrom: v${res.fromVersion}\nTo:   v${res.toVersion}\n\n🔖 Commit:\nFrom: ${res.fromCommit}\nTo:   ${res.toCommit}\n\n🔁 Restarting bot...`
       });
-      console.log(`Restarting bot with pm2 process ID: ${pmId}`);
-      return setTimeout(() => exec(`pm2 restart ${pmId}`), 1500);
+
+      try {
+        await restartCurrentBot();
+      } catch (err) {
+        console.error('Restart failed:', err);
+        await sock.sendMessage(jid, { text: `❌ Bot update succeeded but restart failed:\n${err.message}` });
+      }
     }
 
     /* 🔥 FORCE UPDATE */
     if (sub === 'force') {
       await sock.sendMessage(jid, { text: '🔥 Force updating bot...' });
-
       const res = await forceUpdate();
 
       await sock.sendMessage(jid, {
-        text:
-`✅ Force update completed
-
-📦 Version:
-From: v${res.fromVersion}
-To:   v${res.toVersion}
-
-🔖 Commit:
-From: ${res.fromCommit}
-To:   ${res.toCommit}
-
-🔁 Restarting bot...`
+        text: `✅ Force update completed\n\n📦 Version:\nFrom: v${res.fromVersion}\nTo:   v${res.toVersion}\n\n🔖 Commit:\nFrom: ${res.fromCommit}\nTo:   ${res.toCommit}\n\n🔁 Restarting bot...`
       });
-      console.log(`Restarting bot with pm2 process ID: ${pmId}`);
-      return setTimeout(() => exec(`pm2 restart ${pmId}`), 1500);
+
+      try {
+        await restartCurrentBot();
+      } catch (err) {
+        console.error('Restart failed:', err);
+        await sock.sendMessage(jid, { text: `❌ Force update succeeded but restart failed:\n${err.message}` });
+      }
     }
 
   } catch (err) {
+    console.error('Update command failed:', err);
     await sock.sendMessage(jid, {
       text: `❌ Update failed:\n${err.toString()}`
     });
