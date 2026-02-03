@@ -18,6 +18,7 @@ const commandEmojis = {
 
   // Moderation & Security
   antilink: '🔗',
+  link: '🔗',
   resetwarn: '🔄',
   warnlist: '📋',
   antidelete: '🗑️',

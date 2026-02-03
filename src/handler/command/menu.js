@@ -44,7 +44,8 @@ const getMainMenu = (
 🛡️ *MODERATION & SECURITY*
 
 > 🔗 antilink → Block external links
-> 📋 warnlist → View warnings
+> � link → Manage allowed link platforms
+> �📋 warnlist → View warnings
 > 🕵️ antidelete → Monitor message deletions
 > 🔒 privacy → Configure privacy
 > ⏳ disappear → Enable disappearing messages

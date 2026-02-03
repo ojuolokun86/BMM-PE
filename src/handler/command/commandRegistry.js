@@ -99,6 +99,12 @@ const commandRegistry = {
     category: 'Moderation',
     adminOnly: true
   },
+  link: {
+    description: 'Manage allowed link platforms',
+    usage: 'link [allow|disallow|status|custom]',
+    category: 'Moderation',
+    adminOnly: true
+  },
   antidelete: {
     description: 'Monitor message deletions',
     usage: 'antidelete [on|off]',
