@@ -161,6 +161,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'ai':
       case 'gpt':
+      case 'bmm':
           await aiCommand(sock, from, msg, { prefix, args, command });
           break;  
       case 'ping':

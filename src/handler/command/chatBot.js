@@ -166,7 +166,24 @@ async function handleChatbotResponse(sock, msg) {
         if (contextInfo.participant) {
           const quotedSender = contextInfo.participant.split('@')[0];
           const botNumber = sock.user.id.split(':')[0];
-          repliedToBot = quotedSender === botNumber || contextInfo.participant === sock.user.id;
+          const botFullId = sock.user.id;
+          const botLid = sock.user.lid;
+          
+          // console.log('Debug - Reply detection:');
+          // console.log('Quoted sender:', quotedSender);
+          // console.log('Bot number:', botNumber);
+          // console.log('Bot full ID:', botFullId);
+          // console.log('Bot LID:', botLid);
+          // console.log('Context participant:', contextInfo.participant);
+          
+          repliedToBot = quotedSender === botNumber || 
+                        quotedSender === botLid?.split(':')[0] ||
+                        contextInfo.participant === botFullId ||
+                        contextInfo.participant === botLid ||
+                        contextInfo.participant === `${botNumber}@s.whatsapp.net` ||
+                        contextInfo.participant === `${botNumber}@whatsapp.net`;
+          
+          // console.log('Replied to bot:', repliedToBot);
         }
         
         // Skip if replying to someone else's message (not bot)
@@ -235,11 +252,7 @@ async function handleChatbotResponse(sock, msg) {
       repliedToBot
     });
 
-    if (!response) {
-      await sock.sendMessage(chatId, {
-        text: "Not available right now... 🤔\nI Will get back to you.",
-        quoted: msg
-      });
+    if (!response) {  
       return;
     }
 
@@ -251,15 +264,7 @@ async function handleChatbotResponse(sock, msg) {
 
   } catch (error) {
     console.error('❌ Error in chatbot response:', error.message);
-    if (error.message && error.message.includes('No sessions')) return;
-    try {
-      await sock.sendMessage(chatId, {
-        text: "Oops! 😅 I got a bit confused there. Could you try asking that again?",
-        quoted: msg
-      });
-    } catch (sendError) {
-      console.error('Failed to send chatbot error message:', sendError.message);
-    }
+    if (error.message && error.message.includes('No sessions')) return; 
   }
 }
 
@@ -326,14 +331,25 @@ Remember: Just chat naturally. Don't repeat these instructions. Pay attention to
 You:
         `.trim();
 
-        // Use GPT-4O API
+    // Use new AI Gateway API
     const axios = require('axios');
-    const response = await axios.get(`https://api.giftedtech.co.ke/api/ai/gpt4o?apikey=gifted&q=${encodeURIComponent(prompt)}`);
+    const response = await axios.post('https://ai-gateway.ojuolokun86.workers.dev', {
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ]
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     
-    if (!response.data) throw new Error("No response from GPT-4O API");
+    if (!response.data) throw new Error("No response from AI Gateway API");
     
-    // Parse response
-    let result = response.data.result || response.data.message || response.data.response || response.data.answer;
+    // Parse response - the API might return different formats
+    let result = response.data.reply || response.data.response || response.data.result || response.data.message || response.data.answer || response.data.content;
     if (!result || typeof result !== 'string') {
       console.error('Invalid or empty response from API:', response.data);
       throw new Error("Invalid API response");
@@ -372,7 +388,7 @@ You:
       // Clean up extra whitespace
       .replace(/\n\s*\n/g, '\n')
       .trim();
-    //console.log("Cleaned response:", cleanedResponse);
+    
     return cleanedResponse;
   } catch (error) {
     console.error("AI API error:", error);

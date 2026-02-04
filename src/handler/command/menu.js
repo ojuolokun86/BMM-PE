@@ -120,6 +120,9 @@ const getMainMenu = (
 > 🧠 gpt → Chat with GPT
 > 🦙 llama → Chat with Meta Llama AI
 > 🌌 mistral → Chat with Mistral AI
+> 🔮 deepseek → Chat with DeepSeek AI
+> 🔮 ds → DeepSeek AI (alias)
+> 🤖 bmm → Chat with BMM AI
 > 🔮 deepseek → Chat with DeepSeek V3 AI
 > 🤖 chatbot → Chat with chatbot
 
