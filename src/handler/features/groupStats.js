@@ -9,11 +9,17 @@ function getTodayStr() {
 
 // Load all stats for a group from DB into cache
 async function loadGroupStatsFromDB(groupId) {
+    //console.log(`📊 Loading stats for group ${groupId}...`);
     const { data, error } = await supabase
         .from('group_stats')
         .select('*')
         .eq('group_id', groupId);
-    if (error) return;
+    if (error) {
+        console.error('❌ Error loading group stats:', error);
+        return;
+    }
+    
+    //console.log(`📊 Found ${data.length} stat records in DB for group ${groupId}`);
     groupStats[groupId] = {};
     for (const row of data) {
         groupStats[groupId][row.user_id] = {
@@ -21,7 +27,10 @@ async function loadGroupStatsFromDB(groupId) {
             messageCount: row.message_count,
             lastMessageTime: new Date(row.last_message_time).getTime()
         };
+        //console.log(`📊 User ${row.user_id} (${row.name}): ${row.message_count} messages, last: ${row.last_message_time}`);
     }
+    
+    //console.log(`📊 Loaded ${Object.keys(groupStats[groupId]).length} users into cache for group ${groupId}`);
 }
 
 // Load daily stats for a group from DB into cache (last 30 days)
@@ -43,24 +52,39 @@ async function loadGroupDailyStatsFromDB(groupId) {
 
 // Increment stat in cache and DB, and update daily stats
 async function incrementGroupUserStat(groupId, userId, name, messageId) {
+    //console.log(`📊 Incrementing stat for user ${userId} (${name}) in group ${groupId}, message: ${messageId}`);
+    
     if (!processedMessages[groupId]) processedMessages[groupId] = new Set();
-    if (processedMessages[groupId].has(messageId)) return; // Already counted
+    if (processedMessages[groupId].has(messageId)) {
+        //console.log(`📊 Message ${messageId} already processed, skipping`);
+        return; // Already counted
+    }
     processedMessages[groupId].add(messageId);
 
     if (!groupStats[groupId]) await loadGroupStatsFromDB(groupId);
     if (!groupStats[groupId]) groupStats[groupId] = {};
     if (!groupStats[groupId][userId]) groupStats[groupId][userId] = { name, messageCount: 0, lastMessageTime: null };
+    
+    const oldCount = groupStats[groupId][userId].messageCount;
     groupStats[groupId][userId].messageCount += 1;
     groupStats[groupId][userId].lastMessageTime = Date.now();
+    
+    //console.log(`📊 User ${userId} message count: ${oldCount} → ${groupStats[groupId][userId].messageCount}`);
 
     // Upsert to DB
-    await supabase.from('group_stats').upsert([{
+    const { error } = await supabase.from('group_stats').upsert([{
         group_id: groupId,
         user_id: userId,
         name,
         message_count: groupStats[groupId][userId].messageCount,
         last_message_time: new Date(groupStats[groupId][userId].lastMessageTime).toISOString()
     }]);
+    
+    if (error) {
+        console.error('❌ Error upserting group stats:', error);
+    } else {
+        //console.log(`📊 Successfully updated DB for user ${userId}`);
+    }
 
     // Daily stats
     const todayStr = getTodayStr();
@@ -77,6 +101,7 @@ async function incrementGroupUserStat(groupId, userId, name, messageId) {
 function getGroupStats(groupId) {
     return groupStats[groupId] || {};
 }
+
 function getGroupDailyStats(groupId) {
     return groupDailyStats[groupId] || {};
 }
@@ -92,16 +117,34 @@ async function cleanupGroupStats(groupId, currentGroupMembers) {
     try {
         // Get current stats for this group
         const stats = getGroupStats(groupId);
-        if (!stats || Object.keys(stats).length === 0) return;
+        if (!stats || Object.keys(stats).length === 0) {
+            //console.log(`📊 No stats found for group ${groupId}`);
+            return;
+        }
 
-        // Get current member JIDs
+        //console.log(`📊 Current stats in DB: ${Object.keys(stats).length} users`);
+        //console.log(`📊 Current group members: ${currentGroupMembers.length} users`);
+
+        // Get current member JIDs (full JIDs like 1234567890@s.whatsapp.net)
         const currentMemberJids = new Set(currentGroupMembers.map(member => member.id));
         
         // Find users in stats who are no longer in the group
-        const usersToRemove = Object.keys(stats).filter(userId => !currentMemberJids.has(userId));
+        const usersToRemove = Object.keys(stats).filter(userId => {
+            // Check both full JID and just the number part
+            const userFullJid = `${userId}@s.whatsapp.net`;
+            const userLidJid = `${userId}@lid`;
+            const isInGroup = currentMemberJids.has(userFullJid) || 
+                            currentMemberJids.has(userLidJid) ||
+                            currentMemberJids.has(userId);
+            
+            //console.log(`User ${userId}: inGroup=${isInGroup}, checking ${userFullJid}, ${userLidJid}`);
+            return !isInGroup;
+        });
+        
+        //console.log(`🧹 Users to remove: ${usersToRemove.length}`, usersToRemove);
         
         if (usersToRemove.length > 0) {
-            console.log(`🧹 Cleaning up ${usersToRemove.length} users from group stats for ${groupId}`);
+            //console.log(`🧹 Cleaning up ${usersToRemove.length} users from group stats for ${groupId}`);
             
             // Remove from database
             const { error } = await supabase
@@ -120,7 +163,9 @@ async function cleanupGroupStats(groupId, currentGroupMembers) {
                 delete groupStats[groupId][userId];
             });
             
-            console.log(`✅ Successfully removed ${usersToRemove.length} inactive users from group stats`);
+            //console.log(`✅ Successfully removed ${usersToRemove.length} inactive users from group stats`);
+        } else {
+            //console.log(`✅ No users need to be removed from group stats`);
         }
     } catch (error) {
         console.error('❌ Error in cleanupGroupStats:', error);
