@@ -125,6 +125,7 @@ const getMainMenu = (
 > 🤖 bmm → Chat with BMM AI
 > 🔮 deepseek → Chat with DeepSeek V3 AI
 > 🤖 chatbot → Chat with chatbot
+> 🤖 selfchat → Chat with self-chat
 
 🎨 *FUN*
 > 🎨 fun → to show Fun commands

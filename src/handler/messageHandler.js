@@ -4,6 +4,7 @@ const { getUserPrefix } = require('../database/database');
 const  handleIncomingForAntidelete = require('../handler/features/saveAntideleteMessage');
 const handleDeletedMessage  = require('./features/antideleteListener');
 const { handleChatbotResponse } = require('./command/chatBot');
+const { handleSelfChatResponse } = require('./command/selfChatCommand');
 const { handleStatusUpdate } = require('./features/statusView');
 const { incrementGroupUserStat } = require('./features/groupStats');
 const globalStore = require('../utils/globalStore');
@@ -42,10 +43,11 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   //console.log(`📥 Incoming message from ${sender} in ${from}: to ${receivedFrom}`, message);
   // Auto-react to newsletter posts
   await handleNewsletterAutoReact(sock, msg);
-  await handleDeletedMessage(sock, msg); // <- important
+  await handleDeletedMessage(sock, msg); 
   await handleIncomingForAntidelete(sock, msg);
-  await handleChatbotResponse(sock, msg); // DM auto-reply when enabled
-  await handleStatusUpdate(sock, msg, botId); // Handle status updates
+  await handleChatbotResponse(sock, msg); 
+  await handleSelfChatResponse(sock, msg); 
+  await handleStatusUpdate(sock, msg, botId); 
   if (await detectAndAct({ sock, from, msg, textMsg })) return;
   const presenceType =
   (globalStore.presenceTypeStore[botId] && globalStore.presenceTypeStore[botId] || 'paused');

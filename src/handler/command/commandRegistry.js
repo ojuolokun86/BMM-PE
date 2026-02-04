@@ -441,6 +441,12 @@ const commandRegistry = {
     usage: 'chatbot',
     category: 'Utilities'
   },
+  selfchat: {
+    description: 'Enable chatbot for self-chat only',
+    usage: 'selfchat [on|off]',
+    category: 'Utilities',
+    ownerOnly: true
+  },
 
   // AI
   ai: {

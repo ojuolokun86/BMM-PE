@@ -86,6 +86,47 @@ async function resetGroupStats(groupId) {
     groupStats[groupId] = {};
     await supabase.from('group_stats').delete().eq('group_id', groupId);
 }
+
+// Clean up users who are no longer in the group
+async function cleanupGroupStats(groupId, currentGroupMembers) {
+    try {
+        // Get current stats for this group
+        const stats = getGroupStats(groupId);
+        if (!stats || Object.keys(stats).length === 0) return;
+
+        // Get current member JIDs
+        const currentMemberJids = new Set(currentGroupMembers.map(member => member.id));
+        
+        // Find users in stats who are no longer in the group
+        const usersToRemove = Object.keys(stats).filter(userId => !currentMemberJids.has(userId));
+        
+        if (usersToRemove.length > 0) {
+            console.log(`🧹 Cleaning up ${usersToRemove.length} users from group stats for ${groupId}`);
+            
+            // Remove from database
+            const { error } = await supabase
+                .from('group_stats')
+                .delete()
+                .eq('group_id', groupId)
+                .in('user_id', usersToRemove);
+            
+            if (error) {
+                console.error('❌ Error cleaning up group stats:', error);
+                return;
+            }
+            
+            // Remove from cache
+            usersToRemove.forEach(userId => {
+                delete groupStats[groupId][userId];
+            });
+            
+            console.log(`✅ Successfully removed ${usersToRemove.length} inactive users from group stats`);
+        }
+    } catch (error) {
+        console.error('❌ Error in cleanupGroupStats:', error);
+    }
+}
+
 /**
  * Returns an array of user IDs who have not sent a message in the last 30 days.
  * Optionally pass an array of user IDs to exclude (e.g., admins/bot).
@@ -109,6 +150,7 @@ module.exports = {
     resetGroupStats,
     loadGroupStatsFromDB,
     loadGroupDailyStatsFromDB,
+    cleanupGroupStats,
     groupStats,
     groupDailyStats,
     getInactiveMembers

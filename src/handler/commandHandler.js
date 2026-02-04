@@ -2,6 +2,7 @@ const modeCommand = require('./command/mode');
 const prefixCommand = require('./command/prefix');
 const handleAntilinkCommand = require('./features/antiLink');
 const { linkCommand } = require('./command/linkCommand');
+const { handleSelfChatCommand } = require('./command/selfChatCommand');
 const { getUserMode, isBotOwner, getUserPrefix } = require('../database/database');
 const { getUserSettings } = require('../utils/settings');
 const settingsCommand = require('./command/settings');
@@ -149,6 +150,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'chatbot':
         await handleChatbotCommand(sock, msg, args);
+        break;
+      case 'selfchat':
+        await handleSelfChatCommand(sock, msg, args);
         break;
       case 'help':
         await helpCommand(sock, msg, textMsg, prefix, isAdmin, isOwner);
