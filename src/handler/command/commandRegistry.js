@@ -444,33 +444,40 @@ const commandRegistry = {
 
   // AI
   ai: {
-    description: 'Chat with AI',
+    description: 'AI chat assistant',
     usage: 'ai <message>',
     category: 'AI'
   },
   gpt: {
-    description: 'Chat with GPT',
+    description: 'GPT chat assistant',
     usage: 'gpt <message>',
     category: 'AI'
   },
   llama: {
-    description: 'Chat with Meta Llama AI',
+    description: 'Llama AI assistant',
     usage: 'llama <message>',
     category: 'AI'
   },
   mistral: {
-    description: 'Chat with Mistral AI',
+    description: 'Mistral AI assistant',
     usage: 'mistral <message>',
     category: 'AI'
   },
   deepseek: {
-    description: 'Chat with DeepSeek V3 AI',
+    description: 'DeepSeek AI assistant',
     usage: 'deepseek <message>',
-    category: 'AI',
-    aliases: ['ds']
+    category: 'AI'
   },
-
-  // Fun (interactive / memes / gifs)
+  ds: {
+    description: 'DeepSeek AI assistant (alias)',
+    usage: 'ds <message>',
+    category: 'AI'
+  },
+  bmm: {
+    description: 'BMM AI chat assistant',
+    usage: 'bmm <message>',
+    category: 'AI'
+  },
   sticker_fun: {
     description: 'Convert image/video to sticker (alias shown as sticker in menu)',
     usage: 'sticker (reply)',

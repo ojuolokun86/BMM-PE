@@ -14,6 +14,32 @@ const AI_PROVIDERS = {
             return "No response from GPT-4O-Mini";
         },
         errorMessage: "GPT-4O-Mini is currently unavailable."
+    },
+    'bmm': {
+        name: "🤖 BMM AI",
+        url: 'https://ai-gateway.ojuolokun86.workers.dev',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        requestBody: (query) => ({
+            messages: [
+                {
+                    role: "user",
+                    content: query
+                }
+            ]
+        }),
+        responseParser: (data) => {
+            if (data && data.reply) return data.reply;
+            if (data && data.response) return data.response;
+            if (data && data.result) return data.result;
+            if (data && data.message) return data.message;
+            if (data && data.answer) return data.answer;
+            if (data && data.content) return data.content;
+            return "No response from BMM AI";
+        },
+        errorMessage: "BMM AI is currently unavailable."
     }
 };
 
@@ -42,7 +68,10 @@ async function getAIResponse(provider, query) {
         
         let response;
         if (provider.method === 'POST') {
-            const requestData = provider.getData ? provider.getData(query) : { query };
+            const requestData = provider.requestBody ? provider.requestBody(query) : { query };
+            if (provider.headers) {
+                config.headers = provider.headers;
+            }
             //console.log('[AI] Request data:', requestData);
             response = await axios.post(url, requestData, config);
         } else {
@@ -86,6 +115,9 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
 │ • *${prefix}gpt <message>*
 │   └─ Chat with GPT-4O-Mini
 │
+│ • *${prefix}bmm <message>*
+│   └─ Chat with BMM AI
+│
 │ Example: *${prefix}ai* How does quantum computing work?
 
 ╰───  *BMM AI System*  ───╯
@@ -99,7 +131,16 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
             text: "⏳ *Processing your request...*"
         });
 
-        let providersToTry = [AI_PROVIDERS.gpt];
+        // Select provider based on command
+        let providersToTry;
+        if (cmd === 'bmm') {
+            providersToTry = [AI_PROVIDERS.bmm];
+        } else if (cmd === 'gpt') {
+            providersToTry = [AI_PROVIDERS.gpt];
+        } else {
+            // Default: try GPT first, then BMM as fallback
+            providersToTry = [AI_PROVIDERS.gpt, AI_PROVIDERS.bmm];
+        }
 
         for (const [index, currentProvider] of providersToTry.entries()) {
             try {

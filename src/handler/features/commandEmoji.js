@@ -107,6 +107,7 @@ const commandEmojis = {
   mistral: '🌌',
   deepseek: '🔮',
   ds: '🔮',
+  bmm: '🤖',
 
   // Fun Commands
   kill: '⚔️',
