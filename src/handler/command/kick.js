@@ -177,7 +177,7 @@ async function kickCommand(sock, msg, command, args, from) {
     }
 
     // .kick inactive (confirmation)
-    const { getInactiveMembersDetailed } = require('./groupStatsCommand');
+    const { getAllInactiveMembers } = require('./groupStatsCommand');
 
     if (subCmd === 'inactive') {
         await loadGroupStatsFromDB(groupId);
@@ -198,9 +198,9 @@ async function kickCommand(sock, msg, command, args, from) {
             return;
         }
     
-        // Use the same days threshold as your list command
+        // Use the new function that includes users with 0 messages
         const inactivityDays = 30;
-        const inactiveArr = getInactiveMembersDetailed(stats, inactivityDays, excludeJids);
+        const inactiveArr = getAllInactiveMembers(stats, metadata.participants, inactivityDays, excludeJids);
         
         // Debug: Log what we found
         // console.log(`Found ${inactiveArr.length} inactive members for group ${groupId}`);

@@ -1,4 +1,10 @@
-const { getGroupStats, getGroupDailyStats, loadGroupStatsFromDB, loadGroupDailyStatsFromDB } = require('../features/groupStats');
+const { 
+    loadGroupStatsFromDB, 
+    loadGroupDailyStatsFromDB,
+    cleanupGroupStats,
+    getGroupStats,
+    getGroupDailyStats
+} = require('../features/groupStats');
 const axios = require('axios');
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -41,6 +47,13 @@ async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
     await loadGroupDailyStatsFromDB(remoteJid);
 
     const groupMetadata = await sock.groupMetadata(remoteJid);
+    
+    // Clean up users who are no longer in the group
+    await cleanupGroupStats(remoteJid, groupMetadata.participants);
+    
+    // Reload stats after cleanup to get updated data
+    await loadGroupStatsFromDB(remoteJid);
+    
     const totalMembers = groupMetadata.participants.length;
     const stats = getGroupStats(remoteJid);
     const dailyStats = getGroupDailyStats(remoteJid);
@@ -174,9 +187,45 @@ function getInactiveMembersDetailed(stats, thresholdDays, excludeJids = []) {
             lastMessageTime: stat.lastMessageTime
         }));
 }
+
+// Returns all inactive members including those with 0 messages
+function getAllInactiveMembers(stats, currentGroupMembers, thresholdDays, excludeJids = []) {
+    const now = Date.now();
+    const threshold = now - thresholdDays * 24 * 60 * 60 * 1000;
+    const currentMemberIds = new Set(currentGroupMembers.map(p => p.id.split('@')[0]));
+    
+    const inactiveMembers = [];
+    
+    // Check all current group members
+    for (const participant of currentGroupMembers) {
+        const userId = participant.id.split('@')[0];
+        
+        // Skip excluded users (admins, bot)
+        if (excludeJids.includes(userId) || excludeJids.includes(participant.id)) {
+            continue;
+        }
+        
+        const stat = stats[userId];
+        
+        // Include user if:
+        // 1. User has no stats at all (0 messages)
+        // 2. User has stats but last message was before threshold
+        if (!stat || (stat.lastMessageTime && stat.lastMessageTime < threshold)) {
+            inactiveMembers.push({
+                userId,
+                messageCount: stat ? stat.messageCount : 0,
+                lastMessageTime: stat ? stat.lastMessageTime : null,
+                name: stat ? stat.name : participant.notify || userId
+            });
+        }
+    }
+    
+    return inactiveMembers;
+}
 module.exports = {
     handleGroupStatsCommand,
-    getInactiveMembersDetailed
+    getInactiveMembersDetailed,
+    getAllInactiveMembers
 };
 
 async function handleListInactiveCommand(sock, remoteJid, inactivityDays = 30) {
