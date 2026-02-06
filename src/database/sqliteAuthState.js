@@ -1,51 +1,69 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
-const { initAuthCreds, makeCacheableSignalKeyStore, BufferJSON } = require('@whiskeysockets/baileys');
+const { Mutex } = require('async-mutex');
+const { initAuthCreds, BufferJSON, proto } = require('@whiskeysockets/baileys');
 
 const dbPath = path.join(__dirname, 'sessions.db');
 if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '');
 
 const db = new Database(dbPath);
+const mutex = new Mutex();
 
+/* ───────── MIGRATE TABLE ───────── */
+
+// Check columns
+const oldCols = db.prepare(`PRAGMA table_info(sessions)`).all();
+const columns = oldCols.map(c => c.name);
+
+// We want: auth_id, phone_number, creds, keys, created_at, updated_at
+const keepCols = ['auth_id', 'phone_number', 'creds', 'keys', 'created_at', 'updated_at'];
+const dropCols = columns.filter(c => !keepCols.includes(c));
+const expectedCols = ['auth_id','phone_number','creds','keys','created_at','updated_at'];
+const needsMigration = !expectedCols.every(c => oldCols.some(oc => oc.name === c));
+
+if (needsMigration) {
+    console.log('🛠 Migrating session table...');
+    // migration SQL here
+}
+
+if (dropCols.length > 0) {
+  console.log('🛠 Removing unwanted columns:', dropCols.join(', '));
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions_new (
+      auth_id TEXT NOT NULL,
+      phone_number TEXT NOT NULL,
+      creds TEXT NOT NULL,
+      keys TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (auth_id, phone_number)
+    );
+
+    INSERT INTO sessions_new (auth_id, phone_number, creds, keys, created_at, updated_at)
+    SELECT auth_id, phone_number, creds, keys, created_at, updated_at
+    FROM sessions;
+
+    DROP TABLE sessions;
+    ALTER TABLE sessions_new RENAME TO sessions;
+  `);
+}
+
+// Ensure table exists (first install)
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
     auth_id TEXT NOT NULL,
     phone_number TEXT NOT NULL,
-    status TEXT NOT NULL,
     creds TEXT NOT NULL,
     keys TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (auth_id, phone_number)
-  )
+  );
 `);
 
-// Buffer-safe stringify
-function encodeKeys(keys) {
-  const encoded = {};
-  for (const category in keys) {
-    encoded[category] = {};
-    for (const id in keys[category]) {
-      encoded[category][id] = JSON.stringify(keys[category][id], BufferJSON.replacer);
-    }
-  }
-  return encoded;
-}
+/* ───────── INTERNAL ───────── */
 
-// Buffer-safe parse
-function decodeKeys(encoded) {
-  const parsed = {};
-  for (const category in encoded) {
-    parsed[category] = {};
-    for (const id in encoded[category]) {
-      parsed[category][id] = JSON.parse(encoded[category][id], BufferJSON.reviver);
-    }
-  }
-  return parsed;
-}
-
-// Load session from DB
 function loadSession(authId, phoneNumber) {
   const row = db.prepare(`
     SELECT creds, keys FROM sessions
@@ -56,107 +74,96 @@ function loadSession(authId, phoneNumber) {
 
   return {
     creds: JSON.parse(row.creds, BufferJSON.reviver),
-    keys: decodeKeys(JSON.parse(row.keys)),
-    status: row.status,
-
+    keys: JSON.parse(row.keys, BufferJSON.reviver)
   };
 }
 
-// Save session to DB
-function saveSession(authId, phoneNumber, status, creds, keys) {
+function saveSession(authId, phoneNumber, creds, keys) {
   db.prepare(`
-    INSERT INTO sessions (auth_id, phone_number, status, creds, keys)
-    VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(auth_id, phone_number)
-    DO UPDATE SET creds = excluded.creds, keys = excluded.keys, updated_at = CURRENT_TIMESTAMP
+    INSERT INTO sessions (auth_id, phone_number, creds, keys, updated_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(auth_id, phone_number) DO UPDATE SET
+      creds = excluded.creds,
+      keys = excluded.keys,
+      updated_at = excluded.updated_at
   `).run(
     authId,
     phoneNumber,
-    status,
     JSON.stringify(creds, BufferJSON.replacer),
-    JSON.stringify(encodeKeys(keys))
+    JSON.stringify(keys, BufferJSON.replacer)
   );
 }
-try{
-  db.prepare(`
-    ALTER TABLE sessions ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
-  `).run();
-} catch (e) {
-  // Ignore if already exists
-}  
 
-// Main function used in Baileys
+/* ───────── MAIN AUTH ───────── */
+
 async function useSQLiteAuthState(authId, phoneNumber) {
   let session = loadSession(authId, phoneNumber);
 
   if (!session) {
-    session = {
-      creds: initAuthCreds(),
-      keys: {},
-      status: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    // Only create if session doesn't exist
+    session = { creds: initAuthCreds(), keys: {} };
+    saveSession(authId, phoneNumber, session.creds, session.keys);
   }
 
   const { creds, keys } = session;
 
-  const keyStore = makeCacheableSignalKeyStore({
-    get: async (type, ids) => {
-      const result = {};
-      for (const id of ids) {
-        if (keys[type] && keys[type][id]) {
-          result[id] = keys[type][id];
-        }
-      }
-      return result;
-    },
-    set: async (data) => {
-  for (const category in data) {
-    if (!keys[category]) keys[category] = {};
-    for (const id in data[category]) {
-      keys[category][id] = data[category][id];
-    }
-  }
-  saveSession(authId, phoneNumber, 'active', creds, keys);
-    }
-  });
-
   return {
     state: {
       creds,
-      keys: keyStore
+      keys: {
+        get: async (type, ids) => {
+          const data = {};
+          for (const id of ids) {
+            let value = keys[type]?.[id] ?? null;
+            if (type === 'app-state-sync-key' && value) {
+              value = proto.Message.AppStateSyncKeyData.fromObject(value);
+            }
+            data[id] = value;
+          }
+          return data;
+        },
+
+        set: async (data) => {
+          await mutex.runExclusive(() => {
+            for (const category in data) {
+              if (!keys[category]) keys[category] = {};
+              for (const id in data[category]) {
+                const value = data[category][id];
+                if (value) keys[category][id] = value;
+                else delete keys[category][id];
+              }
+            }
+            saveSession(authId, phoneNumber, creds, keys);
+          });
+        }
+      }
     },
+
     saveCreds: async () => {
-      saveSession(authId, phoneNumber, 'active', creds, keys);
+      await mutex.runExclusive(() => {
+        saveSession(authId, phoneNumber, creds, keys);
+      });
     }
   };
 }
 
-// Delete session
+/* ───────── UTILITIES ───────── */
+
 function deleteSession(authId, phoneNumber) {
   db.prepare(`DELETE FROM sessions WHERE auth_id = ? AND phone_number = ?`).run(authId, phoneNumber);
 }
 
-function deleteAllSessions() {
-  db.prepare('DELETE FROM sessions').run();
-}
-
-// Get all sessions from the database
 function getAllSessions() {
-  try {
-    const rows = db.prepare('SELECT DISTINCT phone_number FROM sessions').all();
-    return rows.map(row => row.phone_number);
-  } catch (error) {
-    console.error('Error getting all sessions:', error);
-    return [];
-  }
+  return db.prepare(`SELECT DISTINCT phone_number FROM sessions`).all().map(r => r.phone_number);
 }
 
+function deleteAllSessions() {
+  db.prepare(`DELETE FROM sessions`).run();
+}
 
-module.exports = { 
-  useSQLiteAuthState, 
-  deleteSession, 
-  deleteAllSessions, 
-  getAllSessions
+module.exports = {
+  useSQLiteAuthState,
+  deleteSession,
+  getAllSessions,
+  deleteAllSessions
 };
