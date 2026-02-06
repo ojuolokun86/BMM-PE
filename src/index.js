@@ -173,7 +173,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     sock = makeWASocket({
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
-      logger: pino({ level: 'error' }),
+      logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       receivedPendingNotifications: true,
