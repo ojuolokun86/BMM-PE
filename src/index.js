@@ -4,6 +4,7 @@
  * --------------------------------------
  */
 const readline = require('readline');
+const { fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { default: makeWASocket, DisconnectReason, Browsers, jidDecode } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
@@ -144,12 +145,13 @@ async function bootSequence() {
 const restartSource = detectRestartSource();
 
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
+  const { version } = await fetchLatestBaileysVersion()
   await bootSequence();
 
   try {
     const authId = '123456';
     
-
+console.log(version)
     let phoneNumber;
     let pairingMethod;
 
@@ -171,10 +173,21 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     const msgRetryCounterCache = new NodeCache()
 
     sock = makeWASocket({
-      version: [2, 3000, 1034074495],
+      version: version,
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
-      logger: pino({ level: 'silent' }),
+      logger: pino({
+          level: "info",
+          base: { module: "BAILEYS" },
+          transport: {
+              target: "pino-pretty",
+              options: {
+                  colorize: true,
+                  translateTime: "HH:MM",
+                  ignore: "pid,hostname",
+              },
+          },
+      }),
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       receivedPendingNotifications: true,
