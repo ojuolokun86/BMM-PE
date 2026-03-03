@@ -7,7 +7,7 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function broadcastToGroupMembers(sock, groupJid, text, {
+async function broadcastToGroupMembers(sock, groupJid, content, {
   delayMinMs = 5_000,
   delayMaxMs = 10_000,
   excludeJids = []
@@ -29,7 +29,7 @@ async function broadcastToGroupMembers(sock, groupJid, text, {
   for (let i = 0; i < targets.length; i++) {
     const jid = targets[i];
     try {
-      await sock.sendMessage(jid, { text });
+      await sock.sendMessage(jid, content);
       result.sent++;
     } catch (err) {
       result.failed++;
@@ -45,7 +45,7 @@ async function broadcastToGroupMembers(sock, groupJid, text, {
   return result;
 }
 
-async function broadcastToAllGroups(sock, text, { delayMinMs, delayMaxMs, excludeJids } = {}) {
+async function broadcastToAllGroups(sock, content, { delayMinMs, delayMaxMs, excludeJids } = {}) {
   const groups = await sock.groupFetchAllParticipating();
   const groupJids = Object.keys(groups);
   const targets = groupJids.filter(jid => !excludeJids.includes(jid));
@@ -54,7 +54,7 @@ async function broadcastToAllGroups(sock, text, { delayMinMs, delayMaxMs, exclud
   for (let i = 0; i < targets.length; i++) {
     const jid = targets[i];
     try {
-      await sock.sendMessage(jid, { text });
+      await sock.sendMessage(jid, content);
       result.sent++;
     } catch (err) {
       result.failed++;
@@ -70,7 +70,7 @@ async function broadcastToAllGroups(sock, text, { delayMinMs, delayMaxMs, exclud
   return result;
 }
 
-async function broadcastToAllContacts(sock, text, { delayMinMs, delayMaxMs, excludeJids } = {}) {
+async function broadcastToAllContacts(sock, content, { delayMinMs, delayMaxMs, excludeJids } = {}) {
   const store = require('../../utils/store');
   const contacts = store.contacts || {};
   const contactsJids = Object.keys(contacts).filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@lid'));
@@ -80,7 +80,7 @@ async function broadcastToAllContacts(sock, text, { delayMinMs, delayMaxMs, excl
   for (let i = 0; i < targets.length; i++) {
     const jid = targets[i];
     try {
-      await sock.sendMessage(jid, { text });
+      await sock.sendMessage(jid, content);
       result.sent++;
     } catch (err) {
       result.failed++;

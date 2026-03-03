@@ -171,6 +171,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     const msgRetryCounterCache = new NodeCache()
 
     sock = makeWASocket({
+      version: [2, 3000, 1034074495],
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
       logger: pino({ level: 'silent' }),
