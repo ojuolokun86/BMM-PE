@@ -94,16 +94,19 @@ async function broadcastCommand(sock, msg) {
           if (r3.key.remoteJid !== from || (r3.key.participant || r3.key.remoteJid) !== sender) return;
           const ctx3 = r3.message?.extendedTextMessage?.contextInfo;
           if (ctx3?.stanzaId !== msgPrompt.key.id) return;
-          const broadcastText = r3.message?.conversation || r3.message?.extendedTextMessage?.text || '';
-          if (!broadcastText.trim()) {
+          
+          // Process the message content
+          const broadcastContent = await processMessageContent(sock, r3);
+          if (!broadcastContent) {
             await sock.sendMessage(from, { text: '❌ Message cannot be empty.' });
             sock.ev.off('messages.upsert', msgListener);
             sock.ev.off('messages.upsert', groupListener);
             sock.ev.off('messages.upsert', listener);
             return;
           }
+          
           await sock.sendMessage(from, { text: '🚀 Starting broadcast to group members...' });
-          const result = await broadcastToGroupMembers(sock, chosen.jid, broadcastText, {
+          const result = await broadcastToGroupMembers(sock, chosen.jid, broadcastContent, {
             delayMinMs: 5_000,
             delayMaxMs: 10_000,
             excludeJids: [sock.user.id]
@@ -134,17 +137,20 @@ async function broadcastCommand(sock, msg) {
       if (r2.key.remoteJid !== from || (r2.key.participant || r2.key.remoteJid) !== sender) return;
       const ctx2 = r2.message?.extendedTextMessage?.contextInfo;
       if (ctx2?.stanzaId !== msgPrompt.key.id) return;
-      const broadcastText = r2.message?.conversation || r2.message?.extendedTextMessage?.text || '';
-      if (!broadcastText.trim()) {
+      
+      // Process the message content
+      const broadcastContent = await processMessageContent(sock, r2);
+      if (!broadcastContent) {
         await sock.sendMessage(from, { text: '❌ Message cannot be empty.' });
         sock.ev.off('messages.upsert', msgListener);
         sock.ev.off('messages.upsert', listener);
         return;
       }
+      
       await sock.sendMessage(from, { text: '🚀 Starting broadcast...' });
       const result = option === 1
-        ? await broadcastToAllGroups(sock, broadcastText, { delayMinMs: 5_000, delayMaxMs: 10_000, excludeJids: [sock.user.id] })
-        : await broadcastToAllContacts(sock, broadcastText, { delayMinMs: 5_000, delayMaxMs: 10_000, excludeJids: [sock.user.id] });
+        ? await broadcastToAllGroups(sock, broadcastContent, { delayMinMs: 5_000, delayMaxMs: 10_000, excludeJids: [sock.user.id] })
+        : await broadcastToAllContacts(sock, broadcastContent, { delayMinMs: 5_000, delayMaxMs: 10_000, excludeJids: [sock.user.id] });
       const summary = `✅ *Broadcast Complete*\n\n📊 Total targets: ${result.total}\n✅ Sent: ${result.sent}\n❌ Failed: ${result.failed}`;
       await sock.sendMessage(from, { text: summary });
       sock.ev.off('messages.upsert', msgListener);
@@ -154,6 +160,66 @@ async function broadcastCommand(sock, msg) {
   };
 
   sock.ev.on('messages.upsert', listener);
+}
+
+// Helper function to process message content (text, image, video, etc.)
+async function processMessageContent(sock, msg) {
+  const messageContent = msg.message;
+  
+  // Handle image with caption
+  if (messageContent?.imageMessage) {
+    const imageMsg = messageContent.imageMessage;
+    return {
+      image: { 
+        url: await sock.downloadAndSaveMediaMessage(imageMsg, 'temp_broadcast')
+      },
+      caption: imageMsg.caption || ''
+    };
+  }
+  
+  // Handle video with caption
+  if (messageContent?.videoMessage) {
+    const videoMsg = messageContent.videoMessage;
+    return {
+      video: { 
+        url: await sock.downloadAndSaveMediaMessage(videoMsg, 'temp_broadcast')
+      },
+      caption: videoMsg.caption || ''
+    };
+  }
+  
+  // Handle audio
+  if (messageContent?.audioMessage) {
+    const audioMsg = messageContent.audioMessage;
+    return {
+      audio: { 
+        url: await sock.downloadAndSaveMediaMessage(audioMsg, 'temp_broadcast')
+      },
+      mimetype: audioMsg.mimetype,
+      ptt: audioMsg.ptt
+    };
+  }
+  
+  // Handle document
+  if (messageContent?.documentMessage) {
+    const docMsg = messageContent.documentMessage;
+    return {
+      document: { 
+        url: await sock.downloadAndSaveMediaMessage(docMsg, 'temp_broadcast')
+      },
+      fileName: docMsg.fileName,
+      mimetype: docMsg.mimetype,
+      caption: docMsg.caption || ''
+    };
+  }
+  
+  // Handle text only
+  const text = messageContent?.conversation || messageContent?.extendedTextMessage?.text || '';
+  if (text.trim()) {
+    return { text };
+  }
+  
+  return null;
 }
 
 module.exports = broadcastCommand;
