@@ -3,6 +3,7 @@
  * Main entry point for the WhatsApp bot
  * --------------------------------------
  */
+require("./console-style.js");
 const readline = require('readline');
 const { fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { default: makeWASocket, DisconnectReason, Browsers, jidDecode } = require('@whiskeysockets/baileys');
@@ -214,7 +215,6 @@ console.log(version)
       }
       return jid
     }
-
     store.bind(sock.ev, { decodeJid: sock.decodeJid });
     sock.authState = { saveCreds };
 
@@ -331,12 +331,20 @@ console.log(version)
       const msg = messages[0];
       if (msg.key.id.startsWith('BAE5') && msg.key.id.length === 16) return
 
-      // Clear message retry cache to prevent memory bloat
-      if (sock?.msgRetryCounterCache) {
-        sock.msgRetryCounterCache.clear()
-      }
-      if (!msg?.message) return;
+      if (!msg.message) return;
+      if (msg.key && msg.key.remoteJid === 'status@broadcast') return;
+
       handleIncomingMessage({ authId, sock, msg, phoneNumber });
+    });
+
+    sock.ev.on('lid-mapping.update', (update) => {
+      console.log('🔁 New LID ↔ PN mapping:', update)
+    })
+
+    // Handle incoming calls
+    sock.ev.on('call', async ({ call }) => {
+      const { handleIncomingCall } = require('./handler/command/call');
+      await handleIncomingCall(sock, call);
     });
 
     sock.ev.on('groups.update', (updates) => {
