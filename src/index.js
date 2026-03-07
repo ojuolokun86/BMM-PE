@@ -342,10 +342,10 @@ console.log(version)
     })
 
     // Handle incoming calls
-    sock.ev.on('call', async ({ call }) => {
-      const { handleIncomingCall } = require('./handler/command/call');
-      await handleIncomingCall(sock, call);
-    });
+    // sock.ev.on('call', async ({ call }) => {
+    //   const { handleIncomingCall } = require('./handler/command/call');
+    //   await handleIncomingCall(sock, call);
+    // });
 
     sock.ev.on('groups.update', (updates) => {
   for (const update of updates) {
