@@ -252,6 +252,12 @@ const commandRegistry = {
     category: 'Group',
     adminOnly: true
   },
+  'copy': {
+    description: 'Copy Member from one group to another group',
+    usage: 'copy: {in your group} and here in {target group}',
+    category: 'Group',
+    adminOnly: true
+  },
 
   // Media
   ss: {
@@ -550,7 +556,7 @@ const commandRegistry = {
     description: 'Configure welcome/goodbye messages',
     usage: 'welcome',
     category: 'Features',
-    adminOnly: true
+    adminOnly: false
   },
 
   // Settings (privacy/profile/disappear)

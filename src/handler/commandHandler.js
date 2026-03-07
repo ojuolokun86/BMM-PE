@@ -74,6 +74,8 @@ const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
 const { handleChatbotCommand } = require('./command/chatBot');
 const { addFame, showFame } = require('./command/hallOfFame');
+const { handleCallCommand } = require('./command/call');
+const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
   if (senderLid && (senderLid === botId || senderLid === botLid)) return senderLid;
@@ -147,6 +149,15 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'broadcast':
         await broadcastCommand(sock, msg);
+        break;
+      case 'call':
+        await handleCallCommand(sock, msg);
+        break;
+      case 'copy':
+        await handleCopyCommand(sock, msg);
+        break;
+      case 'here':
+        await handleHereCommand(sock, msg);
         break;
       case 'chatbot':
         await handleChatbotCommand(sock, msg, args);

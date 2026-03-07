@@ -76,6 +76,8 @@ const getMainMenu = (
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
+> 📊 copy → Copy members from one group to another 
+> 📊 here → to WHere u want to copy from
 
 📁 *MEDIA*
 
