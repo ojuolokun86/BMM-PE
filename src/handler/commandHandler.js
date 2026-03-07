@@ -150,12 +150,12 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       case 'broadcast':
         await broadcastCommand(sock, msg);
         break;
-      case 'call':
-        await handleCallCommand(sock, msg);
-        break;
-      // case 'copy':
-      //   await handleCopyCommand(sock, msg);
+      // case 'call':
+      //   await handleCallCommand(sock, msg);
       //   break;
+      case 'copy':
+        await handleCopyCommand(sock, msg);
+        break;
       case 'here':
         await handleHereCommand(sock, msg);
         break;
