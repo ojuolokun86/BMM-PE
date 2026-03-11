@@ -92,10 +92,15 @@ async function logoutCommand(authId, sock, msg) {
         });
 
         await new Promise(resolve => setTimeout(resolve, 1500));
-        const { handleLogout } = require('../../main/main');
-        // In src/handler/command/logout.js
-        const result = await handleLogout(sock, authId, botId); // Changed parameter order  
-        if (!result.success) throw new Error(result.message || 'Failed to complete logout');
+        
+        // Use Baileys built-in logout function
+        await sock.logout();
+        
+        // Exit the process after logout
+        setTimeout(() => {
+            console.log('🖥️ Bot logout completed, exiting process...');
+            process.exit(0);
+        }, 1000);
 
         return true;
     } catch (error) {

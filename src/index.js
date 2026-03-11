@@ -5,8 +5,7 @@
  */
 require("./console-style.js");
 const readline = require('readline');
-const { fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-const { default: makeWASocket, DisconnectReason, Browsers, jidDecode } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers, jidDecode, fetchLatestBaileysVersion, WAVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
@@ -146,13 +145,13 @@ async function bootSequence() {
 const restartSource = detectRestartSource();
 
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
-  const { version } = await fetchLatestBaileysVersion()
+ const { version } = await fetchLatestBaileysVersion()
   await bootSequence();
 
   try {
     const authId = '123456';
     
-console.log(version)
+  console.log(version)
     let phoneNumber;
     let pairingMethod;
 
@@ -172,7 +171,6 @@ console.log(version)
     let qrShown = false;
     let pairingRequested = false;
     const msgRetryCounterCache = new NodeCache()
-
     sock = makeWASocket({
       version: version,
       auth: state,

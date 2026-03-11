@@ -174,7 +174,7 @@ async function tagCommand(sock, msg, command, args) {
     let adminMsg = `🤖 *BMM BOT* 🤖\n\n👑 *Group Admins in ${groupName}:*\n`;
     adminMsg += admins.map(p => `• 👮 @${p.id.split('@')[0]}`).join('\n');
     adminMsg += `\n\n${additionalMessage ? `📝 ${additionalMessage}\n` : ''}`;
-
+    const groupPicBuffer = await getGroupProfilePicBuffer(sock, remoteJid);
     await sock.sendMessage(remoteJid, {
       text: adminMsg,
       mentions: adminIds,
