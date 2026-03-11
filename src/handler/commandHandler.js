@@ -153,12 +153,12 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       // case 'call':
       //   await handleCallCommand(sock, msg);
       //   break;
-      case 'copy':
-        await handleCopyCommand(sock, msg);
-        break;
-      case 'here':
-        await handleHereCommand(sock, msg);
-        break;
+      // case 'copy':
+      //   await handleCopyCommand(sock, msg);
+      //   break;
+      // case 'here':
+      //   await handleHereCommand(sock, msg);
+      //   break;
       case 'chatbot':
         await handleChatbotCommand(sock, msg, args);
         break;
