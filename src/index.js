@@ -5,7 +5,7 @@
  */
 require("./console-style.js");
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason, Browsers, jidDecode, fetchLatestBaileysVersion, WAVersion } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, Browsers, jidDecode, fetchLatestBaileysVersion, WAVersion, fetchLatestWaWebVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
@@ -144,14 +144,15 @@ async function bootSequence() {
 // Detect restart source if not explicitly provided
 const restartSource = detectRestartSource();
 
+
+
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
- const { version } = await fetchLatestBaileysVersion()
   await bootSequence();
 
   try {
     const authId = '123456';
     
-  console.log(version)
+  
     let phoneNumber;
     let pairingMethod;
 
@@ -167,7 +168,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     }
 
     const { state, saveCreds } = await useSQLiteAuthState(authId, phoneNumber);
-
+    const {version} = await fetchLatestBaileysVersion()
     let qrShown = false;
     let pairingRequested = false;
     const msgRetryCounterCache = new NodeCache()

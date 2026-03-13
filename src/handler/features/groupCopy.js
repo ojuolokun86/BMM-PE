@@ -19,9 +19,10 @@ async function getGroupName(sock, groupId) {
  * @param {Object} sock - Baileys socket instance
  * @param {string} sourceGroupId - Source group JID (e.g., '1234567890@g.us')
  * @param {string} targetGroupId - Target group JID (e.g., '0987654321@g.us')
+ * @param {Object} msg - Message object (optional, for participantAlt context)
  * @returns {Promise<Object>} - Results object with stats
  */
-async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
+async function copyGroupMembers(sock, sourceGroupId, targetGroupId, msg = null) {
   const results = {
     totalFound: 0,
     totalSkipped: 0,
@@ -128,26 +129,40 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
       console.log(`JID  : ${participantJid}`);
       console.log(`Type : ${isPn ? 'PN' : 'LID'}`);
       
-      // Try to get participantAlt information (await the Promise)
+      // Try to get participantAlt information from message data
       let altInfo = null;
       let isBusiness = false;
       try {
-        if (sock.participantAlt) {
-          altInfo = await sock.participantAlt(participantJid);
-          console.log(`Alt Info : ${JSON.stringify(altInfo)}`);
-          
-          // Check if it's a business account
-          if (altInfo && altInfo.biz) {
-            isBusiness = true;
-            console.log(`🏢 Business Account : Yes (via participantAlt)`);
-          } else {
-            console.log(`👤 Business Account : No (via participantAlt)`);
+        // First try to get participantAlt from current message context
+        if (msg && msg.message && msg.message.extendedTextMessage) {
+          const context = msg.message.extendedTextMessage.contextInfo;
+          if (context && context.participantAlt) {
+            altInfo = { jid: context.participantAlt };
+            console.log(`📋 Alt Info from message context: ${JSON.stringify(altInfo)}`);
           }
+        }
+        
+        // If not found in context, try the participantAlt function
+        if (!altInfo && sock.participantAlt) {
+          altInfo = await sock.participantAlt(participantJid);
+          console.log(`📋 Alt Info from function: ${JSON.stringify(altInfo)}`);
+        }
+        
+        if (!altInfo) {
+          console.log(`📋 Alt Info : Not available in message or function`);
+        }
+        
+        // Check if it's a business account
+        if (altInfo && altInfo.biz) {
+          isBusiness = true;
+          console.log(`🏢 Business Account : Yes (via participantAlt)`);
+        } else if (altInfo && altInfo.jid) {
+          console.log(`👤 Business Account : No (participantAlt found but not business)`);
         } else {
-          console.log(`Alt Info : participantAlt function not available`);
+          console.log(`👤 Business Account : Unknown (no participantAlt data)`);
         }
       } catch (error) {
-        console.log(`Alt Info : Error - ${error.message}`);
+        console.log(`📋 Alt Info : Error - ${error.message}`);
       }
       
       // Alternative business detection using profile info
@@ -266,17 +281,45 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
       }
     }
     
-    // Now process LID users with updated mappings
+    // Now process LID users with updated mappings and participantAlt
     console.log('🔄 Processing LID users with updated mappings...');
     for (const participantJid of lidUsers) {
       console.log('─'.repeat(30));
       console.log(`🔄 Processing LID: ${participantJid}`);
       
       let resolvedPn = null;
-      if (lidStore) {
+      let altInfo = null;
+      
+      // First try to get participantAlt from message context for this specific LID
+      try {
+        if (msg && msg.message && msg.message.extendedTextMessage) {
+          const context = msg.message.extendedTextMessage.contextInfo;
+          if (context && context.participantAlt && context.participant === participantJid) {
+            altInfo = { jid: context.participantAlt };
+            console.log(`📋 Found participantAlt for ${participantJid}: ${altInfo.jid}`);
+          }
+        }
+        
+        // If not found in context, try the participantAlt function
+        if (!altInfo && sock.participantAlt) {
+          altInfo = await sock.participantAlt(participantJid);
+          console.log(`📋 participantAlt function result for ${participantJid}: ${JSON.stringify(altInfo)}`);
+        }
+        
+        // If we have participantAlt with a PN JID, use it directly
+        if (altInfo && altInfo.jid && altInfo.jid.endsWith('@s.whatsapp.net')) {
+          resolvedPn = altInfo.jid;
+          console.log(`✅ Using participantAlt PN: ${resolvedPn}`);
+        }
+      } catch (error) {
+        console.log(`❌ Error getting participantAlt for ${participantJid}: ${error.message}`);
+      }
+      
+      // If no participantAlt found, try LID mapping store
+      if (!resolvedPn && lidStore) {
         try {
           resolvedPn = await lidStore.getPNForLID(participantJid);
-          console.log(`🔍 LID resolution for ${participantJid}: ${resolvedPn || 'Not found'}`);
+          console.log(`🔍 LID store resolution for ${participantJid}: ${resolvedPn || 'Not found'}`);
         } catch (error) {
           console.log(`❌ Error resolving PN for LID ${participantJid}: ${error.message}`);
         }
@@ -291,11 +334,11 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
         const phoneNumberOnly = cleanPn.split('@')[0]; // Remove @s.whatsapp.net if present
         finalJidToAdd = phoneNumberOnly + '@s.whatsapp.net'; // Add @s.whatsapp.net back
         status = 'Addable';
-        console.log(`Resolved PN : ${finalJidToAdd} (via batch mention)`);
+        console.log(`Resolved PN : ${finalJidToAdd} (via ${altInfo ? 'participantAlt' : 'LID mapping'})`);
         console.log(`Status : PN mapping found`);
         results.scanSummary.resolvedPn++;
       } else {
-        console.log(`Resolved PN : Not found (even after batch mention)`);
+        console.log(`Resolved PN : Not found (tried participantAlt and LID mapping)`);
         console.log(`Status : Cannot add yet`);
         results.scanSummary.unresolvedLid++;
       }
@@ -314,13 +357,52 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
           originalJid: participantJid,
           finalJid: finalJidToAdd,
           type: 'LID',
-          isBusiness: false, // Will be determined if needed
+          isBusiness: false, // Will be determined below
           status: status
         };
         
-        // Check if business (simplified for now)
-        if (finalJidToAdd === '2348026977793@s.whatsapp.net') {
-          participantData.isBusiness = true;
+        // Check if business using proper detection methods
+        let isBusinessUser = false;
+        
+        try {
+          // Method 1: Check participantAlt from earlier scan
+          if (altInfo && altInfo.biz) {
+            isBusinessUser = true;
+            console.log(`🏢 Business detected via participantAlt: ${finalJidToAdd}`);
+          }
+          
+          // Method 2: Check WhatsApp info for business indicators
+          if (!isBusinessUser) {
+            const whatsappInfo = await sock.onWhatsApp([finalJidToAdd]).catch(() => null);
+            if (whatsappInfo && whatsappInfo[0]) {
+              if (whatsappInfo[0].bizName || whatsappInfo[0].bizVerified) {
+                isBusinessUser = true;
+                console.log(`🏢 Business detected via WhatsApp info: ${finalJidToAdd}`);
+              }
+            }
+          }
+          
+          // Method 3: Profile picture heuristic (business accounts often have professional pics)
+          if (!isBusinessUser) {
+            try {
+              const profilePic = await sock.profilePictureUrl(finalJidToAdd).catch(() => null);
+              if (profilePic) {
+                // This is a simple heuristic - could be improved
+                console.log(`📸 Profile available for business check: ${finalJidToAdd}`);
+              }
+            } catch (profileError) {
+              console.log(`📸 No profile picture for: ${finalJidToAdd}`);
+            }
+          }
+          
+        } catch (businessCheckError) {
+          console.log(`❌ Business check failed for ${finalJidToAdd}: ${businessCheckError.message}`);
+        }
+        
+        // Set business status and add to appropriate list
+        participantData.isBusiness = isBusinessUser;
+        
+        if (isBusinessUser) {
           businessUsers.push(participantData);
           console.log(`🏢 Business user queued for addition: ${finalJidToAdd}`);
         } else {
@@ -343,15 +425,42 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
     console.log(`Business Users : ${businessUsers.length}`);
     console.log('─'.repeat(30));
     
-    // Add normal users first
+    // Dynamic rate limiting based on group size
+    const totalUsersToAdd = participantsToAdd.length + businessUsers.length;
+    let delayBetweenAdds = 6000; // Default 6 seconds
+    
+    if (totalUsersToAdd > 50) {
+      delayBetweenAdds = 8000; // 8 seconds for large groups
+      console.log(`📊 Large group detected (${totalUsersToAdd} users), using 8s delay`);
+    } else if (totalUsersToAdd > 20) {
+      delayBetweenAdds = 7000; // 7 seconds for medium groups  
+      console.log(`📊 Medium group detected (${totalUsersToAdd} users), using 7s delay`);
+    } else {
+      console.log(`📊 Small group detected (${totalUsersToAdd} users), using 6s delay`);
+    }
+    
+    // Add batch processing for very large groups
+    const batchSize = totalUsersToAdd > 100 ? 10 : 20; // Process in batches
+    let batchCount = 0;
+    
+    // First add normal users
     if (participantsToAdd.length > 0) {
       console.log(`🚀 Starting to add ${participantsToAdd.length} normal users...`);
+      console.log(`⏱️ Using ${delayBetweenAdds/1000}s delay between additions`);
       
       for (let i = 0; i < participantsToAdd.length; i++) {
         const participant = participantsToAdd[i];
+        batchCount++;
+        
+        // Add batch delay every N users
+        if (batchCount >= batchSize) {
+          console.log(`🔄 Batch completed, waiting 30s before next batch...`);
+          await sleep(30000);
+          batchCount = 0;
+        }
         
         try {
-          console.log(`📤 Adding ${participant.finalJid} (from ${participant.originalJid})...`);
+          console.log(`📤 Adding user ${i + 1}/${participantsToAdd.length}: ${participant.finalJid} (from ${participant.originalJid})...`);
           
           // Add one user at a time for rate limit protection
           const addResult = await sock.groupParticipantsUpdate(
@@ -367,9 +476,9 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
             const result = addResult[0];
             console.log(`🔍 First result: ${JSON.stringify(result)}`);
             
-            if (result && result.status === "200") {
+            if (result && (result.status === "200" || result.status === 200)) {
               results.totalAdded++;
-              console.log(`✅ Successfully added ${participant.finalJid}`);
+              console.log(`✅ Successfully added ${participant.finalJid} (${i + 1}/${participantsToAdd.length})`);
               
               // Send mention message to destination group
               try {
@@ -378,28 +487,48 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
                   text: mentionMessage,
                   mentions: [participant.finalJid]
                 });
-              } catch (mentionError) {
-                console.log(`❌ Failed to send mention message: ${mentionError.message}`);
-              }
-            } else if (result && result.status === 200) {
-              results.totalAdded++;
-              console.log(`✅ Successfully added ${participant.finalJid}`);
-              
-              // Send mention message to destination group
-              try {
-                const mentionMessage = `🎉 **Welcome to the group!**\n\n@${participant.finalJid.split('@')[0]} has been added from "${await getGroupName(sock, sourceGroupId)}"! 👋`;
-                await sock.sendMessage(targetGroupId, { 
-                  text: mentionMessage,
-                  mentions: [participant.finalJid]
-                });
+                console.log(`💬 Sent mention message for ${participant.finalJid}`);
               } catch (mentionError) {
                 console.log(`❌ Failed to send mention message: ${mentionError.message}`);
               }
             } else {
+              // Handle specific error codes
+              let errorType = 'Unknown';
+              let shouldRetry = false;
+              
+              if (result.status === 403) {
+                errorType = 'Forbidden - Privacy Settings';
+                console.log(`🔒 403 Error: User has privacy restrictions or blocked bot`);
+              } else if (result.status === 404) {
+                errorType = 'Not Found - User does not exist';
+                console.log(`❌ 404 Error: User not found on WhatsApp`);
+              } else if (result.status === 408) {
+                errorType = 'Timeout - Request timed out';
+                shouldRetry = true;
+                console.log(`⏰ 408 Error: Request timeout, will retry`);
+              } else if (result.status === 429) {
+                errorType = 'Rate Limited - Too many requests';
+                shouldRetry = true;
+                console.log(`⚡ 429 Error: Rate limited, will retry with longer delay`);
+              } else if (result.status === 500) {
+                errorType = 'Server Error - WhatsApp internal error';
+                shouldRetry = true;
+                console.log(`🔥 500 Error: WhatsApp server error, will retry`);
+              }
+              
               results.failed++;
-              const errorMsg = `Failed to add ${participant.finalJid}: ${result?.status || 'Unknown'} - ${result?.error || 'Unknown error'}`;
+              const errorMsg = `Failed to add ${participant.finalJid}: ${errorType} (${result?.status}) - ${result?.error || 'Unknown error'}`;
               results.errors.push(errorMsg);
               console.log(`❌ ${errorMsg}`);
+              
+              // Add extra delay for rate limiting
+              if (result.status === 429) {
+                console.log(`⚠️ Rate limit detected, waiting 60 seconds before continuing...`);
+                await sleep(60000);
+              } else if (shouldRetry) {
+                console.log(`🔄 Retrying after 10 seconds...`);
+                await sleep(10000);
+              }
             }
           } else {
             results.failed++;
@@ -408,10 +537,10 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
             console.log(`❌ ${errorMsg}`);
           }
           
-          // Wait 6 seconds between each addition (10 users per minute)
+          // Wait between each addition
           if (i < participantsToAdd.length - 1) {
-            console.log('⏳ Waiting 6s before next user...');
-            await sleep(6000);
+            console.log(`⏳ Waiting ${delayBetweenAdds/1000}s before next user (${i + 1}/${participantsToAdd.length} completed)...`);
+            await sleep(delayBetweenAdds);
           }
           
         } catch (error) {
@@ -422,8 +551,8 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
           
           // Still wait before next user to avoid making things worse
           if (i < participantsToAdd.length - 1) {
-            console.log('⏳ Error recovery: waiting 6s before next user...');
-            await sleep(6000);
+            console.log(`⏳ Error recovery: waiting ${delayBetweenAdds/1000}s before next user...`);
+            await sleep(delayBetweenAdds);
           }
         }
       }
@@ -431,15 +560,27 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
       console.log('ℹ️ No normal users available to add');
     }
     
+    // Reset batch counter for business users
+    batchCount = 0;
+    
     // Now try to add business users
     if (businessUsers.length > 0) {
       console.log(`🏢 Starting to add ${businessUsers.length} business users...`);
+      console.log(`⏱️ Using ${delayBetweenAdds/1000}s delay between additions`);
       
       for (let i = 0; i < businessUsers.length; i++) {
         const participant = businessUsers[i];
+        batchCount++;
+        
+        // Add batch delay every N users
+        if (batchCount >= batchSize) {
+          console.log(`🔄 Business batch completed, waiting 30s before next batch...`);
+          await sleep(30000);
+          batchCount = 0;
+        }
         
         try {
-          console.log(`📤 Adding business user ${participant.finalJid} (from ${participant.originalJid})...`);
+          console.log(`📤 Adding business user ${i + 1}/${businessUsers.length}: ${participant.finalJid} (from ${participant.originalJid})...`);
           
           // Add one user at a time for rate limit protection
           const addResult = await sock.groupParticipantsUpdate(
@@ -455,9 +596,9 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
             const result = addResult[0];
             console.log(`🔍 First result: ${JSON.stringify(result)}`);
             
-            if (result && result.status === "200") {
+            if (result && (result.status === "200" || result.status === 200)) {
               results.totalAdded++;
-              console.log(`✅ Successfully added business user ${participant.finalJid}`);
+              console.log(`✅ Successfully added business user ${participant.finalJid} (${i + 1}/${businessUsers.length})`);
               
               // Send mention message to destination group
               try {
@@ -466,20 +607,7 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
                   text: mentionMessage,
                   mentions: [participant.finalJid]
                 });
-              } catch (mentionError) {
-                console.log(`❌ Failed to send mention message: ${mentionError.message}`);
-              }
-            } else if (result && result.status === 200) {
-              results.totalAdded++;
-              console.log(`✅ Successfully added business user ${participant.finalJid}`);
-              
-              // Send mention message to destination group
-              try {
-                const mentionMessage = `🏢 **Business user added!**\n\n@${participant.finalJid.split('@')[0]} has been added from "${await getGroupName(sock, sourceGroupId)}"! Welcome! 🎉`;
-                await sock.sendMessage(targetGroupId, { 
-                  text: mentionMessage,
-                  mentions: [participant.finalJid]
-                });
+                console.log(`💬 Sent business mention message for ${participant.finalJid}`);
               } catch (mentionError) {
                 console.log(`❌ Failed to send mention message: ${mentionError.message}`);
               }
@@ -494,18 +622,18 @@ async function copyGroupMembers(sock, sourceGroupId, targetGroupId) {
                 const groupMetadata = await sock.groupMetadata(targetGroupId);
                 const groupInviteCode = await sock.groupInviteCode(targetGroupId);
                 const groupLink = `https://chat.whatsapp.com/${groupInviteCode}`;
+                const groupName = groupMetadata.subject || 'Unknown Group';
                 
-                const inviteMessage = `👋 Hello! I tried adding you to our group "${groupMetadata.subject}" but couldn't add you directly. 
-
-🎯 I'd love for you to join our community! Click here to join:
-${groupLink}
-
-📱 Looking forward to having you with us! 😊`;
+                const inviteMessage = `🏢 **Business User Invite**\n\nHi @${participant.finalJid.split('@')[0]}! 👋\n\nI tried to add you to "${groupName}" but WhatsApp requires business users to join via invite link.\n\n🔗 **Join here:** ${groupLink}\n\nLooking forward to having you in the group! 🎉`;
                 
-                await sock.sendMessage(participant.finalJid, { text: inviteMessage });
-                console.log(`📨 Sent group invite to business user ${participant.finalJid}`);
+                await sock.sendMessage(participant.finalJid, {
+                  text: inviteMessage,
+                  mentions: [participant.finalJid]
+                });
+                
+                console.log(`📧 Sent invite message to business user ${participant.finalJid}`);
               } catch (inviteError) {
-                console.log(`❌ Failed to send invite to ${participant.finalJid}: ${inviteError.message}`);
+                console.log(`❌ Failed to send invite message: ${inviteError.message}`);
               }
             }
           } else {
@@ -514,30 +642,30 @@ ${groupLink}
             results.errors.push(errorMsg);
             console.log(`❌ ${errorMsg}`);
             
-            // Send group invite message if no response (likely privacy settings)
+            // Send group invite message if no result returned
             try {
               const groupMetadata = await sock.groupMetadata(targetGroupId);
               const groupInviteCode = await sock.groupInviteCode(targetGroupId);
               const groupLink = `https://chat.whatsapp.com/${groupInviteCode}`;
+              const groupName = groupMetadata.subject || 'Unknown Group';
               
-              const inviteMessage = `👋 Hello! I tried adding you to our group "${groupMetadata.subject}" but couldn't add you directly. 
-
-🎯 I'd love for you to join our community! Click here to join:
-${groupLink}
-
-📱 Looking forward to having you with us! 😊`;
+              const inviteMessage = `🏢 **Business User Invite**\n\nHi @${participant.finalJid.split('@')[0]}! 👋\n\nI tried to add you to "${groupName}" but WhatsApp requires business users to join via invite link.\n\n🔗 **Join here:** ${groupLink}\n\nLooking forward to having you in the group! 🎉`;
               
-              await sock.sendMessage(participant.finalJid, { text: inviteMessage });
-              console.log(`📨 Sent group invite to business user ${participant.finalJid} (privacy settings)`);
+              await sock.sendMessage(participant.finalJid, {
+                text: inviteMessage,
+                mentions: [participant.finalJid]
+              });
+              
+              console.log(`📧 Sent invite message to business user ${participant.finalJid}`);
             } catch (inviteError) {
-              console.log(`❌ Failed to send invite to ${participant.finalJid}: ${inviteError.message}`);
+              console.log(`❌ Failed to send invite message: ${inviteError.message}`);
             }
           }
           
-          // Wait 6 seconds between each addition
+          // Wait between each addition
           if (i < businessUsers.length - 1) {
-            console.log('⏳ Waiting 6s before next business user...');
-            await sleep(6000);
+            console.log(`⏳ Waiting ${delayBetweenAdds/1000}s before next business user (${i + 1}/${businessUsers.length} completed)...`);
+            await sleep(delayBetweenAdds);
           }
           
         } catch (error) {
@@ -546,10 +674,10 @@ ${groupLink}
           results.errors.push(errorMsg);
           console.log(`❌ ${errorMsg}`);
           
-          // Still wait before next user
+          // Still wait before next user to avoid making things worse
           if (i < businessUsers.length - 1) {
-            console.log('⏳ Error recovery: waiting 6s before next business user...');
-            await sleep(6000);
+            console.log(`⏳ Error recovery: waiting ${delayBetweenAdds/1000}s before next business user...`);
+            await sleep(delayBetweenAdds);
           }
         }
       }
@@ -558,13 +686,16 @@ ${groupLink}
     }
     
     console.log('─'.repeat(30));
-    console.log(`🎉 Member copy completed!`);
+    console.log('🎉 Member copy completed!');
+    
+    // Final summary
     console.log('Copy Summary');
     console.log(`Added: ${results.totalAdded}`);
     console.log(`Failed: ${results.failed}`);
     console.log(`Skipped: ${results.totalSkipped}`);
     console.log('─'.repeat(30));
     
+    return results;
   } catch (error) {
     console.error('❌ Fatal error in copyGroupMembers:', error);
     results.errors.push(`Fatal error: ${error.message}`);

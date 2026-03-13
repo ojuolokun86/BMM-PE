@@ -73,7 +73,7 @@ const { menu, funMenu } = require('./command/menu');
 const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
 const { handleChatbotCommand } = require('./command/chatBot');
-const { addFame, showFame } = require('./command/hallOfFame');
+const { addFame, showFame, showStats } = require('./command/hallOfFame');
 //const { handleCallCommand } = require('./command/call');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
@@ -396,6 +396,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'fame':
         await showFame(sock, from);
+        break;
+      case 'stats':
+        await showStats(sock, from);
         break;
     }
   } catch (err) {
