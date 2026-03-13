@@ -30,8 +30,9 @@ async function getCommunityInfo(sock, groupJid) {
 }
 
 
-async function addFame(sock, msg, chatId, sender, args) {
+async function addFame(sock, msg, chatId, sender, args, prefix) {
   try {
+    const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const isAdmin = await checkIfAdmin(sock, chatId, sender)
     const community = await getCommunityInfo(sock, chatId)
     if (!community) {
@@ -48,7 +49,7 @@ async function addFame(sock, msg, chatId, sender, args) {
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
     if (!mentioned || mentioned.length === 0) {
       return sock.sendMessage(chatId, {
-        text: '❌ Mention a user.\nUsage: .addfame @user League, Team'
+        text: `❌ Mention a user.\nUsage: ${prefix} hall @user League, Team`
       })
     }
 
@@ -170,7 +171,12 @@ async function addFame(sock, msg, chatId, sender, args) {
 
     await sock.sendMessage(chatId, {
       text: message,
-      mentions: [userJid]
+      mentions: [userJid],
+      contextInfo: getContextInfo({
+        title: community.communityName,
+        body: 'HALL OF FAME UPDATE',
+        thumbnail: groupPicBuffer
+      })
     })
   } catch (e) {
     console.error(e)
