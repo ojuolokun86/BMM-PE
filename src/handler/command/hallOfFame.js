@@ -39,11 +39,11 @@ async function addFame(sock, msg, chatId, sender, args) {
         text: '❌ This command works only inside a *community group*.'
       })
     }
-    if (!isAdmin) {
-      return sock.sendMessage(chatId, {
-        text: '❌ You must be an admin to use this command.'
-      })
-    }
+    // if (!isAdmin) {
+    //   return sock.sendMessage(chatId, {
+    //     text: '❌ You must be an admin to use this command.'
+    //   })
+    // }
 
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
     if (!mentioned || mentioned.length === 0) {
