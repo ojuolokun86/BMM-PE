@@ -135,7 +135,7 @@ async function handleHereCommand(sock, msg) {
     
     // Start the copy process
     console.log(`🚀 Starting member copy from ${from} to ${targetGroupId}`);
-    const results = await copyGroupMembers(sock, from, targetGroupId);
+    const results = await copyGroupMembers(sock, from, targetGroupId, msg);
     
     // Send final report to destination group
     let report = `
