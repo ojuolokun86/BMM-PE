@@ -74,6 +74,8 @@ const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
 const { handleChatbotCommand } = require('./command/chatBot');
 const { addFame, showFame, showStats } = require('./command/hallOfFame');
+const { handleSudoCommand, checkSudo } = require('./command/sudo');
+const { checkSudoUser } = require('../database/database');
 //const { handleCallCommand } = require('./command/call');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
@@ -97,6 +99,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     const mode = getUserMode(botId);
     const matchedOwner = getMatchedOwner(senderId, senderLid, botId, botLid);
     const isOwner = msg.key.fromMe || !!matchedOwner;
+    const hasSudoAccess = checkSudoUser(senderId);
     //console.log('sender', senderId)
 
     // Always define isGroup, isOwner, isAdmin
@@ -108,17 +111,27 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
 
     // Permission checks for bot mode
     if (mode === 'private') {
+       if (isGroup) {
+        if (!isOwner && !hasSudoAccess) {
+          console.log('Access denied for:', senderId)
+          return;
+        }
+      }else{
       if (!msg.key.fromMe && !matchedOwner) {
         return; // allow only bot itself or owner in private mode
       }
-    }
+    }}
+  
+   
     if (mode === 'admin') {
       if (isGroup) {
-        if (!isAdmin && !isOwner) {
+        if (!isAdmin && !isOwner && !hasSudoAccess) {
+          console.log('Access denied for:', senderId)
           return;
         }
       } else {
         if (!isOwner && !msg.key.fromMe) {
+          console.log('Access denied for:', senderId)
           return;
         }
       }
@@ -392,13 +405,16 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
         break;
       case 'hall':
-        await addFame(sock, msg, from, senderId, args,);
+        await addFame(sock, msg, from, senderId, args, prefix);
         break;
       case 'fame':
         await showFame(sock, from);
         break;
       case 'stats':
         await showStats(sock, from);
+        break;
+      case 'sudo':
+        await handleSudoCommand(sock, msg, from, senderId, args, matchedOwner)
         break;
     }
   } catch (err) {

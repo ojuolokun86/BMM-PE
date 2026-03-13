@@ -76,8 +76,16 @@ const getMainMenu = (
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
+> 📊 stats → Trophy statistics
 > 📊 copy → Copy members from one group to another 
 > 📊 here → to WHere u want to copy from
+> 🔑 sudo → Sudo user management
+
+📁 *SUDO COMMANDS*
+
+> 🔑 sudo add @user → Grant sudo access
+> 🔑 sudo remove @user → Revoke sudo access  
+> 🔑 sudo list → View all sudo users
 
 📁 *MEDIA*
 

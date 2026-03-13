@@ -121,7 +121,36 @@ try {
   db.prepare("ALTER TABLE welcome_settings ADD COLUMN show_fame INTEGER DEFAULT 0").run();
 } catch (e) {} // Ignore if already exists
 
-// 🔧 User Management Functions
+// � Sudo Users Table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS sudo_users (
+    user_jid TEXT PRIMARY KEY,
+    added_by TEXT NOT NULL,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
+// 🔐 Sudo Management Functions
+function addSudoUser(user_jid, added_by) {
+  db.prepare(
+    'INSERT OR REPLACE INTO sudo_users (user_jid, added_by, added_at) VALUES (?, ?, ?)'
+  ).run(user_jid, added_by, new Date().toISOString());
+}
+
+function removeSudoUser(user_jid) {
+  db.prepare('DELETE FROM sudo_users WHERE user_jid = ?').run(user_jid);
+}
+
+function checkSudoUser(user_jid) {
+  const row = db.prepare('SELECT 1 FROM sudo_users WHERE user_jid = ?').get(user_jid);
+  return !!row;
+}
+
+function listSudoUsers() {
+  return db.prepare('SELECT * FROM sudo_users ORDER BY added_at DESC').all();
+}
+
+// �🔧 User Management Functions
 function saveUserToDb({ user_id, user_lid, user_name, auth_id, mode = 'private', prefix = '.', status_view_mode = 0 }) {
   db.prepare(
     `INSERT OR IGNORE INTO users (user_id, user_lid, user_name, auth_id, mode, prefix, status_view_mode)
@@ -368,12 +397,15 @@ module.exports = {
   isChatbotEnabled,
   setChatbotEnabled,
   recordBotActivity,
-  followedTeams,
-  addFollowedTeam,
-  removeFollowedTeam,
-  isFollowingTeam,
-  // Game state management
-  saveGameState,
+  
+  // Sudo management
+  addSudoUser,
+  removeSudoUser,
+  checkSudoUser,
+  listSudoUsers,
+  
+  // Game functions
   loadGameState,
+  saveGameState,
   deleteGameState
 };
