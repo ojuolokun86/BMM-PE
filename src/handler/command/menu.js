@@ -79,7 +79,12 @@ const getMainMenu = (
 > 📊 stats → Trophy statistics
 > 📊 copy → Copy members from one group to another 
 > 📊 here → to WHere u want to copy from
+> 🔑 greet → Greeting system management
 > 🔑 sudo → Sudo user management
+
+📁 *GREETING COMMANDS*
+
+> 🔑 greet → Greeting system management
 
 📁 *SUDO COMMANDS*
 
