@@ -1,14 +1,15 @@
-const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled, setShowFameEnabled } = require('../../database/welcomeDb');
+const { getWelcomeSettings, setWelcomeEnabled, setGoodbyeEnabled, setShowFameEnabled, setGreetEnabled } = require('../../database/welcomeDb');
 const { checkIfAdmin } = require('./kick');
 const { showFame } = require('./hallOfFame');
 
-const menu = (welcome, goodbye, showFame) => `
+const menu = (welcome, goodbye, showFame, greet) => `
 👋 Welcome & Goodbye Messages
 
 Here's how things look right now 👇
 • Welcome: ${welcome ? 'ON 🟢' : 'OFF 🔴'}
 • Goodbye: ${goodbye ? 'ON 🟢' : 'OFF 🔴'}
 • Show Hall of Fame: ${showFame ? 'ON 🟢' : 'OFF 🔴'}
+• Custom Greeting: ${greet ? 'ON 🟢' : 'OFF 🔴'}
 
 What do you want to change?
 Reply with:
@@ -16,6 +17,7 @@ Reply with:
 2️⃣ Turn goodbye on/off
 3️⃣ Turn both on/off
 4️⃣ Toggle Hall of Fame for new users
+5️⃣ Toggle Custom Greeting
 Just send the number 🙂
 `;
 
@@ -38,7 +40,7 @@ async function welcomeCommand(sock, msg) {
     return;
   }
 
-  const sentMenu = await sock.sendMessage(groupId, { text: menu(settings.welcome, settings.goodbye, settings.showFame), quoted: msg });
+  const sentMenu = await sock.sendMessage(groupId, { text: menu(settings.welcome, settings.goodbye, settings.showFame, settings.greet), quoted: msg });
   const menuMsgId = sentMenu.key.id;
 
   const listener = async (m) => {
@@ -63,6 +65,18 @@ async function welcomeCommand(sock, msg) {
     } else if (input === '4') {
       setShowFameEnabled(groupId, botId, !settings.showFame);
       await sock.sendMessage(groupId, { text: `Hall of Fame for new users is now ${!settings.showFame ? 'ON' : 'OFF'}.` });
+    } else if (input === '5') {
+      // Toggle greet and ensure mutual exclusion with welcome
+      if (!settings.greet) {
+        // Turning greet ON - turn welcome OFF
+        setGreetEnabled(groupId, botId, true);
+        setWelcomeEnabled(groupId, botId, false);
+        await sock.sendMessage(groupId, { text: `Custom Greeting is now ON. Formal Welcome is now OFF.` });
+      } else {
+        // Turning greet OFF
+        setGreetEnabled(groupId, botId, false);
+        await sock.sendMessage(groupId, { text: `Custom Greeting is now OFF.` });
+      }
     } else {
       await sock.sendMessage(groupId, { text: '❌ Invalid option.' });
     }

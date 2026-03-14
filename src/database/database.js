@@ -121,7 +121,12 @@ try {
   db.prepare("ALTER TABLE welcome_settings ADD COLUMN show_fame INTEGER DEFAULT 0").run();
 } catch (e) {} // Ignore if already exists
 
-// � Sudo Users Table
+// Add greet_enabled column to welcome_settings table
+try {
+  db.prepare("ALTER TABLE welcome_settings ADD COLUMN greet_enabled INTEGER DEFAULT 0").run();
+} catch (e) {} // Ignore if already exists
+
+// 🔐 Sudo Users Table
 db.prepare(`
   CREATE TABLE IF NOT EXISTS sudo_users (
     user_jid TEXT PRIMARY KEY,

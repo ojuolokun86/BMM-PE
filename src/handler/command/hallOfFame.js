@@ -138,7 +138,7 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
     let message = `🏆 *HALL OF FAME UPDATE*\n\n`
     message += `🎉 Congratulations @${userJid.split('@')[0]}! 🎉\n\n`
     message += `📝 You've been added to the *Hall of Fame* in **${community.communityName}** community!\n\n`
-    message += `🏟️ *Achievement:* ${league} - ${team}\n`
+    message += `🏟️ *Achievement:* ${normalizeLeague(league)}, *Team* ${team}\n`
     message += `🏆 *Trophies in this entry:* ${newTrophyCount}\n`
     message += `📊 *Total trophies in community:* ${communityTotalTrophies}\n`
     message += `🏅 *Total trophies won by you:* ${totalTrophies}\n\n`
@@ -266,11 +266,14 @@ async function showFame(sock, chatId) {
   }
 }
 
-async function showStats(sock, chatId) {
+async function showStats(sock, chatId, returnText = false) {
   try {
     const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const community = await getCommunityInfo(sock, chatId)
-    if (!community) return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.' })
+
+    if (!community) {
+      return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.' })
+    }
 
     const { data: allWinners, error } = await supabase
       .from('hall_of_fame')
@@ -278,42 +281,44 @@ async function showStats(sock, chatId) {
       .eq('community_jid', community.communityJid)
 
     if (error) throw error
+
     if (!allWinners || allWinners.length === 0) {
       return sock.sendMessage(chatId, {
-        text: `📊 No trophy data yet.\n👑 Community Owner: @${community.communityJid.split('@')[0]}`,
-        mentions: [community.communityJid]
+        text: `📊 No trophy data yet.`,
       })
     }
 
     // Aggregate trophies per user
     const userStats = {}
+
     for (const win of allWinners) {
       if (!userStats[win.user_jid]) {
         userStats[win.user_jid] = {
           userJid: win.user_jid,
           totalTrophies: 0,
           leagues: {},
-          communityName: win.community_name
         }
       }
+
       userStats[win.user_jid].totalTrophies += win.trophies
-      
-      // Use normalized league name (same as showFame)
+
       const normalizedLeague = normalizeLeague(win.league)
+
       if (!userStats[win.user_jid].leagues[normalizedLeague]) {
         userStats[win.user_jid].leagues[normalizedLeague] = []
       }
+
       userStats[win.user_jid].leagues[normalizedLeague].push({
         team: win.team,
         trophies: win.trophies,
-        originalLeague: win.league // Keep original for reference
       })
     }
 
-    // Sort users by total trophies (highest to lowest)
-    const sortedUsers = Object.values(userStats).sort((a, b) => b.totalTrophies - a.totalTrophies)
+    // Sort users
+    const sortedUsers = Object.values(userStats).sort(
+      (a, b) => b.totalTrophies - a.totalTrophies
+    )
 
-    // Categorize users based on trophy count
     function getRankCategory(trophies) {
       if (trophies >= 10) return { category: 'LEGEND', emoji: '👑', stars: '⭐⭐⭐⭐⭐⭐' }
       if (trophies >= 7) return { category: 'CHAMPION', emoji: '🏆', stars: '⭐⭐⭐⭐⭐' }
@@ -324,101 +329,92 @@ async function showStats(sock, chatId) {
       return { category: 'NEWCOMER', emoji: '🌱', stars: '' }
     }
 
-    let text = `🏆 *TROPHY STATS — ${community.communityName}*\n`
-    text += `━━━━━━━━━━━━━━━━━━\n`
-    text += `📊 Total Players: ${sortedUsers.length}\n`
-    text += `🏆 Total Trophies: ${sortedUsers.reduce((sum, u) => sum + u.totalTrophies, 0)}\n\n`
+    const totalTrophies = sortedUsers.reduce((sum, u) => sum + u.totalTrophies, 0)
+
+    let text = `🏆 *${community.communityName.toUpperCase()}*\n`
+    text += `⚽ *ALL-TIME TROPHY LEADERBOARD*\n`
+    text += `━━━━━━━━━━━━━━━━━━\n\n`
+    text += `👥 Players: *${sortedUsers.length}*\n`
+    text += `🏆 Total Trophies: *${totalTrophies}*\n\n`
+    text += `🏅 *TOP MANAGERS*\n`
+    text += `━━━━━━━━━━━━━━━━━━\n\n`
 
     const mentions = []
-    
-    // Display top 10 users
+
     const topUsers = sortedUsers.slice(0, 10)
-    
+
     for (let i = 0; i < topUsers.length; i++) {
       const user = topUsers[i]
       const rank = i + 1
       const category = getRankCategory(user.totalTrophies)
-      
+
       mentions.push(user.userJid)
-      
-      // Rank number with medal
-      let rankEmoji = ''
-      if (rank === 1) rankEmoji = '🥇'
-      else if (rank === 2) rankEmoji = '🥈'
-      else if (rank === 3) rankEmoji = '🥉'
-      else rankEmoji = `${rank}.`
-      
-      text += `${rankEmoji} ${category.emoji} @${user.userJid.split('@')[0]}\n`
-      text += `   🏆 ${user.totalTrophies} trophies | ${category.category} ${category.stars}\n`
-      
-      // Show top 3 leagues for this user
-      const userLeagues = Object.entries(user.leagues)
-        .map(([league, teams]) => ({
-          league,
-          totalTrophies: teams.reduce((sum, t) => sum + t.trophies, 0),
-          teams
-        }))
-        .sort((a, b) => b.totalTrophies - a.totalTrophies)
-        .slice(0, 3)
-      
-      if (userLeagues.length > 0) {
-        text += `   📋 Top Leagues:\n`
-        userLeagues.forEach((leagueData, idx) => {
-          const teamStr = leagueData.teams
-            .map(t => `${t.team} x${t.trophies}`)
-            .join(', ')
-          text += `      ${idx + 1}. ${leagueData.league}: ${teamStr}\n`
-        })
-      }
-      text += '\n'
+
+      let rankIcon = `${rank}.`
+      if (rank === 1) rankIcon = "🥇"
+      else if (rank === 2) rankIcon = "🥈"
+      else if (rank === 3) rankIcon = "🥉"
+
+      text += `${rankIcon} @${user.userJid.split('@')[0]}\n`
+      text += `   ${category.emoji} ${category.category} ${category.stars}\n`
+      text += `   🏆 ${user.totalTrophies} trophies\n\n`
     }
 
-    // Show category breakdown
-    text += `━━━━━━━━━━━━━━━━━━\n`
-    text += `📊 *CATEGORY BREAKDOWN*\n\n`
-    
+    // Category distribution
     const categoryCount = {}
+
     sortedUsers.forEach(user => {
       const category = getRankCategory(user.totalTrophies).category
       categoryCount[category] = (categoryCount[category] || 0) + 1
     })
 
-    const categories = ['LEGEND', 'CHAMPION', 'MASTER', 'EXPERT', 'RISING STAR', 'ROOKIE']
+    const categories = ['LEGEND','CHAMPION','MASTER','EXPERT','RISING STAR','ROOKIE']
+
+    text += `━━━━━━━━━━━━━━━━━━\n`
+    text += `📊 *RANK DISTRIBUTION*\n\n`
+
     categories.forEach(cat => {
       const count = categoryCount[cat] || 0
+
       const catInfo = getRankCategory(
         cat === 'LEGEND' ? 10 :
         cat === 'CHAMPION' ? 7 :
         cat === 'MASTER' ? 5 :
         cat === 'EXPERT' ? 3 :
-        cat === 'RISING STAR' ? 1 : 0
+        cat === 'RISING STAR' ? 2 : 1
       )
-      text += `${catInfo.emoji} ${cat}: ${count} player${count !== 1 ? 's' : ''}\n`
+
+      text += `${catInfo.emoji} ${cat} — ${count}\n`
     })
 
-    text += `\n⭐ *1-2 trophies: Rising Star*\n`
-    text += `⭐⭐ *3-4 trophies: Expert*\n`
-    text += `⭐⭐⭐ *5-6 trophies: Master*\n`
-    text += `⭐⭐⭐⭐ *7-9 trophies: Champion*\n`
-    text += `⭐⭐⭐⭐⭐ *10+ trophies: Legend*\n`
+    text += `\n━━━━━━━━━━━━━━━━━━\n`
+    text += `🔥 *Only true legends reach the top.*\n`
+    text += `📜 Type *.fame* to see full Hall of Fame.`
 
-    await sock.sendMessage(chatId, { 
-      text, 
-      mentions, 
+    if (returnText) {
+      return { text, mentions }
+    }
+
+    await sock.sendMessage(chatId, {
+      text,
+      mentions,
       contextInfo: getContextInfo({
         title: community.communityName,
-        body: 'Trophy Statistics',
+        body: 'Trophy Leaderboard',
         thumbnail: groupPicBuffer
       })
     })
+
   } catch (e) {
     console.error(e)
     await sock.sendMessage(chatId, { text: '❌ Failed to load trophy statistics.' })
   }
 }
 
+
 module.exports = {
   addFame,
   showFame,
-  showStats
+  showStats,
+  normalizeLeague
 }
