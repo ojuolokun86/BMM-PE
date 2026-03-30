@@ -52,9 +52,7 @@ async function handleStatusUpdate(sock, msg, userId) {
         }
 
         const botJid = sock.user?.id?.split(':')[0] + '@s.whatsapp.net';
-        if (!participant) {
-            participant = botJid; // fallback
-        }
+        if (!participant) return;
 
         if (participant === botJid) {
             console.log('⏭️ Skipping self-status.');

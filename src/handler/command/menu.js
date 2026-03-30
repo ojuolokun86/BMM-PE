@@ -77,9 +77,6 @@ const getMainMenu = (
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
 > 📊 stats → Trophy statistics
-> 📊 copy → Copy members from one group to another 
-> 📊 here → to WHere u want to copy from
-> 🔑 greet → Greeting system management
 > 🔑 sudo → Sudo user management
 
 📁 *GREETING COMMANDS*
