@@ -4,20 +4,11 @@ const { getGroupProfilePicBuffer, getContextInfo } = require('../../utils/groupI
 
 async function getCommunityInfo(sock, groupJid) {
   try {
-    //console.log(`🔍 Fetching metadata for group: ${groupJid}`)
     const groupMeta = await sock.groupMetadata(groupJid)
-    //console.log('📋 groupMeta:', groupMeta)
-
-    // Check if the group is part of a community
     if (!groupMeta.linkedParent) {
-      //console.log('⚠️ This group is NOT part of any community.')
       return null
     }
-
-    //console.log(`🔗 This group belongs to community: ${groupMeta.linkedParent}`)
-    
     const communityMeta = await sock.groupMetadata(groupMeta.linkedParent)
-    //console.log('🏘️ communityMeta:', communityMeta)
 
     return {
       communityJid: groupMeta.linkedParent,
@@ -63,7 +54,7 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
 
     if (!league || !team) {
       return sock.sendMessage(chatId, {
-        text: '❌ Usage: .addfame @user League, Team'
+        text: '❌ Usage: .hall @user League, Team'
       })
     }
 
@@ -272,7 +263,7 @@ async function showStats(sock, chatId, returnText = false) {
     const community = await getCommunityInfo(sock, chatId)
 
     if (!community) {
-      return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.' })
+      return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.'})
     }
 
     const { data: allWinners, error } = await supabase
@@ -360,7 +351,6 @@ async function showStats(sock, chatId, returnText = false) {
       text += `   🏆 ${user.totalTrophies} trophies\n\n`
     }
 
-    // Category distribution
     const categoryCount = {}
 
     sortedUsers.forEach(user => {

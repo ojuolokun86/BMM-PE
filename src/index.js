@@ -331,7 +331,6 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       if (msg.key.id.startsWith('BAE5') && msg.key.id.length === 16) return
 
       if (!msg.message) return;
-      if (msg.key && msg.key.remoteJid === 'status@broadcast') return;
 
       handleIncomingMessage({ authId, sock, msg, phoneNumber });
     });
