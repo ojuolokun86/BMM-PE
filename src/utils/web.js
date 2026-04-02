@@ -102,23 +102,33 @@ async function getCommunityInfo(sock, groupId) {
  */
 async function sendContenderMessage(sock, contender, groupId, communityInfo) {
   try {
-    console.log(`📤 [CONTENDERS] Sending message for contender: ${contender.name} to group: ${groupId}`);
+    console.log(` [CONTENDERS] Sending message for contender: ${contender.name} to group: ${groupId}`);
     
     // Create message caption with community info
     let caption = `🏆 *BALLON D'OR NOMINATION* 🏆\n\n`;
-    caption += `Name: ${contender.name}\n`;
-    caption += `Description: ${contender.description || 'No description'}\n`;
-    caption += `Nominated by: ${contender.email}\n`;
+    caption += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    caption += `⭐ *NOMINEE PROFILE* ⭐\n`;
+    caption += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    caption += `👤 *Name:* ${contender.name}\n`;
+    caption += `📧 *Nominated email:* ${contender.email}\n`;
     
     // Add community info if available
     if (communityInfo) {   
-      caption += `Community: ${communityInfo.communityName}\n`;
-      caption += `Group: ${communityInfo.groupName}\n`;
-      caption += `Owner: @${communityInfo.groupOwner.split('@')[0]}\n`;
+      caption += `🏘️ *Community:* ${communityInfo.communityName}\n`;
+      caption += `👥 *Group:* ${communityInfo.groupName}\n`;
+      caption += `👑 *Group Owner:* @${communityInfo.groupOwner.split('@')[0]}\n`;
     }
     
-    caption += `Trophies: ${contender.trophies || 0}\n\n`;
-    caption += `Vote now: ${CONFIG.WEBSITE_LINK}`;
+    caption += `🏆 *Trophy Collection:* ${contender.trophies || 0} 🏆\n`;
+    caption += `📝 *Achievement Description:* ${contender.description || 'Rising star with exceptional talent'}\n\n`;
+    caption += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    caption += `🗳️ *VOTING PORTAL* 🗳️\n`;
+    caption += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    caption += `🔗 *Cast Your Vote:* ${CONFIG.WEBSITE_LINK}\n`;
+    caption += `⏰ *Voting Deadline:* Limited Time Only!\n`;
+    caption += `🎯 *Category:* Ballon d'Or Excellence\n\n`;
+    caption += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    caption += `💎 *Every Vote Counts Towards Glory* 💎`;
     
     // Prepare message options
     const messageOptions = {
@@ -280,19 +290,25 @@ async function generateContendersListMessage() {
       return `📋 *BALLON D'OR CONTENDERS*\n\nNo contenders found.`;
     }
     
-    let message = `📋 *BALLON D'OR CONTENDERS*\n\n`;
-    message += `━━━━━━━━━━━━━━━━━━\n\n`;
+    let message = `🏆 *BALLON D'OR CONTENDERS* 🏆\n\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📋 *NOMINEE ROSTER* 📋\n`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
     
     response.data.forEach((contender, index) => {
-      message += `${index + 1}. *${contender.name}*\n`;
-      message += `   📧 Email: ${contender.email}\n`;
-      message += `   🏆 Trophies: ${contender.trophies || 0}\n`;
-      message += `   📝 Description: ${contender.description || 'No description'}\n`;
-      message += `   ✅ Sent: ${contender.sent ? 'Yes' : 'No'}\n\n`;
+      message += `🎯 *Contender #${index + 1}*\n`;
+      message += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `👤 *Name:* ${contender.name}\n`;
+      message += `📧 *Nominated email:* ${contender.email}\n`;
+      message += `🏆 *Trophy Collection:* ${contender.trophies || 0} 🏆\n`;
+      message += `📝 *Achievement Description:* ${contender.description || 'Rising star with exceptional talent'}\n`;
+      message += `📤 *Status:* ${contender.sent ? '✅ Announced' : '⏳ Pending'}\n\n`;
     });
     
-    message += `━━━━━━━━━━━━━━━━━━\n`;
-    message += `📊 Total: ${response.data.length} contenders`;
+    message += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    message += `📊 *Total Contenders:* ${response.data.length}\n`;
+    message += `🏆 *Category:* Ballon d'Or Excellence\n`;
+    message += `💎 *Every Nomination Represents Excellence* 💎`;
     
     return message;
   } catch (error) {
