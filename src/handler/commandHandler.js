@@ -3,6 +3,7 @@ const prefixCommand = require('./command/prefix');
 const handleAntilinkCommand = require('./features/antiLink');
 const { linkCommand } = require('./command/linkCommand');
 const { handleSelfChatCommand } = require('./command/selfChatCommand');
+const handleContenderCommand = require('./command/contenderCommand');
 const { getUserMode, isBotOwner, getUserPrefix } = require('../database/database');
 const { getUserSettings } = require('../utils/settings');
 const settingsCommand = require('./command/settings');
@@ -406,6 +407,15 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'hall':
         await addFame(sock, msg, from, senderId, args, prefix);
+        break;
+      case 'contender':
+        // Restrict to specific bot user ID: 2348051891310
+        const botUserId = sock?.user?.id?.split(':')[0]?.split('@')[0];
+        if (botUserId !== '2348051891310') {
+          await sock.sendMessage(from, { text: '❌ Command not available.' });
+          break;
+        }
+        await handleContenderCommand(sock, msg, from, senderId, args);
         break;
       case 'fame':
         await showFame(sock, from);

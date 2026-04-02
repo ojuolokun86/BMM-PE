@@ -19,6 +19,9 @@ const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource, 
 // SQLite auth
 const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
 
+// Contender service
+const { startContenderService } = require('./utils/web');
+
 // Message handler
 const handleIncomingMessage = require('./handler/messageHandler');
 
@@ -247,12 +250,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
               type: 'login',
               additionalInfo: '🔑 New login session established.'
             });
-          } else {
-            // For manual/command restarts
-            await sendSystemOnlineMessage();
           }
-          
-          restarting = false;
         }
 
         const pending = consumePendingRestartNotification();
@@ -262,6 +260,10 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
             additionalInfo: pending.additionalInfo || ''
           });
         }
+
+        // Start contender service
+        console.log('🚀 [CONTENDERS] Starting contender service after bot connection...');
+        startContenderService(sock);
 
       }
 
@@ -341,7 +343,6 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
     // Handle incoming calls
     // sock.ev.on('call', async ({ call }) => {
-    //   const { handleIncomingCall } = require('./handler/command/call');
     //   await handleIncomingCall(sock, call);
     // });
 
