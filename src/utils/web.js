@@ -3,7 +3,7 @@ const { delay } = require('@whiskeysockets/baileys');
 
 // Configuration
 const CONFIG = {
-  API_BASE_URL: 'https://your-app.fly.dev/api/bot',//'https://your-app.fly.dev',
+  API_BASE_URL: 'https://dyn.fly.dev/api/bot/',//'https://your-app.fly.dev',
   CHECK_INTERVAL: 10000, // 10 seconds
   WEBSITE_LINK: 'https://dynamicfootball.netlify.app'
 };
