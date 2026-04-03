@@ -12,12 +12,12 @@ const {
 async function handleContenderCommand(sock, msg, chatId, sender, args) {
   try {
     // Restrict to specific bot user ID: 2348051891310
-    const botUserId = sock?.user?.id?.split(':')[0]?.split('@')[0];
-    if (botUserId !== '2348051891310') {
-      return sock.sendMessage(chatId, {
-        text: '❌ Command not available.'
-      });
-    }
+    // const botUserId = sock?.user?.id?.split(':')[0]?.split('@')[0];
+    // if (botUserId !== '2348051891310') {
+    //   return sock.sendMessage(chatId, {
+    //     text: '❌ Command not available.'
+    //   });
+    // }
 
     const isAdmin = await checkIfAdmin(sock, chatId, sender);
     
@@ -62,7 +62,11 @@ async function handleContenderCommand(sock, msg, chatId, sender, args) {
  */
 async function handleStartCommand(sock, chatId) {
   try {
-    const enabled = toggleContenderMonitoring(chatId, true);
+    // Get group name for database
+    const groupMeta = await sock.groupMetadata(chatId);
+    const groupName = groupMeta.subject;
+    
+    const enabled = await toggleContenderMonitoring(chatId, groupName, true);
     
     if (enabled) {
       // Check if group has community
@@ -101,7 +105,7 @@ async function handleStartCommand(sock, chatId) {
  */
 async function handleStopCommand(sock, chatId) {
   try {
-    const enabled = toggleContenderMonitoring(chatId, false);
+    const enabled = await toggleContenderMonitoring(chatId, null, false);
     
     if (!enabled) {
       await sock.sendMessage(chatId, {
@@ -123,14 +127,13 @@ async function handleStopCommand(sock, chatId) {
  */
 async function handleStatusCommand(sock, chatId) {
   try {
-    const status = getContenderStatus(chatId);
+    const status = await getContenderStatus(chatId);
     const communityInfo = await getCommunityInfo(sock, chatId);
     
     let message = `📊 *CONTENDER MONITORING STATUS* 📊\n\n`;
     message += `━━━━━━━━━━━━━━━━━━\n`;
     message += `🔄 *Status:* ${status.enabled ? '🟢 ACTIVE' : '🔴 INACTIVE'}\n`;
-    message += `⏱️ *Check Interval:* ${status.interval / 1000} seconds\n`;
-    message += `📅 *Last Toggled:* ${status.lastToggled ? new Date(status.lastToggled).toLocaleString() : 'Never'}\n\n`;
+    message += `📅 *Last Toggled:* ${status.last_toggled ? new Date(status.last_toggled).toLocaleString() : 'Never'}\n\n`;
     
     if (communityInfo) {
       message += `🏘️ *Community:* ${communityInfo.communityName}\n`;

@@ -135,6 +135,18 @@ db.prepare(`
   )
 `).run();
 
+// 🏆 Contender Groups Table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS contender_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_jid TEXT UNIQUE NOT NULL,
+    group_name TEXT,
+    enabled BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_toggled DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
 // 🔐 Sudo Management Functions
 function addSudoUser(user_jid, added_by) {
   db.prepare(
@@ -375,11 +387,57 @@ function setChatbotEnabled(user_id, enabled) {
   db.prepare(`
     INSERT INTO users (user_id, chatbot_enabled)
     VALUES (?, ?)
-    ON CONFLICT(user_id)
-    DO UPDATE SET chatbot_enabled = excluded.chatbot_enabled
+    ON CONFLICT(user_id) DO UPDATE SET chatbot_enabled = excluded.chatbot_enabled
   `).run(user_id, enabled ? 1 : 0);
 }
 
+// 🏆 Contender Groups Management Functions
+function setContenderGroup(groupId, groupName, enabled = true) {
+  db.prepare(`
+    INSERT OR REPLACE INTO contender_groups (group_jid, group_name, enabled, last_toggled)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+  `).run(groupId, groupName || 'Unknown Group', enabled ? 1 : 0);
+}
+
+function getActiveContenderGroups() {
+  return db.prepare(`
+    SELECT group_jid, group_name, enabled, last_toggled
+    FROM contender_groups 
+    WHERE enabled = 1
+    ORDER BY last_toggled DESC
+  `).all();
+}
+
+function getContenderGroupStatus(groupId) {
+  const row = db.prepare(`
+    SELECT enabled, last_toggled
+    FROM contender_groups 
+    WHERE group_jid = ?
+  `).get(groupId);
+  
+  return row ? { enabled: row.enabled === 1, last_toggled: row.last_toggled } : { enabled: false, last_toggled: null };
+}
+
+function removeContenderGroup(groupId) {
+  return db.prepare(`
+    DELETE FROM contender_groups 
+    WHERE group_jid = ?
+  `).run(groupId);
+}
+
+function getAllContenderGroups() {
+  const groups = db.prepare(`
+    SELECT group_jid, group_name, enabled, created_at, last_toggled
+    FROM contender_groups 
+    ORDER BY last_toggled DESC
+  `).all();
+  
+  // Convert enabled from number to boolean
+  return groups.map(group => ({
+    ...group,
+    enabled: group.enabled === 1
+  }));
+}
 
 module.exports = {
   // Database instance
@@ -408,6 +466,13 @@ module.exports = {
   removeSudoUser,
   checkSudoUser,
   listSudoUsers,
+  
+  // Contender groups management
+  setContenderGroup,
+  getActiveContenderGroups,
+  getContenderGroupStatus,
+  removeContenderGroup,
+  getAllContenderGroups,
   
   // Game functions
   loadGameState,

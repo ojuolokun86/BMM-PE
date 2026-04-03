@@ -1,15 +1,20 @@
 const axios = require('axios');
 const { delay } = require('@whiskeysockets/baileys');
+const { 
+  setContenderGroup, 
+  getActiveContenderGroups, 
+  getContenderGroupStatus, 
+  removeContenderGroup 
+} = require('../database/database');
 
 // Configuration
 const CONFIG = {
-  API_BASE_URL: 'https://dyn.fly.dev/api/bot/',//'https://your-app.fly.dev',
+  API_BASE_URL: 'https://dyn.fly.dev/api/bot/',// localhost
   CHECK_INTERVAL: 10000, // 10 seconds
   WEBSITE_LINK: 'https://dynamicfootball.netlify.app'
 };
 
-// Store active contender monitoring per group
-const activeGroups = new Map(); // groupId => { enabled: boolean, interval: number }
+// Store processed contenders in memory (for duplicate prevention)
 const processedContenders = new Set();
 
 /**
@@ -171,112 +176,131 @@ async function sendContenderMessage(sock, contender, groupId, communityInfo) {
     console.log(`✅ [CONTENDERS] Successfully sent contender: ${contender.name}`);
     
   } catch (error) {
-    console.error('❌ [CONTENDERS] Send message error:', error);
+    console.error(' [CONTENDERS] Send message error:', error);
   }
 }
 
 /**
- * Main function to fetch and send contenders for active groups
+ * Process new contender from backend push notification
  */
-async function fetchAndSendContenders(sock) {
+async function processNewContender(sock, contender) {
   try {
-    console.log('🚀 [CONTENDERS] Starting fetch and send cycle...');
+    console.log(` [CONTENDERS] Processing new contender from backend: ${contender.name}`);
     
-    // Fetch new contenders
-    const response = await fetchNewContenders();
-    
-    if (!response.success || !response.data || response.data.length === 0) {
-      console.log('📭 [CONTENDERS] No new contenders found');
-      return;
+    // Skip if already processed
+    if (processedContenders.has(contender.id)) {
+      console.log(` [CONTENDERS] Skipping already processed contender: ${contender.id}`);
+      return { skipped: true, reason: 'Already processed' };
     }
     
-    console.log(`📊 [CONTENDERS] Found ${response.data.length} new contenders`);
+    // Handle picture URL - if null, construct one or use default
+    let pictureUrl = contender.picture;
+    if (!pictureUrl && contender.event_id) {
+      // Construct picture URL using event_id or use a default
+      pictureUrl = `https://via.placeholder.com/400x400/4CAF50/FFFFFF?text=${encodeURIComponent(contender.name)}`;
+      console.log(` [CONTENDERS] Generated placeholder image for: ${contender.name}`);
+    } else if (!pictureUrl) {
+      // Use a generic placeholder if no event_id
+      pictureUrl = `https://via.placeholder.com/400x400/2196F3/FFFFFF?text=${encodeURIComponent(contender.name)}`;
+      console.log(` [CONTENDERS] Using generic placeholder image for: ${contender.name}`);
+    }
     
-    // Process each active group
-    for (const [groupId, groupConfig] of activeGroups.entries()) {
-      if (!groupConfig.enabled) {
-        continue;
-      }
+    // Update contender with the picture URL
+    contender.picture = pictureUrl;
+    
+    let sentCount = 0;
+    
+    // Get all active groups from database
+    const activeGroups = await getActiveContenderGroups();
+    console.log(` [CONTENDERS] Found ${activeGroups.length} active groups from database`);
+    
+    // Send to all active groups
+    for (const group of activeGroups) {
+      const groupId = group.group_jid;
       
-      console.log(`🎯 [CONTENDERS] Processing group: ${groupId}`);
+      console.log(` [CONTENDERS] Processing group: ${groupId} (${group.group_name})`);
       
-      // Get community info
-      const communityInfo = await getCommunityInfo(sock, groupId);
-      
-      // Process each contender
-      for (const contender of response.data) {
-        // Skip if already processed
-        if (processedContenders.has(contender.id)) {
-          console.log(`⏭️ [CONTENDERS] Skipping already processed contender: ${contender.id}`);
-          continue;
-        }
+      try {
+        // Get community info for group
+        const communityInfo = await getCommunityInfo(sock, groupId);
         
-        // Skip if no image (API should filter this, but double-check)
-        if (!contender.picture) {
-          console.log(`⚠️ [CONTENDERS] Skipping contender without image: ${contender.name}`);
-          continue;
-        }
-        
-        // Send message
+        // Send contender message
         await sendContenderMessage(sock, contender, groupId, communityInfo);
+        sentCount++;
         
-        // Small delay between messages to avoid spam
+        console.log(` [CONTENDERS] Sent contender to group: ${groupId}`);
+        
+        // Small delay between groups to avoid spam
         await delay(2000);
+        
+      } catch (error) {
+        console.error(` [CONTENDERS] Failed to send to group ${groupId}:`, error);
       }
     }
     
-    console.log('✅ [CONTENDERS] Fetch and send cycle completed');
+    // Mark as processed
+    processedContenders.add(contender.id);
+    
+    console.log(` [CONTENDERS] Contender ${contender.name} processed successfully - sent to ${sentCount} groups`);
+    
+    return { 
+      success: true, 
+      sentCount,
+      groupsSent: sentCount
+    };
     
   } catch (error) {
-    console.error('❌ [CONTENDERS] Fetch and send error:', error);
+    console.error(' [CONTENDERS] Process new contender error:', error);
+    return { success: false, error: error.message };
   }
 }
 
 /**
- * Start contender checking service
+ * Start contender checking service (now just for backup)
  */
 function startContenderService(sock) {
-  console.log('⚙️ [CONTENDERS] Starting contender service...');
-  
-  // Initial fetch
-  fetchAndSendContenders(sock);
-  
-  // Set up periodic checking
-  const interval = setInterval(() => {
-    fetchAndSendContenders(sock);
-  }, CONFIG.CHECK_INTERVAL);
-  
-  console.log(`⏰ [CONTENDERS] Service started - checking every ${CONFIG.CHECK_INTERVAL}ms`);
-  
-  return interval;
+  console.log(' [CONTENDERS] Contender service ready - waiting for backend calls...');
+  console.log(' [CONTENDERS] Backend will call POST /contender/new when ready');
+  console.log('⚙️ [CONTENDERS] Contender service ready - waiting for backend calls...');
+  console.log('📡 [CONTENDERS] Backend will call POST /contender/new when ready');
+  // No polling needed - backend will push to us
+  return null;
 }
 
 /**
  * Toggle contender monitoring for a group
  */
-function toggleContenderMonitoring(groupId, enabled = null) {
-  if (enabled === null) {
-    // Toggle current state
-    const current = activeGroups.get(groupId);
-    enabled = !current?.enabled;
+async function toggleContenderMonitoring(groupId, groupName, enabled = null) {
+  try {
+    if (enabled === null) {
+      // Toggle current state
+      const current = await getContenderGroupStatus(groupId);
+      enabled = !current.enabled;
+    }
+    
+    // Save to database
+    await setContenderGroup(groupId, groupName, enabled);
+    
+    console.log(`🔄 [CONTENDERS] ${enabled ? 'Enabled' : 'Disabled'} contender monitoring for group: ${groupId}`);
+    
+    return enabled;
+  } catch (error) {
+    console.error('❌ [CONTENDERS] Toggle monitoring error:', error);
+    return false;
   }
-  
-  activeGroups.set(groupId, { 
-    enabled, 
-    interval: CONFIG.CHECK_INTERVAL,
-    lastToggled: Date.now()
-  });
-  
-  console.log(`🔄 [CONTENDERS] ${enabled ? 'Enabled' : 'Disabled'} contender monitoring for group: ${groupId}`);
-  
-  return enabled;
 }
 
 /**
  * Get contender monitoring status for a group
  */
-function getContenderStatus(groupId) {
-  return activeGroups.get(groupId) || { enabled: false, interval: CONFIG.CHECK_INTERVAL };
+async function getContenderStatus(groupId) {
+  try {
+    const status = await getContenderGroupStatus(groupId);
+    return status || { enabled: false, last_toggled: null };
+  } catch (error) {
+    console.error('❌ [CONTENDERS] Get status error:', error);
+    return { enabled: false, last_toggled: null };
+  }
 }
 
 /**
@@ -322,12 +346,11 @@ module.exports = {
   fetchAllContenders,
   markContenderAsSent,
   sendContenderMessage,
-  fetchAndSendContenders,
   startContenderService,
   toggleContenderMonitoring,
   getContenderStatus,
   generateContendersListMessage,
   getCommunityInfo,
-  CONFIG,
-  activeGroups
+  processNewContender,
+  CONFIG
 };
