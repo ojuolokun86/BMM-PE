@@ -20,7 +20,8 @@ const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource, 
 const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
 
 // Contender service
-const { startContenderService } = require('./utils/web');
+const ContenderReceiverServer = require('./server/contenderReceiver');
+
 
 // Message handler
 const handleIncomingMessage = require('./handler/messageHandler');
@@ -261,9 +262,14 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
           });
         }
 
-        // Start contender service
-        console.log('🚀 [CONTENDERS] Starting contender service after bot connection...');
-        startContenderService(sock);
+      
+        
+        // Start contender receiver server
+        console.log('🚀 [CONTENDERS] Starting contender receiver server...');
+        const contenderServer = new ContenderReceiverServer(sock);
+        contenderServer.start();
+        
+       
 
       }
 
