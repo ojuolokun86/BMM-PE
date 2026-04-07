@@ -1,13 +1,15 @@
 const { getUserStatusViewMode } = require('../../database/database');
 
-const viewedStatusMap = new Map(); // Map to store id => timestamp
+const userStatusTrackers = new Map(); // userId => Map(statusId => timestamp)
+
 const statusEmojis = ['❤️', '💚', '🔥', '🥳', '😍', '🤩', '🙌', '💯'];
 const statusStaticEmoji = '💚';
 const STATUS_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Periodically clean expired IDs every hour
+// 🧹 Cleanup expired status IDs every hour
 setInterval(() => {
     const now = Date.now();
+
     for (const [userId, map] of userStatusTrackers.entries()) {
         for (const [id, timestamp] of map.entries()) {
             if (now - timestamp > STATUS_EXPIRY_MS) {
@@ -18,8 +20,7 @@ setInterval(() => {
     }
 }, 60 * 60 * 1000);
 
-const userStatusTrackers = new Map(); // userId => Map
-
+// 📦 Get or create tracker for user
 function getUserTracker(userId) {
     if (!userStatusTrackers.has(userId)) {
         userStatusTrackers.set(userId, new Map());
@@ -27,74 +28,80 @@ function getUserTracker(userId) {
     return userStatusTrackers.get(userId);
 }
 
-
+// 🚀 MAIN FUNCTION
 async function handleStatusUpdate(sock, msg, userId) {
     try {
-        const viewedStatusMap = getUserTracker(userId); // ✅ per-user tracker
+          // 🛑 CRITICAL FILTERS
+        if (!msg.message) return;
+        if (msg.key.fromMe) return;
+        if (msg.message?.reactionMessage) return;
+        const viewedStatusMap = getUserTracker(userId);
+
         const key = msg?.key;
         const remoteJid = key?.remoteJid;
         const id = key?.id;
-        let participant = key?.participant;
 
-        if (remoteJid !== 'status@broadcast') {
-            //console.log('⏭️ Skipping non-status message.');
+        let participant = key?.participant || msg?.participant;
+
+        // ❌ Not a status
+        if (remoteJid !== 'status@broadcast') return;
+
+        // ❌ No ID
+        if (!id) return;
+
+        // ❌ Already viewed
+        const uniqueKey = `${participant}_${id}`;
+
+        if (viewedStatusMap.has(uniqueKey)) {
+            console.log('🔁 Already processed:', uniqueKey);
             return;
         }
 
-        if (!id) {
-            console.warn('⚠️ Missing status ID, skipping.');
-            return;
-        }
-
-        if (viewedStatusMap.has(id)) {
-            console.log('🔁 Already viewed status:', id);
-            return;
-        }
-
-        const botJid = sock.user?.id?.split(':')[0] + '@s.whatsapp.net';
-        if (!participant) return;
-
-        if (participant === botJid) {
-            console.log('⏭️ Skipping self-status.');
-            return;
-        }
+        // ❌ Invalid participant or self
+        if (!participant || msg.key.fromMe) return;
 
         const mode = await getUserStatusViewMode(userId);
+
+        // ❌ Disabled
         if (mode === 0) {
-            console.log('❌ Status viewing disabled for user.');
+            console.log('❌ Status viewing disabled');
             return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // ⏱️ Small delay (safe)
+        await new Promise(res => setTimeout(res, 500));
 
+        // 👀 VIEW STATUS
         await sock.readMessages([key]);
-        viewedStatusMap.set(id, Date.now()); // Save with timestamp
+        viewedStatusMap.set(uniqueKey, Date.now());
+
         console.log(`👀 Viewed status from ${participant}`);
 
+        // ❤️ REACT TO STATUS
         if (mode === 2) {
-            const emoji = statusStaticEmoji;
-
-            if (!participant || typeof participant !== 'string') {
-                console.warn('⚠️ Invalid participant. Skipping reaction.');
-                return;
-            }
+            // random or static
+            const emoji =
+                statusEmojis[Math.floor(Math.random() * statusEmojis.length)];
+                // OR use static:
+                // const emoji = statusStaticEmoji;
 
             try {
                 await sock.sendMessage(
-                    remoteJid,
+                    'status@broadcast',
                     {
                         react: {
-                            key,
+                            key: key,
                             text: emoji,
                         },
                     },
                     {
-                        statusJidList: [participant, sock.user.id],
+                        statusJidList: [participant], // ✅ VERY IMPORTANT
                     }
                 );
-                console.log(`❤️ Reacted to status from ${participant} with ${emoji}`);
+
+                console.log(`❤️ Reacted to ${participant} with ${emoji}`);
             } catch (err) {
-                console.error('❌ Failed to send reaction:', err.message);
+                console.error('❌ Reaction failed:', err.message);
             }
         }
     } catch (err) {
