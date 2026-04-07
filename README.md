@@ -52,8 +52,9 @@
 ### Optional Dependencies
 - **PM2**: Process management for production
 - **Docker**: Containerized deployment
-- **Fly.io**: Cloud platform deployment
+- **Fly.io**: Cloud platform deployment`
 
+![BMM Banner2](/src/assets/BMM2.jpg)
 ## 🛠️ Installation & Setup
 
 ### 1. Clone Repository

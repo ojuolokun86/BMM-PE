@@ -2,7 +2,7 @@ const { getUserStatusViewMode } = require('../../database/database');
 
 const userStatusTrackers = new Map(); // userId => Map(statusId => timestamp)
 
-const statusEmojis = ['❤️', '💚', '🔥', '🥳', '😍', '🤩', '🙌', '💯'];
+const statusEmojis = ['❤️', '💚', '🔥'];
 const statusStaticEmoji = '💚';
 const STATUS_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -19,6 +19,10 @@ setInterval(() => {
         }
     }
 }, 60 * 60 * 1000);
+// ⏱️ Random delay function
+function getRandomDelay(minMs = 5000, maxMs = 60000) {
+    return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+}
 
 // 📦 Get or create tracker for user
 function getUserTracker(userId) {
@@ -67,9 +71,9 @@ async function handleStatusUpdate(sock, msg, userId) {
             console.log('❌ Status viewing disabled');
             return;
         }
-
-        // ⏱️ Small delay (safe)
-        await new Promise(res => setTimeout(res, 500));
+        const delay = getRandomDelay();
+        console.log(`⏱️ Waiting ${delay / 1000}s before viewing status...`);
+        await new Promise(res => setTimeout(res, delay));
 
         // 👀 VIEW STATUS
         await sock.readMessages([key]);
