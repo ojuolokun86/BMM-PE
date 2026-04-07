@@ -12,20 +12,32 @@ async function updateCommand(sock, msg, isOwner, args) {
   const jid = msg.key.remoteJid;
   const sub = args[0];
 
+  // Helper to format changelog
+  const formatChangelog = (changelog) => {
+    return changelog && changelog.length
+      ? changelog.map(line => `• ${line}`).join('\n')
+      : 'No changelog available';
+  };
+
   try {
     /* 🔍 CHECK - DEFAULT BEHAVIOR */
     if (!sub || sub === 'check') {
       const res = await checkUpdate();
       console.log(`Update command executed ${res.localVersion} and ${res.remoteVersion}`);
-      return sock.sendMessage(jid, {
-        text: res.upToDate
-          ? `✅ Bot is up to date
+
+      if (res.upToDate) {
+        return sock.sendMessage(jid, {
+          text: `✅ Bot is up to date
 
 📦 Version: v${res.localVersion}
 🔖 Commit: ${res.localCommit}`
-          : `⬆️ Update available
+        });
+      } else {
+        const changelogText = formatChangelog(res.changelog);
 
-
+        return sock.sendMessage(jid, {
+          text:
+`⬆️ Update available
 
 📦 Version:
 From: v${res.localVersion}
@@ -35,10 +47,14 @@ To:   v${res.remoteVersion}
 Local:  ${res.localCommit}
 Remote: ${res.remoteCommit}
 
+🆕 What's new:
+${changelogText}
+
 Use *.update bot* to apply`
-      });
+        });
+      }
     }
-    
+
     /* 🤖 UPDATE BOT */
     if (sub === 'bot') {
       await sock.sendMessage(jid, { text: '🔄 Updating bot...' });
@@ -55,6 +71,8 @@ Use *.update bot* to apply`
         });
       }
 
+      const changelogText = formatChangelog(res.changelog);
+
       await sock.sendMessage(jid, {
         text:
 `⬆️ Bot updated successfully
@@ -67,6 +85,9 @@ To:   v${res.toVersion}
 From: ${res.fromCommit}
 To:   ${res.toCommit}
 
+🆕 What's new:
+${changelogText}
+
 🔁 Restarting bot...`
       });
 
@@ -78,6 +99,7 @@ To:   ${res.toCommit}
       await sock.sendMessage(jid, { text: '🔥 Force updating bot...' });
 
       const res = await forceUpdate();
+      const changelogText = formatChangelog(res.changelog);
 
       await sock.sendMessage(jid, {
         text:
@@ -90,6 +112,9 @@ To:   v${res.toVersion}
 🔖 Commit:
 From: ${res.fromCommit}
 To:   ${res.toCommit}
+
+🆕 What's new:
+${changelogText}
 
 🔁 Restarting bot...`
       });
