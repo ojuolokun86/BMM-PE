@@ -18,6 +18,13 @@ function getLocalVersion() {
   return pkg.version;
 }
 
+// Helper: Get commit messages between two commits
+async function getChangelog(fromCommit, toCommit) {
+  if (!fromCommit || !toCommit || fromCommit === toCommit) return [];
+  const log = await run(`git log ${fromCommit}..${toCommit} --pretty=format:%s`);
+  return log ? log.split('\n') : [];
+}
+
 /* 🔍 CHECK UPDATE */
 async function checkUpdate() {
   await run('git fetch origin');
@@ -30,6 +37,8 @@ async function checkUpdate() {
   const remotePkg = await run('git show origin/main:package.json');
   const remoteVersion = JSON.parse(remotePkg).version;
 
+  const changelog = await getChangelog(localCommit, remoteCommit);
+
   return {
     upToDate:
       localCommit === remoteCommit &&
@@ -37,7 +46,8 @@ async function checkUpdate() {
     localCommit,
     remoteCommit,
     localVersion,
-    remoteVersion
+    remoteVersion,
+    changelog
   };
 }
 
@@ -52,6 +62,8 @@ async function normalUpdate() {
   const toVersion = getLocalVersion();
   const toCommit = await run('git rev-parse --short HEAD');
 
+  const changelog = await getChangelog(fromCommit, toCommit);
+
   return {
     updated:
       fromVersion !== toVersion ||
@@ -59,7 +71,8 @@ async function normalUpdate() {
     fromVersion,
     toVersion,
     fromCommit,
-    toCommit
+    toCommit,
+    changelog
   };
 }
 
@@ -75,11 +88,14 @@ async function forceUpdate() {
   const toVersion = getLocalVersion();
   const toCommit = await run('git rev-parse --short HEAD');
 
+  const changelog = await getChangelog(fromCommit, toCommit);
+
   return {
     fromVersion,
     toVersion,
     fromCommit,
-    toCommit
+    toCommit,
+    changelog
   };
 }
 
