@@ -4,7 +4,7 @@ const fsPromises = require('fs/promises');
 const fse = require('fs-extra');
 const path = require('path');
 const { exec } = require('child_process');
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
 //console.log('Node.js PATH:', process.env.PATH);
 
 const tempDir = './temp';
@@ -48,6 +48,7 @@ function extractQuotedStickerMessage(msg) {
  * Convert sticker (static or animated) to image (PNG)
  */
 async function convertStickerToImage(sock, msg, chatId) {
+    const { downloadContentFromMessage } = await getBaileys();
     console.log('[stToImage] convertStickerToImage called');
     try {
         const stickerMessage = extractQuotedStickerMessage(msg);

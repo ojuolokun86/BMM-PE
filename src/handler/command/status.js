@@ -1,4 +1,4 @@
-const { downloadMediaMessage, getContentType } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
 
 // Simple random ID generator
 function getRandomId(length = 4) {
@@ -7,6 +7,7 @@ function getRandomId(length = 4) {
 }
 
 async function downloadStatus(sock, msg, isOwner, from, prefix) {
+    const { downloadMediaMessage, getContentType } = await getBaileys();
     const sender = msg.key.remoteJid;
     try {
         // Check if the message is a reply to a status

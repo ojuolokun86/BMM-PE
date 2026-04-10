@@ -1,7 +1,7 @@
 const { registerCommand } = require('./commandRegistry');
 const axios = require('axios');
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const FormData = require('form-data');
+const { getBaileys } = require('../../utils/baileys');
 
 // Update API configuration
 const API_BASE = 'https://background-production-67b6.up.railway.app';
@@ -73,6 +73,7 @@ async function processBackground(imageBuffer) {
 }
 
 async function handleBgRemoval(sock, msg) {
+    const { downloadMediaMessage } = await getBaileys();
     const chat = msg.key.remoteJid;
 
     // First check if service is available with retries

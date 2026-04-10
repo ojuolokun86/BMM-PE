@@ -3,11 +3,12 @@ const path = require('path');
 const sharp = require('sharp');
 const { exec } = require('child_process');
 const sendToChat = require('../../utils/sendToChat');
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const webp = require('node-webpmux');
 const crypto = require('crypto');
+const { getBaileys } = require('../../utils/baileys');
 
 async function stickerCommand(sock, msg) {
+  const { downloadMediaMessage } = await getBaileys();
   const chatId = msg.key.remoteJid;
   let targetMessage = msg;
   let messageToQuote = msg;
