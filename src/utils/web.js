@@ -1,11 +1,11 @@
 const axios = require('axios');
-const { delay } = require('@whiskeysockets/baileys');
 const { 
   setContenderGroup, 
   getActiveContenderGroups, 
   getContenderGroupStatus, 
   removeContenderGroup 
 } = require('../database/database');
+const { getBaileys } = require('./baileys');
 
 // Configuration
 const CONFIG = {
@@ -184,6 +184,7 @@ async function sendContenderMessage(sock, contender, groupId, communityInfo) {
  * Process new contender from backend push notification
  */
 async function processNewContender(sock, contender) {
+  const { delay } = await getBaileys();
   try {
     console.log(` [CONTENDERS] Processing new contender from backend: ${contender.name}`);
     

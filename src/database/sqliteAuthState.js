@@ -2,7 +2,8 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 const { Mutex } = require('async-mutex');
-const { initAuthCreds, BufferJSON, proto } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../utils/baileys');
+
 
 const dbPath = path.join(__dirname, 'sessions.db');
 if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '');
@@ -64,7 +65,11 @@ db.exec(`
 
 /* ───────── INTERNAL ───────── */
 
-function loadSession(authId, phoneNumber) {
+async function loadSession(authId, phoneNumber) {
+  const baileys = await getBaileys();
+  const BufferJSON = baileys.BufferJSON || baileys.default?.BufferJSON || {
+    reviver: (_, v) => v
+  };
   const row = db.prepare(`
     SELECT creds, keys FROM sessions
     WHERE auth_id = ? AND phone_number = ?
@@ -78,7 +83,11 @@ function loadSession(authId, phoneNumber) {
   };
 }
 
-function saveSession(authId, phoneNumber, creds, keys) {
+async function saveSession(authId, phoneNumber, creds, keys) {
+  const baileys = await getBaileys();
+  const BufferJSON = baileys.BufferJSON || baileys.default?.BufferJSON || {
+    replacer: (_, v) => v
+  };
   db.prepare(`
     INSERT INTO sessions (auth_id, phone_number, creds, keys, updated_at)
     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -97,12 +106,24 @@ function saveSession(authId, phoneNumber, creds, keys) {
 /* ───────── MAIN AUTH ───────── */
 
 async function useSQLiteAuthState(authId, phoneNumber) {
-  let session = loadSession(authId, phoneNumber);
+  const baileys = await getBaileys();
+
+  const {
+    initAuthCreds,
+    proto,
+  } = baileys;
+  const BufferJSON =
+  baileys.BufferJSON ||
+  baileys.default?.BufferJSON ||  
+  {
+    replacer: (_, v) => v,
+    reviver: (_, v) => v
+  };
+  let session = await loadSession(authId, phoneNumber);
 
   if (!session) {
-    // Only create if session doesn't exist
     session = { creds: initAuthCreds(), keys: {} };
-    saveSession(authId, phoneNumber, session.creds, session.keys);
+    await saveSession(authId, phoneNumber, session.creds, session.keys);
   }
 
   const { creds, keys } = session;
@@ -140,8 +161,8 @@ async function useSQLiteAuthState(authId, phoneNumber) {
     },
 
     saveCreds: async () => {
-      await mutex.runExclusive(() => {
-        saveSession(authId, phoneNumber, creds, keys);
+      await mutex.runExclusive(async () => {
+        await saveSession(authId, phoneNumber, creds, keys);
       });
     }
   };

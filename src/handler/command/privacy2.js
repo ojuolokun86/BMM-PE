@@ -1,4 +1,4 @@
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
 const { quotedInfo } = require('../../utils/sendToChat');
 const sendToChat = require('../../utils/sendToChat');
 const { isBotOwner } = require('../../database/database');
@@ -199,6 +199,7 @@ function waitForImage(sock, jid, expectedSender) {
 }
 
 async function downloadImage(msg) {
+  const { downloadMediaMessage } = await getBaileys();
   const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: console });
   const chunks = [];
   for await (const chunk of stream) chunks.push(chunk);

@@ -1,9 +1,12 @@
 const { saveMediaToStore, saveTextToStore } = require('../../utils/globalStore');
 const { getAntideleteMode, isGroupExcluded } = require('../../database/antideleteDb');
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
+
 
 // 🔥 Call this in your msg handler when a new message is received
 async function handleIncomingForAntidelete(sock, msg) {
+  const Baileys = await getBaileys();
+  const { downloadMediaMessage } = Baileys;
   const { remoteJid: chatId, id: msgId, fromMe } = msg.key;
   const botId = sock.user?.id?.split(':')[0];
   const botLid = sock.user?.lid?.split(':')[0];
@@ -71,6 +74,7 @@ async function handleIncomingForAntidelete(sock, msg) {
 
  // Save media (add senderJid)
 if (isMedia) {
+  
   try {
     const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger: null });
     const caption = message[type]?.caption || '';

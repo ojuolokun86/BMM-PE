@@ -1,6 +1,6 @@
-const { getContextInfo, getForwardedContext } = require('../../utils/contextInfo');
-const { commandRegistry, commandsByCategory, version } = require('./commandRegistry');
-const sendToChat = require('../../utils/sendToChat');
+const { getContextInfo, getForwardedContext } = require('../../utils/contextInfo.js');
+const { commandRegistry, commandsByCategory, version } = require('./commandRegistry.js');
+
 
 async function helpCommand(sock, msg, textMsg, prefix, isAdmin = false, isOwner = false) {
     const from = msg.key.remoteJid;
