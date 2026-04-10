@@ -68,7 +68,6 @@ const { handleTrivia } = require('./command/triviaGame');
 const { handleAdventure } = require('./command/adventureGame');
 const { handleBgRemoval } = require('./command/bg');
 const diskCommand = require('./command/disk');
-const { updateBaileysCommand } = require('./command/baileyUpdate');
 const { updateCommand } = require('./command/updateCommand');
 const { menu, funMenu } = require('./command/menu');
 const contactCommand = require('./command/contact');
@@ -395,9 +394,6 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'disk':
         await diskCommand(sock, msg, args, prefix);
-        break;
-      case 'npm':
-        await updateBaileysCommand(sock, msg, isOwner);
         break;
       case 'update':
         await updateCommand(sock, msg, isOwner, args);

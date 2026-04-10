@@ -5,7 +5,7 @@
  */
 require("./console-style.js");
 const readline = require('readline');
-const { default: makeWASocket, DisconnectReason, Browsers, jidDecode, fetchLatestBaileysVersion, WAVersion, fetchLatestWaWebVersion } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('./utils/baileys');
 const pino = require('pino');
 const NodeCache = require('node-cache');
 const qrTerminal = require('qrcode-terminal');
@@ -151,6 +151,15 @@ const restartSource = detectRestartSource();
 
 
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
+  const baileys = await getBaileys();
+
+  const {
+    default: makeWASocket,
+    DisconnectReason,
+    Browsers,
+    jidDecode,
+    fetchLatestBaileysVersion
+  } = baileys;
   await bootSequence();
 
   try {

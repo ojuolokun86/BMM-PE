@@ -15,6 +15,8 @@ const commandEmojis = {
   time: '⏰',
   disk: '💾',
   react: '😊',
+  npm: '📦',
+  update: '🔄',
 
   // Moderation & Security
   antilink: '🔗',
@@ -38,12 +40,10 @@ const commandEmojis = {
   promote: '⬆️',
   demote: '⬇️',
   poll: '📊',
-  'group link': '🔗',
-  'group stats': '📊',
-  'group revoke': '♻️',
-  'group info': 'ℹ️',
-  'group desc': '📝',
-  'group pic': '🖼️',
+  'group-link': '🔗',
+  'group-stats': '📊',
+  'group': '🔧',
+  copy: '📝',
   listinactive: '👻',
   destroy: '💥',
   hall: '🏆',
@@ -65,10 +65,7 @@ const commandEmojis = {
   play: '▶️',
   video: '🎬',
   dstatus: '📥',
-  'yt video': '📹',
-  'yt audio': '🎧',
-  'yt search': '🔍',
-  yt: '📺',
+  yt: '',
   bg: '🎨',
 
   // Sports

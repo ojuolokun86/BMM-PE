@@ -1,5 +1,5 @@
 //const sendToChat = require('../../utils/sendToChat');
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
 const {  getGroupProfilePicBuffer, getContextInfo} = require('../../utils/groupImagePreview');
 
 
@@ -68,6 +68,7 @@ function getNewRandomEmoji() {
  * Main tag command handler.
  */
 async function tagCommand(sock, msg, command, args) {
+  const { downloadMediaMessage } = await getBaileys();
   const remoteJid = msg.key.remoteJid;
   if (!remoteJid.endsWith('@g.us')) {
     await sock.sendMessage(remoteJid, { text: '❌ This command only works in groups.' });

@@ -1,4 +1,4 @@
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { getBaileys } = require('../../utils/baileys');
 const sendToChat = require('../../utils/sendToChat');
 const { getUserPrefix } = require('../../database/database');
 const viewOnceMediaStore = {}; // Optionally move to globalStore.js
@@ -126,7 +126,8 @@ function deepFindSenderJid(fullMessage, stored, originalMsgContext) {
 /**
  * Repost view-once media to chat or DM.
  */
-const repostViewOnceMedia = async (sock, detectedMedia, targetJid, caption = null, contextInfo = {}) => {
+async function repostViewOnceMedia(sock, detectedMedia, targetJid, caption = null, contextInfo = {}) {
+  const { downloadMediaMessage } = await getBaileys();
   try {
     const { fullMessage, mediaType, stored } = detectedMedia;
 

@@ -1,4 +1,5 @@
 //const sendToChat = require('../../utils/sendToChat');
+const { getBaileys } = require('../../utils/baileys');
 const { handleGroupStatsCommand } = require('./groupStatsCommand')
 // 📌 Shared utility to extract target JID from reply or mention
 function extractTargetJid(msg) {
@@ -448,10 +449,10 @@ async function demoteUser(sock, msg, userId) {
   }
 }
 
-const { downloadMediaMessage } = require('@whiskeysockets/baileys');
-const { getUrlInfo } = require('@whiskeysockets/baileys');
+
 
 async function handleGroupCommand(sock, msg, userId) {
+  const { downloadMediaMessage, getUrlInfo } = await getBaileys();
   const groupJid = msg.key.remoteJid;
   const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
 

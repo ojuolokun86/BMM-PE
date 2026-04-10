@@ -1,6 +1,7 @@
-const sendToChat = require('../../utils/sendToChat');
-const { getContextInfo, getForwardedContext } = require('../../utils/contextInfo');
+const sendToChat = require('../../utils/sendToChat.js');
+const { getContextInfo, getForwardedContext } = require('../../utils/contextInfo.js');
 const { version } = require('../../../package.json');
+const { getEmojiForCommand } = require('../features/commandEmoji.js');
 
 
 const getMainMenu = (
@@ -29,45 +30,45 @@ const getMainMenu = (
 > 🏓 ping → Check bot responsiveness
 > ⚙️ settings → Configure system settings
 > 🔤 prefix → Change command prefix
-> 🔀 mode → Switch system mode
+> � mode → Switch system mode
 > 📖 help → Command manual
-> 🗂️ menu → Display system menu
-> 🖥️ info → System information
+> � menu → Display system menu
+> ℹ️ info → System information
 > 🔄 restart → Reboot system
 > 🚪 logout → Logout session
-> 😎 react → React to commands
-> 📊 disk → Show storage & memory info
+> � react → React to commands
+> � disk → Show storage & memory info
 > 📦 npm → Update Baileys package
 > 🔄 update → Update bot from GitHub
-> 🛂 contacts → See all Your Saved contact by bot
+> � contacts → See all Your Saved contact by bot
+> 🧹 clear → Clear all messages in a chat
 
 🛡️ *MODERATION & SECURITY*
 
 > 🔗 antilink → Block external links
-> � link → Manage allowed link platforms
-> �📋 warnlist → View warnings
-> 🕵️ antidelete → Monitor message deletions
+> 🔗 link → Manage allowed link platforms
+> 📋 warnlist → View warnings
+> �️ antidelete → Monitor message deletions
 > 🔒 privacy → Configure privacy
 > ⏳ disappear → Enable disappearing messages
+> 🔄 resetwarn → Reset warnings
 
 📦 *GROUP MANAGEMENT*
 
-> 📑 listgroup → List all groups
-> 🏷️ tag → hide tag mention user in way that they wont see name
+> � listgroup → List all groups
+> 🏷️ tag → Hide tag mention user in way that they wont see name
 > 📢 tagall → Mention all members
-> 🔇 mute → mute all chat to admin only
+> 🔇 mute → Mute all chat to admin only
 > 🔊 unmute → Unmute chat to allow all member to chat
-> 🔐 lockinfo → Lock Group info
-> 🔓 unlockinfo →  unlock group info
+> � lockinfo → Lock Group info
+> 🔓 unlockinfo → Unlock group info
 > ➕ add → Add members
-> ➖ kick → remove members
-> 🤖 warn →  Warn a user in a group by mention or reply to their message
-> ®️ resetwarn → Reset warnings
-> ⬆️ promote →  Promote to admin
+> 👟 kick → Remove members
+> ⬆️ promote → Promote to admin
 > ⬇️ demote → Demote from admin
 > 📊 poll → Create a poll
 > 🔗 group link → Fetch invite link
-> 📈 group stats → Display group stats
+> � group stats → Display group stats
 > ♻️ group revoke → Revoke group invite link
 > ℹ️ group info → See group details
 > 📝 group desc <text> → Set group description
@@ -76,18 +77,15 @@ const getMainMenu = (
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
-> 📊 stats → Trophy statistics
-> 🔑 sudo → Sudo user management
+> � requestlist → List pending join requests
+> ✅ acceptall → Accept all pending requests
+> ❌ rejectall → Reject all pending requests
+> 📝 copy → Copy members from one group to another
 
 📁 *GREETING COMMANDS*
 
-> 🔑 greet → Greeting system management
+> � welcome → Configure welcome/goodbye messages
 
-📁 *SUDO COMMANDS*
-
-> 🔑 sudo add @user → Grant sudo access
-> 🔑 sudo remove @user → Revoke sudo access  
-> 🔑 sudo list → View all sudo users
 
 📁 *MEDIA*
 
@@ -97,34 +95,38 @@ const getMainMenu = (
 > ▶️ play → Play music
 > 🎬 video → Download video
 > 📥 dstatus → Download a status by replying to it
-> 📹 yt video → Download a video from YouTube
-> 🎧 yt audio → Download an audio from YouTube
-> 🔍 yt search → Search YouTube videos or songs
-> 🖼️ bg → Remove background from image
+> � yt → YouTube helper (download/search)
+> � bg → Remove background from image
+> �️ sticker → Convert image/video to sticker
+> 🖼️ stimage → Sticker to image
+> 🎞️ stgif → Sticker to GIF
 
 ⚽ *SPORTS*
 
 > ⚽ football → Football commands | Get football news, search for teams, follow teams, list your followed teams
 
-🎮 *GAME*
-> 🎮 game wordchain → Start a word chain game in group
-> 🎯 trivia → start Trivia Game
-> 🎮 rpg → start rpg game
+🎮 *GAMES*
+> 🎮 game → Play word chain game with friends
+> 🧠 trivia → Play trivia game with various categories
+> ⚔️ rpg → Start or continue an adventure game
 
 🔧 *UTILITIES*
-> 📤 broadcast → Broadcast message to all groups Member and more
-> 📌 status → To setup status view and status reactions
-> 👁️ vv → View once media
-> 📤 view → Send View once to your DM
-> 🟢 online → Show online members
-> 👤 setprofile → Update profile
+> � broadcast → Broadcast message to all groups Member and more
+> 📌 status → Setup status view and status reactions
+> 👁️ vv → Repost view-once media to chat
+> 📤 view → Send view-once media to your DM
+> 🟢 online → Configure bot presence (online/typing/recording)
+> 👤 setprofile → Update bot profile (name, pic, bio, blocklist)
 > 📝 report → Send a report
 > 📰 news → Get the latest headlines from Google News
 > 🌍 news <country> → Country news (e.g., news ng, news us, news uk)
 > 🗑️ delete → Delete any message by replying to it both dm and group
 > ❌ del → Delete any message by replying to it both dm and group
 > ⏰ time → Get the current time in a specific country
-> 🧹 clear → Clear all messages in a chat {works in both dm and group chat}
+> 🌐 translate → Translate text to another language
+> 🎉 fun → See all fun commands
+> 💬 chatbot → Chat with chatbot
+> 🗨️ selfchat → Enable chatbot for self-chat only
 
 🤖 *AI*
 
@@ -135,12 +137,9 @@ const getMainMenu = (
 > 🔮 deepseek → Chat with DeepSeek AI
 > 🔮 ds → DeepSeek AI (alias)
 > 🤖 bmm → Chat with BMM AI
-> 🔮 deepseek → Chat with DeepSeek V3 AI
-> 🤖 chatbot → Chat with chatbot
-> 🤖 selfchat → Chat with self-chat
 
 🎨 *FUN*
-> 🎨 fun → to show Fun commands
+> � fun → Show all fun commands
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 🖥️ *EXECUTION MODE*: Reply with a command to run.
@@ -152,8 +151,8 @@ Follow us on whatsapp channel click view channel
 `;
 
 const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
-🎨 *FUN COMMAND*
-━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 *FUN COMMANDS*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 > 👤 Operator: ${ownerName || 'Not Set'}
 > ⚙️ Mode: ${mode ? mode.toUpperCase() : 'PRIVATE'}
 > 📱 System ID: ${phoneNumber || 'Not Available'}
@@ -161,41 +160,45 @@ const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
 > 🧩 Firmware: v${version || '1.0.0'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-> 🪄 sticker → Convert image/video to sticker
+> 🖼️ sticker → Convert image/video to sticker
 > 🖼️ stimage → Sticker to image
 > 🎞️ stgif → Sticker to GIF
-> ⚔️ kill → Kill someone
-> 🤗 hug → Hug someone
 > 😂 joke → Tell a joke
 > 📚 fact → Tell a fact
 > 💬 quote → Tell a quote
 > 🎨 imagine → Generate AI image
 > 👋 slap → Slap someone
 > 🤗 hug → Hug someone
-> 🦵 kick → Kick someone
+> 👟 kick → Kick someone
 > 👉 poke → Poke someone
 > ✅ tick → Tick someone
 > 🔫 shoot → Shoot someone
 > 🍴 feed → Feed someone
 > 🐾 pat → Pat someone
-> ⚔️ kill → Kill someone
 > 💋 kiss → Kiss someone
 > 😆 laugh → Laugh at someone
-> 🍅 lick → lick someone
-> 😊 blush → blush at someone
-> 🤷 shrug → shrug at someone
-> 😀 smile → smile at someone
-> 👀 stare → stare at someone
-> 💨 yeet → yeet someone
-> 🛌 cuddle → cuddle someone
-> ✋ highfive → highfive someone
-> 🤦 facepalm → facepalm someone
-> 🤔 think → think at someone
-> 😡 pout → pout at someone
-> 🦷 bite → bite someone
-> 😏 smug → smug at someone
-> 🐤 baka → baka at someone
+> 👅 lick → Lick someone
+> 😊 blush → Blush at someone
+> 🤷 shrug → Shrug at someone
+> 😀 smile → Smile at someone
+> 👀 stare → Stare at someone
+> 💨 yeet → Yeet someone
+> 🛌 cuddle → Cuddle someone
+> ✋ highfive → High five someone
+> 🤦 facepalm → Facepalm someone
+> 🤔 think → Think at someone
+> 😡 pout → Pout at someone
+> 🦷 bite → Bite someone
+> 😏 smug → Smug at someone
+> 🐤 baka → Baka at someone
+> 🤣 tickle → Tickle someone
+> 😢 cry → Show a crying GIF
+> 👋 wave → Wave with a GIF
+> 😴 bored → Show a bored GIF
+> 💃 dance → Show a dancing GIF
+> 👍 thumbsup → Show a thumbs up GIF
 > 🌐 translate → Translate text
+> 🔊 echo → Echo back your message
 `;
 async function funMenu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
   const funMenuText = getFunMenu(ownerName, mode, phoneNumber, prefix, version);
