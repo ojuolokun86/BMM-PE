@@ -1,8 +1,8 @@
 ![BMM Banner](/src/assets/BMM.jpg)
 
-# BMM V3.8.7 - Advanced WhatsApp Bot Framework
+# BMM V3.8.10 - Advanced WhatsApp Bot Framework
 
-**BMM (Bot Management Module) Version 3.8.7** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
+**BMM (Bot Management Module) Version 3.8.10** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
 
 ## 🚀 Key Features
 
@@ -83,7 +83,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Bot Configuration
 BOT_NAME=BMM
-BOT_VERSION=3.8.7
+BOT_VERSION=3.8.10
 DEFAULT_PREFIX=.
 BOT_OWNER_NUMBER=2348026977793
 
@@ -661,11 +661,67 @@ This project is licensed under the **ISC License**.
 - **Community**: Join our Discord server (link in repository)
 
 ### Version Information
-- **Current Version**: 3.8.7
-- **Last Updated**: 2026-04-07
+- **Current Version**: 3.8.10
+- **Last Updated**: 2026-04-15
 - **Author**: Toluwalase Ojabineni
 - **Node.js Requirement**: >=21
 - **Baileys Version**: ^7.0.0-rc.9
+
+## Changelog
+
+### Version 3.8.10 (2026-04-15)
+**Major Enhancements: Connection Handling & Restart System**
+
+#### Connection Management
+- **Enhanced Error Detection**: Robust connection error handling with specific code detection (401, 429, 500, 503)
+- **Connection Timeout Protection**: 2-minute timeout with automatic restart for hanging connections
+- **Simplified Logic**: Only stop for logout/bad session, restart for all other issues
+- **Detailed Logging**: Both error codes and descriptive reasons for better debugging
+
+#### Restart System Refactoring
+- **PM2 Detection**: Reliable PM2 detection using `process.env.pm_id` environment variable
+- **State Persistence**: File-based restart state (`.restart_state.json`) with 5-minute expiration
+- **Pending Notifications**: Message queuing system (`.pending_restart.json`) for post-reconnect delivery
+- **New Restart Types**: Added `connection_error`, `timeout`, `login`, and `pm2` restart types
+- **Enhanced Messages**: Professional restart notifications with version info and status indicators
+
+#### Login Detection & Processing
+- **First Login Detection**: Automatic detection via session count (`sessions.length === 0`)
+- **Code 515 Handling**: Special processing for "Stream Errored (restart required)" during first login
+- **Login Delay**: 30-second delay before restart to allow WhatsApp processing
+- **State Management**: Proper login state persistence and message delivery after reconnection
+
+#### Command System Improvements
+- **Antilink Command Fix**: Fixed option 4 (warn limit) reply detection and validation
+- **Input Validation**: Enhanced validation with 1-10 range checking and clear error messages
+- **Reply Detection**: Removed problematic `stanzaId` validation for better reliability
+- **Code Cleanup**: Removed debug logging for production-ready code
+
+#### Code Quality & Architecture
+- **Global Variable Management**: Fixed phoneNumber scope issues across functions
+- **Error Handling**: Comprehensive error handling with retry mechanisms
+- **Logging System**: Enhanced debugging capabilities for connection and restart issues
+- **ESM Compatibility**: Continued improvements for ES module compatibility
+
+#### Bug Fixes
+- **Connection Error Recovery**: Fixed automatic restart on connection failures
+- **Message Delivery**: Ensured restart messages are sent only after successful reconnection
+- **Command Registration**: Fixed command handler imports and exports
+- **Session Management**: Improved session persistence and cleanup
+
+### Version 3.8.9 (2026-04-10)
+**Minor Updates & Bug Fixes**
+- Enhanced ESM module compatibility
+- Improved error handling in command processing
+- Updated dependency management
+- Fixed memory leak in message handlers
+
+### Version 3.8.8 (2026-04-08)
+**Stability Improvements**
+- Fixed JSON import issues for ESM compatibility
+- Enhanced connection stability
+- Improved error logging and debugging
+- Updated command registry system
 
 ---
 
@@ -700,7 +756,7 @@ npm start
 
 ## 🎉 Enjoy Your Advanced WhatsApp Bot!
 
-Thank you for choosing **BMM V3.8.7**! This framework provides everything you need to create a powerful, feature-rich WhatsApp bot for your community or business.
+Thank you for choosing **BMM V3.8.10**! This framework provides everything you need to create a powerful, feature-rich WhatsApp bot for your community or business.
 
 ### Next Steps
 1. **Explore Commands**: Try different command categories
