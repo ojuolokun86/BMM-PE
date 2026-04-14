@@ -48,7 +48,7 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   await handleChatbotResponse(sock, msg); 
   await handleSelfChatResponse(sock, msg); 
   await handleStatusUpdate(sock, msg, botId); 
-  if (await detectAndAct({ sock, from, msg, textMsg })) return;
+  if (await detectAndAct({ sock, from, msg})) return;
   const presenceType =
   (globalStore.presenceTypeStore[botId] && globalStore.presenceTypeStore[botId] || 'paused');
   await sock.sendPresenceUpdate(presenceType, from);

@@ -100,18 +100,20 @@ await sock.sendMessage(from, { text: '❌ Invalid choice. Try again.' });
 
         const subListener = async (m2) => {
           const r2 = m2.messages?.[0];
-          if (!r2 || r2.key.fromMe) return;
+          if (!r2) return;
 
           const r2From = r2.key.remoteJid;
           const r2Sender = r2.key.participant || r2.key.remoteJid;
-          const subCtx = r2.message?.extendedTextMessage?.contextInfo;
-          if (r2From !== from || r2Sender !== sender || !subCtx?.stanzaId) return;
+          
+          if (r2From !== from || r2Sender !== sender) return;
 
           const text = r2?.message?.conversation || r2?.message?.extendedTextMessage?.text || '';
           const count = parseInt(text.trim());
 
           if (isNaN(count) || count < 1) {
-            await sock.sendMessage(from, { text: '❌ Invalid option.' });
+            await sock.sendMessage(from, { text: '❌ Invalid number. Please enter a positive integer (e.g., 2, 3, 5).' });
+          } else if (count > 10) {
+            await sock.sendMessage(from, { text: '❌ Warn limit too high. Maximum allowed is 10.' });
           } else {
             setAntilinkSettings(groupId, botId, { warnLimit: count });
             await sock.sendMessage(from, {

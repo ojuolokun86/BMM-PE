@@ -44,18 +44,27 @@ function getRandomMessage(arr, userId, count = null, limit = null) {
   return msg;
 }
 
-async function detectAndAct({ sock, from, msg, textMsg }) {
+async function detectAndAct({ sock, from, msg}) {
   const groupId = from;
   const botJid = sock.user?.id?.split(':')[0]?.split('@')[0];
   const settings = getAntilinkSettings(groupId, botJid);
   const botId = botJid;
   const userJid = msg.key.participant || msg.participant || msg.participantJid || null;
   if (!userJid) return false;
+  const textMsg =
+  msg.message?.conversation ||
+  msg.message?.extendedTextMessage?.text ||
+  msg.message?.imageMessage?.caption ||
+  msg.message?.videoMessage?.caption ||
+  msg.message?.documentMessage?.caption ||
+  '';
 
   if (settings.mode === 'off') return false;
   
   // Check if message contains any links
-  if (!WA_DEFAULT_LINK_REGEX.test(textMsg)) return false;
+  WA_DEFAULT_LINK_REGEX.lastIndex = 0;
+
+if (!WA_DEFAULT_LINK_REGEX.test(textMsg)) return false;
   if (userJid.includes(botJid)) return false;
 
   // Get allowed links for this group from database
