@@ -6,7 +6,7 @@ const {
 const { markMessageAsBotDeleted } = require('../../utils/botDeletedMessages');
 const { getAllowedLinks, hasAllowedLink } = require('../../database/linkDb');
 
-const WA_DEFAULT_LINK_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+|wa\.me\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|t\.me\/[^\s]+|bit\.ly\/[^\s]+|[\w-]+\.(com|net|org|info|biz|xyz|live|tv|me|link)(\/\S*)?)/gi;
+const WA_DEFAULT_LINK_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+|wa\.me\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|t\.me\/[^\s]+|bit\.ly\/[^\s]+|[\w-]+\.(com|net|org|info|biz|xyz|live|tv|me|link)(\/\S*)?)/i;
 // ✅ Random warning messages for warn-remove
 const warningMessages = [
   "⚠️ @user, links are not allowed here. Warning {count}/{limit}. Stop now or face removal!",
