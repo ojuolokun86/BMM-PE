@@ -96,6 +96,7 @@ const commandEmojis = {
   broadcast: '📢',
   chatbot: '💬',
   selfchat: '🗨️',
+  dp: '📸',
   echo: '🔊',
 
   // AI

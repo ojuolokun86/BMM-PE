@@ -453,6 +453,11 @@ const commandRegistry = {
     category: 'Utilities',
     ownerOnly: true
   },
+  // dp: {
+  //   description: 'Get profile picture of any WhatsApp user',
+  //   usage: 'dp <phone_number>',
+  //   category: 'Utilities'
+  // },
 
   // AI
   ai: {

@@ -11,6 +11,7 @@ const fs = require('fs');
 const activeRestarts = new Map();
 
 const pendingRestartFile = path.join(__dirname, '../../.pending_restart.json');
+const restartStateFile = path.join(__dirname, '../../.restart_state.json');
 
 /* ─────────── UTILITY: Send restart message ─────────── */
 
@@ -51,6 +52,12 @@ async function sendRestartMessage(sock, phoneNumber, { type = 'manual', addition
     
     // Login-triggered restart
     login: `🖥️ [SYSTEM]: New login detected.\n> STATUS: Session refreshed\n> VERSION: ${version}\n> ACTION: System reinitialized`,
+    
+    // Connection error recovery
+    connection_error: `🖥️ [NETWORK]: Connection issue resolved.\n> RECOVERY: Automatic reconnection successful\n> STATUS: Online\n> VERSION: ${version}\n> ACTION: Service restored`,
+    
+    // Connection timeout recovery
+    timeout: `🖥️ [TIMEOUT]: Connection timeout resolved.\n> RECOVERY: Bot restarted successfully\n> STATUS: Operational\n> VERSION: ${version}\n> ACTION: Service resumed`,
     
     // Scheduled restart
     scheduled: `🖥️ [MAINTENANCE]: Scheduled restart complete.\n> VERSION: ${version}\n> STATUS: System optimized`
@@ -120,8 +127,15 @@ async function handleRestartCompletion(sock, phoneNumber, { type, additionalInfo
  * @returns {Object} { type: string, source: string }
  */
 function detectRestartSource() {
-  // Check for PM2 environment variables
+  // Check for PM2 using pm_id environment variable (most reliable)
+  if (process.env.pm_id) {
+    console.log(`PM2 detected - Process ID: ${process.env.pm_id}`);
+    return { type: 'pm2', source: 'pm2' };
+  }
+
+  // Fallback PM2 detection methods
   if (process.env.PM2_HOME || process.env.PM2_USAGE === 'CLI') {
+    console.log('PM2 detected via environment variables');
     return { type: 'pm2', source: 'pm2' };
   }
 
@@ -183,20 +197,38 @@ let restarting = false;
  */
 async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo = '', source = 'unknown' } = {}) {
   if (restarting) {
-    console.log('⏳ Restart already in progress');
+    console.log('Restart already in progress');
     return;
   }
 
   if (!startBotRef || !stopBotRef) {
-    console.error('❌ Restart lifecycle not registered');
+    console.error('Restart lifecycle not registered');
     return;
   }
 
   restarting = true;
   const restartSource = source !== 'unknown' ? ` (${source})` : '';
-  console.log(`🔄 Restarting bot [${type}]${restartSource}`);
+  console.log(`Restarting bot [${type}]${restartSource}`);
 
   try {
+    // Save restart state before stopping
+    await saveRestartState({
+      type,
+      source,
+      additionalInfo,
+      phoneNumber: phoneNumber || null,
+      timestamp: Date.now()
+    });
+
+    // Set pending notification for message after restart
+    if (sock && phoneNumber) {
+      await setPendingRestartNotification({
+        jid: phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`,
+        type,
+        additionalInfo
+      });
+    }
+
     // Stop the bot
     await stopBotRef();
 
@@ -206,15 +238,10 @@ async function restartBot({ type = 'manual', sock, phoneNumber, additionalInfo =
     // Start the bot
     await startBotRef({ restartType: type });
 
-    console.log('✅ Restart complete');
-
-    // Send restart message if socket & phone number provided
-    if (sock && phoneNumber) {
-      await handleRestartCompletion(sock, phoneNumber, { type, additionalInfo });
-    }
+    console.log('Restart complete');
 
   } catch (err) {
-    console.error('❌ Restart failed:', err.message);
+    console.error('Restart failed:', err.message);
   } finally {
     restarting = false;
   }
@@ -244,9 +271,62 @@ function consumePendingRestartNotification() {
     fs.unlinkSync(pendingRestartFile);
     return JSON.parse(raw);
   } catch (err) {
-    console.error('❌ Failed to consume pending restart notification:', err?.message || err);
+    console.error('Failed to consume pending restart notification:', err?.message || err);
     try {
       if (fs.existsSync(pendingRestartFile)) fs.unlinkSync(pendingRestartFile);
+    } catch (_) {}
+    return null;
+  }
+}
+
+/* Restart State Persistence */
+
+/**
+ * Save restart state to file before exit
+ * @param {Object} state - Restart state to persist
+ */
+async function saveRestartState(state) {
+  try {
+    const payload = {
+      ...state,
+      savedAt: Date.now(),
+      pid: process.pid
+    };
+    await fs.promises.writeFile(restartStateFile, JSON.stringify(payload, null, 2), 'utf8');
+    console.log('Restart state saved to file');
+    return true;
+  } catch (err) {
+    console.error('Failed to save restart state:', err?.message || err);
+    return false;
+  }
+}
+
+/**
+ * Read restart state from file on startup
+ * @returns {Object|null} Restart state or null if no state exists
+ */
+function readRestartState() {
+  try {
+    if (!fs.existsSync(restartStateFile)) return null;
+    const raw = fs.readFileSync(restartStateFile, 'utf8');
+    const state = JSON.parse(raw);
+    
+    // Clean up state file after reading
+    fs.unlinkSync(restartStateFile);
+    
+    // Check if state is recent (within 5 minutes)
+    const age = Date.now() - state.savedAt;
+    if (age > 300000) { // 5 minutes
+      console.log('Restart state expired, ignoring');
+      return null;
+    }
+    
+    console.log(`Restart state loaded (${Math.round(age/1000)}s old)`);
+    return state;
+  } catch (err) {
+    console.error('Failed to read restart state:', err?.message || err);
+    try {
+      if (fs.existsSync(restartStateFile)) fs.unlinkSync(restartStateFile);
     } catch (_) {}
     return null;
   }
@@ -262,5 +342,7 @@ module.exports = {
   registerLifecycle,
   detectRestartSource,
   setPendingRestartNotification,
-  consumePendingRestartNotification
+  consumePendingRestartNotification,
+  saveRestartState,
+  readRestartState
 };

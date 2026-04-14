@@ -76,6 +76,7 @@ const { handleChatbotCommand } = require('./command/chatBot');
 const { addFame, showFame, showStats } = require('./command/hallOfFame');
 const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
+// const handleDpCommand = require('./command/dp');
 //const { handleCallCommand } = require('./command/call');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
@@ -156,6 +157,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
 
     // Command switch
     switch (command) {
+      case 'dp':
+        await handleDpCommand(sock, msg, args);
+        break;
       case 'contacts':
       case 'savedcontacts':
         await contactCommand(sock, msg, args, prefix);

@@ -14,7 +14,7 @@ const store = require('./utils/store');
 const { botStartTimes } = require('./utils/globalStore');
 
 // Restart system
-const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource, consumePendingRestartNotification } = require('./main/restart');
+const { restartBot, registerLifecycle, sendRestartMessage, detectRestartSource, consumePendingRestartNotification, readRestartState, saveRestartState, setPendingRestartNotification } = require('./main/restart');
 
 // SQLite auth
 const { useSQLiteAuthState, getAllSessions, deleteSession } = require('./database/sqliteAuthState');
@@ -37,10 +37,19 @@ setInterval(() => {
     }
 }, 60_000) // every 1 minute
 
+let lastRestart = 0
+
+// const used = process.memoryUsage().rss / 1024 / 1024
+// if (used > 400 && Date.now() - lastRestart > 60000) {
+//   lastRestart = Date.now()
+//   console.log("cooldown restart triggered")
+//   process.exit(1)
+// }
 // Memory monitoring - Restart if RAM gets too high
 setInterval(() => {
     const used = process.memoryUsage().rss / 1024 / 1024
-    if (used > 300) {
+    if (used > 300 && Date.now() - lastRestart > 60000) {
+       lastRestart = Date.now()
         console.log('⚠️ RAM too high (>300MB), restarting bot...')
         process.exit(1) // Panel will auto-restart
     }
@@ -148,11 +157,18 @@ async function bootSequence() {
 // Detect restart source if not explicitly provided
 const restartSource = detectRestartSource();
 
+// Global connection timeout tracker
+let connectionTimeout = null;
 
+// Global phone number for restart notifications
+let phoneNumber = null;
+
+// Read restart state on startup
+const restartState = readRestartState();
 
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
   const baileys = await getBaileys();
-
+  
   const {
     default: makeWASocket,
     DisconnectReason,
@@ -166,16 +182,18 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     const authId = '123456';
     
   
-    let phoneNumber;
     let pairingMethod;
 
     const sessions = getAllSessions();
 
+    let isFirstLogin = false;
+    
     if (sessions.length) {
       phoneNumber = sessions[0];
       pairingMethod = 'pairingCode';
-      console.log(`📱 Loaded session: ${phoneNumber}`);
+      console.log(`Loaded session: ${phoneNumber}`);
     } else {
+      isFirstLogin = true;
       pairingMethod = await askUserChoice();
       phoneNumber = await askPhoneNumber();
     }
@@ -190,7 +208,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
       logger: pino({
-          level: "info",
+          level: "error",
           base: { module: "BAILEYS" },
           transport: {
               target: "pino-pretty",
@@ -204,10 +222,10 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       printQRInTerminal: false,
       markOnlineOnConnect: false,
       receivedPendingNotifications: true,
-      defaultQueryTimeoutMs: 60000,
-      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 120000,
+      connectTimeoutMs: 120000,
       keepAliveIntervalMs: 10000,
-      reconnectIntervalMs: 5000,
+      reconnectIntervalMs: 10000,
       getMessage: async (key) => {
         const msg = await store.loadMessage(key.remoteJid, key.id)
         return msg?.message || undefined
@@ -232,78 +250,185 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
     /* ─── CONNECTION EVENTS ─── */
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+      // Handle connection errors with robust restart logic
+      if (connection === 'connecting') {
+        console.log('Connecting to WhatsApp...');
+      }
+      
       if (connection === 'open') {
         console.log('✅ Bot connected');
+        await new Promise(res => setTimeout(res, 3000))
         const botId = sock?.user?.id?.split(':')[0]?.split('@')[0];
         if (botId && !botStartTimes[botId]) botStartTimes[botId] = Date.now();
         qrShown = false;
-        pairingRequested = false;
+        pairingRequested = false
+        console.log(' checking querry', typeof sock.query)
 
-        // Handle post-connection actions based on restart type
-        if (restarting) {
-          const restartType = restarting.type || 'manual';
-          console.log(`✅ Reconnected after ${restartType} restart`);
+        // Handle first login detection
+        if (isFirstLogin) {
+          console.log('First login detected - setting pending notification');
+          isFirstLogin = false; // Reset after detection
+          
+          // Set pending notification for first login
+          await setPendingRestartNotification({
+            jid: phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`,
+            type: 'login',
+            additionalInfo: 'New login session established'
+          });
+        }
+
+        // Handle post-connection actions based on restart state
+        if (restartState) {
+          console.log(`Reconnected after ${restartState.type} restart`);
           
           // Send appropriate online message based on restart type
-          if (restartType === 'crash') {
+          if (restartState.type === 'crash') {
             await sendRestartMessage(sock, phoneNumber, { 
               type: 'crash',
-              additionalInfo: '🔄 System recovered from unexpected termination.'
+              additionalInfo: 'System recovered from unexpected termination.'
             });
-          } else if (restartType === 'pm2') {
+          } else if (restartState.type === 'pm2') {
             await sendRestartMessage(sock, phoneNumber, {
               type: 'pm2',
-              additionalInfo: '🔄 PM2 process manager has restarted the bot.'
+              additionalInfo: 'PM2 process manager has restarted the bot.'
             });
-          } else if (restartType === 'login') {
+          } else if (restartState.type === 'login') {
             await sendRestartMessage(sock, phoneNumber, {
               type: 'login',
-              additionalInfo: '🔑 New login session established.'
+              additionalInfo: 'New login session established.'
+            });
+          } else if (restartState.type === 'connection_error') {
+            await sendRestartMessage(sock, phoneNumber, {
+              type: 'connection_error',
+              additionalInfo: restartState.additionalInfo || 'Connection recovered.'
             });
           }
         }
 
+        // Handle pending restart notifications
         const pending = consumePendingRestartNotification();
         if (pending?.jid) {
-          await sendRestartMessage(sock, pending.jid, {
-            type: pending.type || 'manual',
-            additionalInfo: pending.additionalInfo || ''
-          });
+          console.log('Processing pending restart notification:', pending.type);
+          console.log('Socket state check - user:', sock.user ? 'exists' : 'null');
+          console.log('Socket state check - authState:', sock.authState ? 'exists' : 'null');
+          
+          // Wait a bit more to ensure socket is fully ready
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          try {
+            console.log('Attempting to send restart message to:', pending.jid);
+            const sent = await sendRestartMessage(sock, pending.jid, {
+              type: pending.type || 'manual',
+              additionalInfo: pending.additionalInfo || ''
+            });
+            if (sent) {
+              console.log(`Pending restart notification sent successfully for type: ${pending.type}`);
+            } else {
+              console.log(`Failed to send pending restart notification for type: ${pending.type}`);
+              // Retry once more after additional delay
+              console.log('Retrying message send after 3 more seconds...');
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              const retrySent = await sendRestartMessage(sock, pending.jid, {
+                type: pending.type || 'manual',
+                additionalInfo: pending.additionalInfo || ''
+              });
+              if (retrySent) {
+                console.log(`Retry successful for type: ${pending.type}`);
+              } else {
+                console.log(`Retry failed for type: ${pending.type}`);
+              }
+            }
+          } catch (error) {
+            console.error('Error sending pending restart notification:', error.message);
+          }
         }
 
       
         
         // Start contender receiver server
         console.log('🚀 [CONTENDERS] Starting contender receiver server...');
-        const contenderServer = new ContenderReceiverServer(sock);
-        contenderServer.start();
+        setTimeout(() => {
+          const server = new ContenderReceiverServer(sock)
+          server.start()
+        }, 5000)
         
-       
 
       }
 
       if (connection === 'close') {
         const code = lastDisconnect?.error?.output?.statusCode;
-        const loggedOut = code === DisconnectReason.loggedOut;
+        const reason = lastDisconnect?.error?.message || 'Unknown reason';
+        const isLoggedOut = code === DisconnectReason.loggedOut;
+        const isBadSession = code === DisconnectReason.connectionClosed;
+        const isFirstLoginRestart = code === 515; // Stream Errored (restart required) - first login
 
-        console.log('⚠️ Connection closed:', code);
+        console.log('Connection closed - Code:', code, '- Reason:', reason);
 
-        if (loggedOut) {
-          console.log('🚫 Logged out — clearing session');
+        // Handle first login restart (code 515)
+        if (isFirstLoginRestart) {
+          console.log('First login detected - connection requires restart');
+          if (!restarting) {
+            // Set pending notification for first login
+            await setPendingRestartNotification({
+              jid: phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`,
+              type: 'login',
+              additionalInfo: 'New login session established'
+            });
+            
+            console.log('Waiting 30 seconds before restart for login processing...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            await restartBot({ 
+              type: 'login',
+              sock, 
+              phoneNumber,
+              source: 'first_login_restart',
+              additionalInfo: `First login connection restart - Code: ${code}, Reason: ${reason}`
+            });
+          }
+          return; // Skip other logic
+        }
+
+        // Only stop and delete session for logout or bad session
+        if (isLoggedOut || isBadSession) {
+          console.log('Session invalid - clearing session and stopping');
           deleteSession(authId, phoneNumber);
           process.exit(0);
         }
 
+        // Restart for all other connection issues
         if (!restarting) {
-          console.log('🔄 Auto-restart triggered');
-          const restartType = lastDisconnect?.error?.isTemporary ? 'temporary' : 'crash';
+          console.log('Connection issue detected - auto-restarting bot');
           await restartBot({ 
-            type: restartType,
+            type: 'connection_error',
             sock, 
             phoneNumber,
             source: 'connection_close',
-            additionalInfo: `🔌 Connection closed with code: ${code}`
+            additionalInfo: `Connection closed - Code: ${code}, Reason: ${reason} - restarting bot`
           });
+        }
+      }
+
+      // Handle connection timeout
+      if (connection === 'connecting') {
+        // Set a timeout for connection attempts
+        connectionTimeout = setTimeout(async () => {
+          if (!restarting && connection === 'connecting') {
+            console.log(' Connection timeout - forcing restart');
+            await restartBot({ 
+              type: 'timeout',
+              sock, 
+              phoneNumber,
+              source: 'connection_timeout',
+              additionalInfo: 'Connection timeout - forced restart'
+            });
+          }
+        }, 120000); // 2 minutes timeout
+      } else {
+        // Clear timeout if connection is no longer 'connecting'
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
+          connectionTimeout = null;
         }
       }
 
@@ -353,7 +478,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     });
 
     sock.ev.on('lid-mapping.update', (update) => {
-      console.log('🔁 New LID ↔ PN mapping:', update)
+      //console.log('🔁 New LID ↔ PN mapping:', update)
     })
 
     // Handle incoming calls
@@ -408,6 +533,33 @@ async function getGroupMetadataCached(sock, groupId, cache) {
 async function stopBot(saveSession = true) {
   try {
     restarting = true;
+    
+    // Clear connection timeout if exists
+    if (connectionTimeout) {
+      clearTimeout(connectionTimeout);
+      connectionTimeout = null;
+      console.log(' Connection timeout cleared');
+    }
+    
+    // Check if this is a PM2 restart and save state
+    if (process.env.pm_id && sock && phoneNumber) {
+      console.log('PM2 restart detected - saving restart state');
+      await saveRestartState({
+        type: 'pm2',
+        source: 'pm2_restart',
+        additionalInfo: 'PM2 process manager restart',
+        phoneNumber: phoneNumber || null,
+        timestamp: Date.now()
+      });
+      
+      // Set pending notification for PM2 restart
+      await setPendingRestartNotification({
+        jid: phoneNumber.includes('@') ? phoneNumber : `${phoneNumber}@s.whatsapp.net`,
+        type: 'pm2',
+        additionalInfo: 'PM2 process manager has restarted the bot.'
+      });
+    }
+    
     if (sock) {
       // Save session before stopping if requested
       if (saveSession && sock.authState && sock.authState.saveCreds) {

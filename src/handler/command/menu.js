@@ -111,7 +111,8 @@ const getMainMenu = (
 > ⚔️ rpg → Start or continue an adventure game
 
 🔧 *UTILITIES*
-> � broadcast → Broadcast message to all groups Member and more
+> 📸 dp → Get profile picture of any WhatsApp user
+> 📢 broadcast → Broadcast message to all groups Member and more
 > 📌 status → Setup status view and status reactions
 > 👁️ vv → Repost view-once media to chat
 > 📤 view → Send view-once media to your DM
