@@ -126,6 +126,26 @@ try {
   db.prepare("ALTER TABLE welcome_settings ADD COLUMN greet_enabled INTEGER DEFAULT 0").run();
 } catch (e) {} // Ignore if already exists
 
+// Anti-Group-Tag Settings Table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS antitag_settings (
+    user_id TEXT PRIMARY KEY,
+    enabled BOOLEAN DEFAULT 0,
+    warnings INTEGER DEFAULT 0,
+    max_warnings INTEGER DEFAULT 3,
+    last_warning DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
+// Add max_warnings column to existing antitag_settings table if it doesn't exist
+try {
+  db.prepare("ALTER TABLE antitag_settings ADD COLUMN max_warnings INTEGER DEFAULT 3").run();
+} catch (e) {
+  // Column already exists, ignore error
+}
+
 // 🔐 Sudo Users Table
 db.prepare(`
   CREATE TABLE IF NOT EXISTS sudo_users (
@@ -439,6 +459,77 @@ function getAllContenderGroups() {
   }));
 }
 
+// Anti-Group-Tag Management Functions
+function setAntitagStatus(userId, enabled = true) {
+  db.prepare(`
+    INSERT OR REPLACE INTO antitag_settings (user_id, enabled, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+  `).run(userId, enabled ? 1 : 0);
+}
+
+function getAntitagStatus(userId) {
+  const row = db.prepare(`
+    SELECT enabled, warnings, max_warnings, last_warning, created_at, updated_at
+    FROM antitag_settings 
+    WHERE user_id = ?
+  `).get(userId);
+  
+  if (!row) return null;
+  
+  return {
+    enabled: row.enabled === 1,
+    warnings: row.warnings,
+    max_warnings: row.max_warnings || 3,
+    last_warning: row.last_warning,
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+function addAntitagWarning(userId) {
+  const stmt = db.prepare(`
+    INSERT INTO antitag_settings (user_id, enabled, warnings, last_warning, updated_at)
+    VALUES (?, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id) DO UPDATE SET 
+      warnings = warnings + 1,
+      last_warning = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+  `);
+  
+  stmt.run(userId);
+  
+  // Get updated warning count
+  const result = db.prepare('SELECT warnings FROM antitag_settings WHERE user_id = ?').get(userId);
+  return result?.warnings || 1;
+}
+
+function resetAntitagWarnings(userId) {
+  db.prepare(`
+    UPDATE antitag_settings 
+    SET warnings = 0, last_warning = NULL, updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ?
+  `).run(userId);
+}
+
+function setAntitagMaxWarnings(userId, maxWarnings = 3) {
+  db.prepare(`
+    INSERT INTO antitag_settings (user_id, enabled, max_warnings, updated_at)
+    VALUES (?, 0, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id) DO UPDATE SET 
+      max_warnings = excluded.max_warnings,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(userId, maxWarnings);
+}
+
+function getAntitagMaxWarnings(userId) {
+  const row = db.prepare(`
+    SELECT max_warnings FROM antitag_settings 
+    WHERE user_id = ?
+  `).get(userId);
+  
+  return row?.max_warnings || 3; // Default to 3 if not set
+}
+
 module.exports = {
   // Database instance
   db,
@@ -473,6 +564,14 @@ module.exports = {
   getContenderGroupStatus,
   removeContenderGroup,
   getAllContenderGroups,
+  
+  // Anti-group-tag management
+  setAntitagStatus,
+  getAntitagStatus,
+  addAntitagWarning,
+  resetAntitagWarnings,
+  setAntitagMaxWarnings,
+  getAntitagMaxWarnings,
   
   // Game functions
   loadGameState,

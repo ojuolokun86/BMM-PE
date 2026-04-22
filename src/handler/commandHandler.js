@@ -4,6 +4,7 @@ const handleAntilinkCommand = require('./features/antiLink');
 const { linkCommand } = require('./command/linkCommand');
 const { handleSelfChatCommand } = require('./command/selfChatCommand');
 const handleContenderCommand = require('./command/contenderCommand');
+const { handleAntitagCommand } = require('./command/antitagCommand');
 const { getUserMode, isBotOwner, getUserPrefix } = require('../database/database');
 const { getUserSettings } = require('../utils/settings');
 const settingsCommand = require('./command/settings');
@@ -206,6 +207,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'antilink':
         await handleAntilinkCommand(sock, msg, phoneNumber);
+        break;
+      case 'antitag':
+        await handleAntitagCommand(sock, from, senderId, args, isAdmin);
         break;
       case 'link':
         await linkCommand(sock, msg, args, from);

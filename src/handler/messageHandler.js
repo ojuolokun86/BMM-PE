@@ -7,6 +7,7 @@ const { handleChatbotResponse } = require('./command/chatBot');
 const { handleSelfChatResponse } = require('./command/selfChatCommand');
 const { handleStatusUpdate } = require('./features/statusView');
 const { incrementGroupUserStat } = require('./features/groupStats');
+const { handleAntiGroupTag, isGroupStatusMention } = require('./features/antiGroupTag');
 const globalStore = require('../utils/globalStore');
 const handleNewsletterAutoReact = require('./features/newsletterAutoReact');
 const { handleReply, handleWordChain, games } = require('./command/game');
@@ -48,6 +49,12 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   await handleChatbotResponse(sock, msg); 
   await handleSelfChatResponse(sock, msg); 
   await handleStatusUpdate(sock, msg, botId); 
+  
+  // Handle anti-group-tag detection for group status mentions
+  if (from.endsWith('@g.us') && isGroupStatusMention(msg)) {
+    await handleAntiGroupTag(sock, msg, from);
+  }
+  
   if (await detectAndAct({ sock, from, msg})) return;
   const presenceType =
   (globalStore.presenceTypeStore[botId] && globalStore.presenceTypeStore[botId] || 'paused');
