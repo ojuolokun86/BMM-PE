@@ -186,7 +186,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     let pairingRequested = false;
     const msgRetryCounterCache = new NodeCache()
     sock = makeWASocket({
-      version: version,
+      version: [2,3000,1038162681],
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
       logger: pino({
@@ -388,7 +388,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     // }
 
   } catch (err) {
-    console.error('❌ Failed to start bot:', err.message);
+    console.error('❌ Failed to start bot:', err.message); 
     process.exit(1);
   }
 }
