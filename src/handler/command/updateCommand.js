@@ -1,5 +1,42 @@
 const { checkUpdate, normalUpdate, forceUpdate } = require('../features/gitUpdate');
 const { exec } = require('child_process');
+const pm2 = require('pm2');
+
+function restartThisProcess() {
+  pm2.connect(err => {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+
+    pm2.list((err, list) => {
+      if (err) {
+        console.error(err);
+        pm2.disconnect();
+        return;
+      }
+
+      // find current process by PID
+      const current = list.find(p => p.pid === process.pid);
+
+      if (!current) {
+        console.log('❌ PM2 process not found for this PID');
+        pm2.disconnect();
+        return;
+      }
+
+      console.log(`🔁 Restarting PM2 process: ${current.name} (id: ${current.pm_id})`);
+
+      pm2.restart(current.pm_id, (err) => {
+        pm2.disconnect();
+
+        if (err) {
+          console.error('❌ PM2 restart failed:', err);
+        }
+      });
+    });
+  });
+}
 
 async function updateCommand(sock, msg, isOwner, args) {
   const fromMe = msg.key.fromMe;
@@ -91,7 +128,7 @@ ${changelogText}
 🔁 Restarting bot...`
       });
 
-      return setTimeout(() => exec('pm2 restart all'), 1500);
+      return setTimeout(() => restartThisProcess(), 1500);
     }
 
     /* 🔥 FORCE UPDATE */
@@ -119,7 +156,7 @@ ${changelogText}
 🔁 Restarting bot...`
       });
 
-      return setTimeout(() => exec('pm2 restart all'), 1500);
+      return setTimeout(() => restartThisProcess(), 1500);
     }
 
   } catch (err) {
