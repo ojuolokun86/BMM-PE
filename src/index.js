@@ -122,6 +122,8 @@ let restarting = false;
 let pm2BootNotified = false;
 const BOT_OWNER_NUMBER = '2348026977793'; // CHANGE THIS to your number
 const groupCache = new NodeCache({ stdTTL: 3600, useClone: false });
+let manualShutdown = false;
+let restartReason = null;
 /* ─────────── BOOT SEQUENCE ─────────── */
 
 async function bootSequence() {
@@ -151,6 +153,7 @@ const restartSource = detectRestartSource();
 
 
 async function startBot({ restartType = 'manual', source = restartSource } = {}) {
+  manualShutdown = false;
   const baileys = await getBaileys();
 
   const {
@@ -241,26 +244,28 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
         // Handle post-connection actions based on restart type
         if (restarting) {
-          const restartType = restarting.type || 'manual';
-          console.log(`✅ Reconnected after ${restartType} restart`);
+         console.log(`✅ Reconnected after ${restartReason} restart`);
           
           // Send appropriate online message based on restart type
-          if (restartType === 'crash') {
+          if (restartReason === 'crash') {
             await sendRestartMessage(sock, phoneNumber, { 
               type: 'crash',
               additionalInfo: '🔄 System recovered from unexpected termination.'
             });
-          } else if (restartType === 'pm2') {
+          } else if (restartReason === 'pm2') {
             await sendRestartMessage(sock, phoneNumber, {
               type: 'pm2',
               additionalInfo: '🔄 PM2 process manager has restarted the bot.'
             });
-          } else if (restartType === 'login') {
+          } else if (restartReason === 'login') {
             await sendRestartMessage(sock, phoneNumber, {
               type: 'login',
               additionalInfo: '🔑 New login session established.'
             });
           }
+
+          restarting = false;
+          restartReason = null;
         }
 
         const pending = consumePendingRestartNotification();
@@ -283,28 +288,41 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       }
 
       if (connection === 'close') {
-        const code = lastDisconnect?.error?.output?.statusCode;
-        const loggedOut = code === DisconnectReason.loggedOut;
+      const code = lastDisconnect?.error?.output?.statusCode;
+      const loggedOut = code === DisconnectReason.loggedOut;
 
-        console.log('⚠️ Connection closed:', code);
+      console.log('⚠️ Connection closed:', code);
 
-        if (loggedOut) {
-          console.log('🚫 Logged out — clearing session');
-          deleteSession(authId, phoneNumber);
-          process.exit(0);
+      if (loggedOut) {
+        console.log('🚫 Logged out — clearing session');
+        deleteSession(authId, phoneNumber);
+        process.exit(0);
+      }
+
+      // Manual stop -> don't restart
+      if (manualShutdown) {
+          console.log('🛑 Manual shutdown detected — no restart');
+          return;
         }
 
-        if (!restarting) {
-          console.log('🔄 Auto-restart triggered');
-          const restartType = lastDisconnect?.error?.isTemporary ? 'temporary' : 'crash';
-          await restartBot({ 
-            type: restartType,
-            sock, 
-            phoneNumber,
-            source: 'connection_close',
-            additionalInfo: `🔌 Connection closed with code: ${code}`
-          });
-        }
+    // Unexpected disconnect -> restart
+        console.log('🔄 Auto-restart triggered');
+
+        const restartType =
+        lastDisconnect?.error?.isTemporary
+            ? 'temporary'
+            : 'crash';
+
+        restartReason = restartType;
+        restarting = true;
+
+        await restartBot({
+          type: restartType,
+          sock,
+          phoneNumber,
+          source: 'connection_close',
+          additionalInfo: `🔌 Connection closed with code: ${code}`
+        });
       }
 
       // QR Code Display
@@ -407,26 +425,33 @@ async function getGroupMetadataCached(sock, groupId, cache) {
 
 async function stopBot(saveSession = true) {
   try {
+
+    manualShutdown = true;
     restarting = true;
+
     if (sock) {
-      // Save session before stopping if requested
-      if (saveSession && sock.authState && sock.authState.saveCreds) {
+
+      // Save session before stopping
+      if (saveSession && sock.authState?.saveCreds) {
         try {
           console.log('💾 Saving session before stopping...');
           await sock.authState.saveCreds();
           console.log('✅ Session saved successfully');
         } catch (saveError) {
-          console.error('❌ Failed to save session before stopping:', saveError.message);
+          console.error('❌ Failed to save session:', saveError.message);
         }
-      } else if (saveSession) {
-        console.log('⚠️  Cannot save session: authState or saveCreds not available');
       }
-      
+
       sock.ev.removeAllListeners();
+
+      // Close websocket connection
       sock.ws?.close();
+
       sock = null;
     }
-    console.log('🛑 Bot stopped');
+
+    console.log('🛑 Bot stopped manually');
+
   } catch (err) {
     console.error('❌ Stop error:', err.message);
   }
