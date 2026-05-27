@@ -13,7 +13,8 @@ const getMainMenu = (
   version = 'Unknown',
   authId = 'Unknown',
   v = '1'
-) => `
+) => {
+    return `
 🖥️ *SYSTEM CONTROL PANEL INITIALIZED*
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 > 👤 Operator: ${ownerName || 'Not Set'}
@@ -77,6 +78,8 @@ const getMainMenu = (
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
+> 🏆 list fame → List Hall of Fame entries
+> 🏆 rm fame → Remove user from Hall of Fame
 > � requestlist → List pending join requests
 > ✅ acceptall → Accept all pending requests
 > ❌ rejectall → Reject all pending requests
@@ -149,6 +152,7 @@ const getMainMenu = (
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 Follow us on whatsapp channel click view channel
 `;
+  };
 
 const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
 🎨 *FUN COMMANDS*

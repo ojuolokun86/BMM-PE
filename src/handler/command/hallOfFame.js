@@ -201,10 +201,23 @@ async function showFame(sock, chatId) {
       .order('trophies', { ascending: false })
 
     if (error) throw error
-    if (!winners || winners.length === 0) {
+      if (!winners || winners.length === 0) {
+      const communityMeta = await sock.groupMetadata(community.communityJid)
+
+      const mentions = []
+
+      let ownerText = 'Unknown'
+
+      if (communityMeta?.owner) {
+        mentions.push(communityMeta.owner)
+        ownerText = `@${communityMeta.owner.split('@')[0]}`
+      }
+
       return sock.sendMessage(chatId, {
-        text: `📜 No Hall of Fame entries yet.\n👑 Community Owner: @${community.communityJid.split('@')[0]}`,
-        mentions: [community.communityJid]
+        text:
+          `📜 No Hall of Fame entries yet.\n` +
+          `👑 Community Owner: ${ownerText}`,
+        mentions
       })
     }
 
@@ -401,10 +414,207 @@ async function showStats(sock, chatId, returnText = false) {
   }
 }
 
+async function listFame(sock, msg, chatId, args, prefix) {
+  try {
+    const community = await getCommunityInfo(sock, chatId)
+
+    if (!community) {
+      return sock.sendMessage(chatId, {
+        text: '❌ This group is not inside a community.'
+      })
+    }
+
+    const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
+
+    if (!mentioned || mentioned.length === 0) {
+      return sock.sendMessage(chatId, {
+        text: `❌ Mention a user.\nUsage: ${prefix}list fame @user`
+      })
+    }
+
+    const userJid = mentioned[0]
+
+    const { data, error } = await supabase
+      .from('hall_of_fame')
+      .select('*')
+      .eq('community_jid', community.communityJid)
+      .eq('user_jid', userJid)
+      .order('league', { ascending: true })
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return sock.sendMessage(chatId, {
+        text: `❌ @${userJid.split('@')[0]} has no Hall of Fame entry.`,
+        mentions: [userJid]
+      })
+    }
+
+    let text = `🏆 *HALL OF FAME LIST*\n\n`
+    text += `👤 Player: @${userJid.split('@')[0]}\n\n`
+
+    data.forEach((item, index) => {
+      text += `*${index + 1}.* ${normalizeLeague(item.league)}\n`
+      text += `⚽ Team: ${item.team}\n`
+      text += `🏆 Trophies: ${item.trophies}\n\n`
+    })
+
+    text += `━━━━━━━━━━━━━━━━━━\n`
+    text += `📌 Total Entries: ${data.length}`
+
+    await sock.sendMessage(chatId, {
+      text,
+      mentions: [userJid]
+    })
+
+  } catch (e) {
+    console.error(e)
+    await sock.sendMessage(chatId, {
+      text: '❌ Failed to load fame list.'
+    })
+  }
+}
+
+
+async function deleteFame(sock, msg, chatId, sender, args, prefix) {
+  try {
+    const community = await getCommunityInfo(sock, chatId)
+
+    if (!community) {
+      return sock.sendMessage(chatId, {
+        text: '❌ This group is not inside a community.'
+      })
+    }
+
+    const mentioned =
+      msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
+
+    if (!mentioned || mentioned.length === 0) {
+      return sock.sendMessage(chatId, {
+        text: `❌ Mention a user.\nUsage: ${prefix}hall rm @user`
+      })
+    }
+
+    const userJid = mentioned[0]
+
+    const { data, error } = await supabase
+      .from('hall_of_fame')
+      .select('*')
+      .eq('community_jid', community.communityJid)
+      .eq('user_jid', userJid)
+      .order('league', { ascending: true })
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return sock.sendMessage(chatId, {
+        text: `❌ @${userJid.split('@')[0]} has no Hall of Fame entry.`,
+        mentions: [userJid]
+      })
+    }
+
+    let text = `🗑️ *DELETE HALL OF FAME ENTRY*\n\n`
+    text += `👤 Player: @${userJid.split('@')[0]}\n\n`
+    text += `Reply with the number to delete.\n\n`
+
+    data.forEach((item, index) => {
+      text += `*${index + 1}.* ${normalizeLeague(item.league)}\n`
+      text += `⚽ Team: ${item.team}\n`
+      text += `🏆 Trophies: ${item.trophies}\n\n`
+    })
+
+    const sent = await sock.sendMessage(chatId, {
+      text,
+      mentions: [userJid]
+    })
+
+    const menuMsgId = sent.key.id
+
+    // setup listener
+    const listener = async (m) => {
+      try {
+        const reply = m.messages?.[0]
+        if (!reply) return
+
+        const replyFrom = reply.key.remoteJid
+        const replySender =
+          reply.key.participant || reply.key.remoteJid
+
+        if (replyFrom !== chatId || replySender !== sender) return
+
+        const context =
+          reply.message?.extendedTextMessage?.contextInfo
+
+        const isReply = context?.stanzaId === menuMsgId
+
+        if (!isReply) return
+
+        const body =
+          reply.message?.conversation ||
+          reply.message?.extendedTextMessage?.text ||
+          ''
+
+        const selected = parseInt(body.trim())
+
+        if (isNaN(selected)) {
+          await sock.sendMessage(chatId, {
+            text: '❌ Reply with a valid number.'
+          })
+
+          sock.ev.off('messages.upsert', listener)
+          return
+        }
+
+        const entry = data[selected - 1]
+
+        if (!entry) {
+          await sock.sendMessage(chatId, {
+            text: '❌ Invalid selection number.'
+          })
+
+          sock.ev.off('messages.upsert', listener)
+          return
+        }
+
+        await supabase
+          .from('hall_of_fame')
+          .delete()
+          .eq('id', entry.id)
+
+        await sock.sendMessage(chatId, {
+          text:
+            `✅ Hall of Fame entry deleted.\n\n` +
+            `👤 @${userJid.split('@')[0]}\n` +
+            `🏟️ ${normalizeLeague(entry.league)}\n` +
+            `⚽ ${entry.team}`,
+          mentions: [userJid]
+        })
+
+        sock.ev.off('messages.upsert', listener)
+
+      } catch (err) {
+        console.error(err)
+
+        sock.ev.off('messages.upsert', listener)
+      }
+    }
+
+    sock.ev.on('messages.upsert', listener)
+
+  } catch (e) {
+    console.error(e)
+
+    await sock.sendMessage(chatId, {
+      text: '❌ Failed to delete fame entry.'
+    })
+  }
+}
 
 module.exports = {
   addFame,
   showFame,
   showStats,
+  deleteFame,
+  listFame,
   normalizeLeague
 }
