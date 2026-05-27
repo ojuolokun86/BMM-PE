@@ -16,12 +16,22 @@ function restartThisProcess() {
         return;
       }
 
-      // find current process by PID
       const current = list.find(p => p.pid === process.pid);
 
+      // ❌ If current process not found → restart ALL
       if (!current) {
-        console.log('❌ PM2 process not found for this PID');
-        pm2.disconnect();
+        console.log('⚠️ Current process not found. Restarting ALL PM2 processes...');
+
+        pm2.restart('all', (err) => {
+          pm2.disconnect();
+
+          if (err) {
+            console.error('❌ Failed to restart all processes:', err);
+          } else {
+            console.log('✅ All PM2 processes restarted');
+          }
+        });
+
         return;
       }
 
