@@ -78,8 +78,8 @@ const getMainMenu = (
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 fame → Hall of Fame
-> 🏆 list fame → List Hall of Fame entries
-> 🏆 rm fame → Remove user from Hall of Fame
+> 🏆 list → List Hall of Fame entries
+> 🏆 rm → Remove user from Hall of Fame
 > � requestlist → List pending join requests
 > ✅ acceptall → Accept all pending requests
 > ❌ rejectall → Reject all pending requests
