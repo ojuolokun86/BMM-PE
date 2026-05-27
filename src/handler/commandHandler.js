@@ -420,10 +420,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       case 'fame':
         await showFame(sock, from);
         break;
-      case 'list fame':
+      case 'list':
         await listFame(sock, msg, from, args, prefix);
         break;
-      case 'rm fame':
+      case 'rm':
         await deleteFame(sock, msg, from, senderId, args, prefix);
         break;
       case 'stats':
