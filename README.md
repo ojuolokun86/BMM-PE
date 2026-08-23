@@ -1,8 +1,8 @@
 ![BMM Banner](/src/assets/BMM.jpg)
 
-# BMM V3.8.7 - Advanced WhatsApp Bot Framework
+# BMM V3.8.13 - Advanced WhatsApp Bot Framework
 
-**BMM (Bot Management Module) Version 3.8.7** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
+**BMM (Bot Management Module) Version 3.8.13** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
 
 ## 🚀 Key Features
 
@@ -17,6 +17,7 @@
 ### 🛡️ Advanced Moderation & Security
 - **Anti-Link Protection**: Configurable link blocking with intelligent detection
 - **Anti-Delete System**: Message recovery and forwarding capabilities
+- **Anti-Group-Tag System**: Detects and removes group tags from status updates with configurable warnings
 - **Admin Management**: Promote/demote/kick with granular permission checks
 - **Group Controls**: Advanced group management with metadata controls
 - **Warn System**: Multi-level warning with auto-kick functionality
@@ -160,6 +161,7 @@ npm run bmm
 | `.delwarn @user` | Remove user warning | `.delwarn @user` | Admin |
 | `.antilink` | Configure anti-link | `.antilink on` | Admin |
 | `.antidelete` | Configure anti-delete | `.antidelete on` | Admin |
+| `.antitag` | Configure anti-group-tag | `.antitag on` | Admin |
 | `.delete` | Delete bot message | `.delete` | Admin |
 
 ### 🎮 Entertainment Commands
@@ -351,6 +353,17 @@ CREATE TABLE antidelete_settings (
   user_id TEXT PRIMARY KEY,
   mode TEXT DEFAULT 'off',
   forward_to_dm INTEGER DEFAULT 0
+);
+
+-- Anti-group-tag settings
+CREATE TABLE antitag_settings (
+  user_id TEXT PRIMARY KEY,
+  enabled BOOLEAN DEFAULT 0,
+  warnings INTEGER DEFAULT 0,
+  max_warnings INTEGER DEFAULT 3,
+  last_warning DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Group statistics
@@ -661,8 +674,8 @@ This project is licensed under the **ISC License**.
 - **Community**: Join our Discord server (link in repository)
 
 ### Version Information
-- **Current Version**: 3.8.7
-- **Last Updated**: 2026-04-07
+- **Current Version**: 3.8.13
+- **Last Updated**: 2026-05-08
 - **Author**: Toluwalase Ojabineni
 - **Node.js Requirement**: >=21
 - **Baileys Version**: ^7.0.0-rc.9

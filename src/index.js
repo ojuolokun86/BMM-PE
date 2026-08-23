@@ -371,7 +371,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     });
 
     sock.ev.on('lid-mapping.update', (update) => {
-      console.log('🔁 New LID ↔ PN mapping:', update)
+      //console.log('🔁 New LID ↔ PN mapping:', update)
     })
 
     // Handle incoming calls

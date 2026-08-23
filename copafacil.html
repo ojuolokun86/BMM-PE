@@ -1,0 +1,540 @@
+<!DOCTYPE html><html><head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    Fore more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+  -->
+
+  <script src="https://connect.facebook.net/en_US/bundle/sdk.js/" async="" crossorigin="anonymous"></script><script type="text/javascript" async="" src="https://www.google-analytics.com/analytics.js"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/js?id=G-P4TF87WE00&amp;cx=c&amp;gtm=4e6630"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js" integrity="sha512-ooSWpxJsiXe6t4+PPjCgYmVfr1NS5QXJACcR/FPpsdm6kqG1FmQ2SVyg2RXeVuCRBLr0lWHnWJP6Zs1Efvxzww==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script src="https://unpkg.com/platform@1.3.5/platform.js"></script>
+<script>
+  if (platform.name.toLowerCase() == "safari" && parseInt(platform.version.split(".")[0]) >= 15) {
+      window.flutterWebRenderer = "html";
+  } else {
+      // Optional, default is `auto`
+      window.flutterWebRenderer = "canvaskit";
+  }
+</script>
+<!--
+<script>
+  window.flutterConfiguration = {
+    canvasKitForceMultiSurfaceRasterizer: true
+  };
+</script>
+-->
+  <style>
+    .loading {
+            position: fixed;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-flow: column nowrap;
+            z-index: 100;
+        }
+        .loading h1{
+          color: #ffffff; font-family: 'Raleway',sans-serif; font-size: 62px; font-weight: 800; line-height: 72px; margin: 0 0 24px; text-align: center; text-transform: uppercase;
+
+        }
+
+        @media (max-width: 768px) { 
+          .loading h1{
+          font-size: 30px; font-weight: 400; line-height: 32px;
+          }
+
+         }
+
+
+        .loading .logo {
+            
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: auto;
+            height: 40%;
+        }
+    
+        .loading .logo2 {
+            
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 40%;
+            height: auto;
+        }
+        
+          .background{
+
+          background: linear-gradient(180deg, rgba(0,86,143,1) 0%, rgba(25,224,120,1) 100%);
+          }
+          
+
+        .mapa-interno {
+            background-image: url('https://copafacil.b-cdn.net/assets/img/fundo-mundo.png');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            opacity: 0.49;
+            mix-blend-mode: luminosity;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            transform: scale(1.2);
+        }
+
+        /* .loading screen is visible when app is not bootstrapped yet, my-app is empty */
+       
+        
+ </style>
+
+
+
+
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-122641619-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-122641619-1');
+</script>
+
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+  <meta name="google-signin-client_id" content="1084972798992-cohsp7tt276du6s456e08cpgm7uh8tc3.apps.googleusercontent.com">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="copafacil">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  
+  <link rel="icon" type="image/png" sizes="192x192" href="https://copafacil.b-cdn.net/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    
+  <meta charset="utf-8">
+  <title></title>
+  <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+  <meta name="theme-color" content="">
+    <meta name="apple-mobile-web-app-status-bar-style" content="">
+
+
+  <link rel="manifest" href="manifest.json">
+        <meta property="og:title" content="EFOOTBALL DYNAMIC">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://copafacil.com/-txk0l">
+        <meta property="og:image" content="https://firebasestorage.googleapis.com/v0/b/copafacil-web.appspot.com/o/events%2F-txk0l%2Finfo.jpg?alt=media&amp;token=1&amp;m=1766163951084">
+        <meta property="og:description" content="LEAGUE">
+        <meta name="description" content="LEAGUE">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" integrity="sha512-0SPWAwpC/17yYyZ/4HSllgaK7/gg9OlVozq8K7rf3J8LvCjYEEIfzzpnA2/SSjpGIunCSD18r3UhvDcu/xncWA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+
+
+  
+ 
+
+
+<script async="" defer="" src="https://accounts.google.com/gsi/client"></script><script type="text/javascript" charset="utf-8" async="" src="./assets/packages/wakelock_plus/assets/no_sleep.js"></script><meta name="generator" content="Flutter"><meta flt-viewport="" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_core = async (callback) => {
+              console.debug("Initializing Firebase firebase_core");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_analytics = async (callback) => {
+              console.debug("Initializing Firebase firebase_analytics");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_auth = async (callback) => {
+              console.debug("Initializing Firebase firebase_auth");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_database = async (callback) => {
+              console.debug("Initializing Firebase firebase_database");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_messaging = async (callback) => {
+              console.debug("Initializing Firebase firebase_messaging");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-messaging.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_remote_config = async (callback) => {
+              console.debug("Initializing Firebase firebase_remote_config");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-remote-config.js"));
+            };
+          </script><script type="text/javascript" crossorigin="anonymous">            window.ff_trigger_firebase_storage = async (callback) => {
+              console.debug("Initializing Firebase firebase_storage");
+              callback(await import("https://www.gstatic.com/firebasejs/11.9.1/firebase-storage.js"));
+            };
+          </script><script type="text/javascript" src="https://connect.facebook.net/en_US/sdk.js" async="" defer="" crossorigin="anonymous"></script><style id="googleidentityservice_button_styles">.qJTHM{-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;color:#202124;direction:ltr;-webkit-touch-callout:none;font-family:Roboto-Regular,arial,sans-serif;-webkit-font-smoothing:antialiased;font-weight:400;margin:0;overflow:hidden;-webkit-text-size-adjust:100%}.ynRLnc{left:-9999px;position:absolute;top:-9999px}.L6cTce{display:none}.bltWBb{overflow-wrap:break-word;word-break:break-word}.hSRGPd{color:#1a73e8;cursor:pointer;font-weight:500;text-decoration:none}.Bz112c-W3lGp{height:16px;width:16px}.Bz112c-E3DyYd{height:20px;width:20px}.Bz112c-r9oPif{height:24px;width:24px}.Bz112c-u2z5K{height:36px;width:36px}.Bz112c-uaxL4e{border-radius:10px}.LgbsSe-Bz112c{display:block}.S9gUrf-YoZ4jf{border:none;margin:0;padding:0}.S9gUrf-YoZ4jf *{border:none;margin:0;padding:0}.fFW7wc-ibnC6b>.aZ2wEe>div{border-color:#4285f4}.P1ekSe-ZMv3u{-webkit-transition:height .2s linear;transition:height .2s linear}.P1ekSe-ZMv3u>div:first-child{background-color:#1a73e8!important;-webkit-transition:width .3s linear;transition:width .3s linear}.P1ekSe-ZMv3u>div:nth-child(2){background-image:-webkit-gradient(linear,left top,right top,from(rgba(255,255,255,.7)),to(rgba(255,255,255,.7))),-webkit-gradient(linear,left top,right top,from(#1a73e8),to(#1a73e8))!important;background-image:-webkit-linear-gradient(left,rgba(255,255,255,.7),rgba(255,255,255,.7)),-webkit-linear-gradient(left,#1a73e8,#1a73e8)!important;background-image:linear-gradient(90deg,rgba(255,255,255,.7),rgba(255,255,255,.7)),linear-gradient(90deg,#1a73e8,#1a73e8)!important}.P1ekSe-ZMv3u>div:nth-child(3){background-image:-webkit-gradient(linear,left top,right top,from(rgba(255,255,255,.7)),to(rgba(255,255,255,.7))),-webkit-gradient(linear,left top,right top,from(#1a73e8),to(#1a73e8))!important;background-image:-webkit-linear-gradient(left,rgba(255,255,255,.7),rgba(255,255,255,.7)),-webkit-linear-gradient(left,#1a73e8,#1a73e8)!important;background-image:linear-gradient(90deg,rgba(255,255,255,.7),rgba(255,255,255,.7)),linear-gradient(90deg,#1a73e8,#1a73e8)!important}.haAclf{display:inline-block}.nsm7Bb-HzV7m-LgbsSe{border-radius:4px;box-sizing:border-box;-webkit-transition:background-color .218s,border-color .218s;transition:background-color .218s,border-color .218s;-moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;-webkit-appearance:none;background-color:#fff;background-image:none;border:1px solid #dadce0;color:#3c4043;cursor:pointer;font-family:Google Sans,arial,sans-serif;font-size:14px;height:40px;letter-spacing:.25px;outline:none;overflow:hidden;padding:0 12px;position:relative;text-align:center;vertical-align:middle;white-space:nowrap;width:auto}@media screen and (-ms-high-contrast:active){.nsm7Bb-HzV7m-LgbsSe{border:2px solid windowText;color:windowText}}@media screen and (preferes-contrast:more){.nsm7Bb-HzV7m-LgbsSe{color:#000}}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe{font-size:14px;height:32px;letter-spacing:.25px;padding:0 10px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe{font-size:11px;height:20px;letter-spacing:.3px;padding:0 8px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe{padding:0;width:40px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.pSzOP-SxQuSe{width:32px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.purZT-SxQuSe{width:20px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK{border-radius:20px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK.pSzOP-SxQuSe{border-radius:16px}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK.purZT-SxQuSe{border-radius:10px}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc{border:1px solid #8e918f;background-color:#131314;color:#e3e3e3}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc{border:none;color:#fff}.nsm7Bb-HzV7m-LgbsSe.MFS4be-v3pZbf-Ia7Qfc{background-color:#1a73e8}.nsm7Bb-HzV7m-LgbsSe.MFS4be-JaPV2b-Ia7Qfc{background-color:#202124;color:#e8eaed}@media screen and (prefers-contrast:more){.nsm7Bb-HzV7m-LgbsSe.MFS4be-JaPV2b-Ia7Qfc{color:#fff}}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:18px;margin-right:8px;min-width:18px;width:18px}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:14px;min-width:14px;width:14px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{height:10px;min-width:10px;width:10px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin-left:8px;margin-right:-4px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin:0;padding:10px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{padding:8px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c{padding:4px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-top-left-radius:3px;border-bottom-left-radius:3px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;align-items:center;background-color:#fff;height:36px;margin-left:-10px;margin-right:12px;min-width:36px;width:36px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf .nsm7Bb-HzV7m-LgbsSe-Bz112c,.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf .nsm7Bb-HzV7m-LgbsSe-Bz112c{margin:0;padding:0}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{height:28px;margin-left:-8px;margin-right:10px;min-width:28px;width:28px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{height:16px;margin-left:-6px;margin-right:8px;min-width:16px;width:16px}.nsm7Bb-HzV7m-LgbsSe.Bz112c-LgbsSe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:3px;margin-left:2px;margin-right:0;padding:0}.nsm7Bb-HzV7m-LgbsSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:18px}.nsm7Bb-HzV7m-LgbsSe.pSzOP-SxQuSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:14px}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:8px}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-bN97Pc-sM5MNb{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;-webkit-box-align:center;align-items:center;-webkit-flex-direction:row;-webkit-box-orient:horizontal;-webkit-box-direction:normal;flex-direction:row;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;-webkit-flex-wrap:nowrap;flex-wrap:nowrap;height:100%;position:relative;width:100%}.nsm7Bb-HzV7m-LgbsSe .oXtfBe-l4eHX{-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-BPrWId{-webkit-flex-grow:1;-webkit-box-flex:1;flex-grow:1;font-family:Google Sans,arial,sans-serif;font-weight:500;overflow:hidden;text-overflow:ellipsis;vertical-align:top}.nsm7Bb-HzV7m-LgbsSe.purZT-SxQuSe .nsm7Bb-HzV7m-LgbsSe-BPrWId{font-weight:300}.nsm7Bb-HzV7m-LgbsSe .oXtfBe-l4eHX .nsm7Bb-HzV7m-LgbsSe-BPrWId{-webkit-flex-grow:0;-webkit-box-flex:0;flex-grow:0}.nsm7Bb-HzV7m-LgbsSe .nsm7Bb-HzV7m-LgbsSe-MJoBVe{-webkit-transition:background-color .218s;transition:background-color .218s;bottom:0;left:0;position:absolute;right:0;top:0}.nsm7Bb-HzV7m-LgbsSe:focus,.nsm7Bb-HzV7m-LgbsSe:hover{box-shadow:none;border-color:rgb(210,227,252);outline:none}.nsm7Bb-HzV7m-LgbsSe:focus-within{outline:2px solid #00639b;border-color:transparent}.nsm7Bb-HzV7m-LgbsSe:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(66,133,244,.08)}.nsm7Bb-HzV7m-LgbsSe:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(66,133,244,.1)}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.08)}.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe.i5vt6e-to915-Ia7Qfc:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.12)}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:hover .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.24)}.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:active .nsm7Bb-HzV7m-LgbsSe-MJoBVe,.nsm7Bb-HzV7m-LgbsSe.MFS4be-Ia7Qfc:focus .nsm7Bb-HzV7m-LgbsSe-MJoBVe{background:rgba(255,255,255,.32)}.nsm7Bb-HzV7m-LgbsSe .n1UuX-DkfjY{border-radius:50%;display:-webkit-box;display:-webkit-flex;display:flex;height:20px;margin-left:-4px;margin-right:8px;min-width:20px;width:20px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId{font-family:Roboto;font-size:12px;text-align:left}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff .fmcmS,.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .ssJRIf{overflow:hidden;text-overflow:ellipsis}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:center;-webkit-box-align:center;align-items:center;color:#5f6368;fill:#5f6368;font-size:11px;font-weight:400}.nsm7Bb-HzV7m-LgbsSe.jVeSEe.MFS4be-Ia7Qfc .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{color:#e8eaed;fill:#e8eaed}@media screen and (prefers-contrast:more){.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff,.nsm7Bb-HzV7m-LgbsSe.jVeSEe.MFS4be-Ia7Qfc .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff{color:#000;fill:#000}}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-BPrWId .K4efff .Bz112c{height:18px;margin:-3px -3px -3px 2px;min-width:18px;width:18px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-top-left-radius:0;border-bottom-left-radius:0;border-top-right-radius:3px;border-bottom-right-radius:3px;margin-left:12px;margin-right:-10px}.nsm7Bb-HzV7m-LgbsSe.jVeSEe.JGcpL-RbRzK .nsm7Bb-HzV7m-LgbsSe-Bz112c-haAclf{border-radius:18px}.L5Fo6c-sM5MNb{border:0;display:block;left:0;position:relative;top:0}.L5Fo6c-bF1uUb{border-radius:4px;bottom:0;cursor:pointer;left:0;position:absolute;right:0;top:0}.L5Fo6c-bF1uUb:focus{border:none;outline:none}sentinel{}</style><style type="text/css" data-fbcssmodules="css:fb.css.base css:fb.css.dialog css:fb.css.iframewidget">.fb_hidden{position:absolute;top:-10000px;z-index:10001}.fb_reposition{overflow:hidden;position:relative}.fb_invisible{display:none}.fb_reset{background:none;border:0px;border-spacing:0;color:#000;cursor:auto;direction:ltr;font-family:lucida grande,tahoma,verdana,arial,sans-serif;font-size:11px;font-style:normal;font-variant:normal;font-weight:400;letter-spacing:normal;line-height:1;margin:0;overflow:visible;padding:0;text-align:left;text-decoration:none;text-indent:0;text-shadow:none;text-transform:none;visibility:visible;white-space:normal;word-spacing:normal}.fb_reset>div{overflow:hidden}@keyframes fb_transform{0%{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}.fb_animate{animation:fb_transform .3s forwards}
+
+.fb_dialog{background:#525252b3;position:absolute;top:-10000px;z-index:10001}.fb_dialog_advanced{border-radius:8px;padding:10px}.fb_dialog_content{background:#fff;color:#373737}.fb_dialog_close_icon{background:url(https://connect.facebook.net/rsrc.php/v4/yq/r/IE9JII6Z1Ys.png) no-repeat scroll 0 0 transparent;cursor:pointer;display:block;height:15px;position:absolute;right:18px;top:17px;width:15px}.fb_dialog_mobile .fb_dialog_close_icon{left:5px;right:auto;top:5px}.fb_dialog_padding{background-color:transparent;position:absolute;width:1px;z-index:-1}.fb_dialog_close_icon:hover{background:url(https://connect.facebook.net/rsrc.php/v4/yq/r/IE9JII6Z1Ys.png) no-repeat scroll 0 -15px transparent}.fb_dialog_close_icon:active{background:url(https://connect.facebook.net/rsrc.php/v4/yq/r/IE9JII6Z1Ys.png) no-repeat scroll 0 -30px transparent}.fb_dialog_iframe{line-height:0}.fb_dialog_content .dialog_title{background:#6d84b4;border:1px solid #365899;color:#fff;font-size:14px;font-weight:700;margin:0}.fb_dialog_content .dialog_title>span{background:url(https://connect.facebook.net/rsrc.php/v4/yd/r/Cou7n-nqK52.gif) no-repeat 5px 50%;float:left;padding:5px 0 7px 26px}body.fb_hidden{height:100%;left:0;margin:0;overflow:visible;position:absolute;top:-10000px;transform:none;width:100%}.fb_dialog.fb_dialog_mobile.loading{background:url(https://connect.facebook.net/rsrc.php/v4/ya/r/3rhSv5V8j3o.gif) #fff no-repeat 50% 50%;min-height:100%;min-width:100%;overflow:hidden;position:absolute;top:0;z-index:10001}.fb_dialog.fb_dialog_mobile.loading.centered{background:none;height:auto;min-height:initial;min-width:initial;width:auto}.fb_dialog.fb_dialog_mobile.loading.centered #fb_dialog_loader_spinner{width:100%}.fb_dialog.fb_dialog_mobile.loading.centered .fb_dialog_content{background:none}.loading.centered #fb_dialog_loader_close{clear:both;color:#fff;display:block;font-size:18px;padding-top:20px}#fb-root #fb_dialog_ipad_overlay{background:#0006;inset:0;min-height:100%;position:absolute;width:100%;z-index:10000}#fb-root #fb_dialog_ipad_overlay.hidden{display:none}.fb_dialog.fb_dialog_mobile.loading iframe{visibility:hidden}.fb_dialog_mobile .fb_dialog_iframe{position:sticky;top:0}.fb_dialog_content .dialog_header{background:linear-gradient(from(#738aba),to(#2c4987));border-bottom:1px solid;border-color:#043b87;box-shadow:#fff 0 1px 1px -1px inset;color:#fff;font:700 14px Helvetica,sans-serif;text-overflow:ellipsis;text-shadow:rgba(0,30,84,.296875) 0px -1px 0px;vertical-align:middle;white-space:nowrap}.fb_dialog_content .dialog_header table{height:43px;width:100%}.fb_dialog_content .dialog_header td.header_left{font-size:12px;padding-left:5px;vertical-align:middle;width:60px}.fb_dialog_content .dialog_header td.header_right{font-size:12px;padding-right:5px;vertical-align:middle;width:60px}.fb_dialog_content .touchable_button{background:linear-gradient(from(#4267B2),to(#2a4887));background-clip:padding-box;border:1px solid #29487d;border-radius:3px;display:inline-block;line-height:18px;margin-top:3px;max-width:85px;padding:4px 12px;position:relative}.fb_dialog_content .dialog_header .touchable_button input{background:none;border:none;color:#fff;font:700 12px Helvetica,sans-serif;margin:2px -12px;padding:2px 6px 3px;text-shadow:rgba(0,30,84,.296875) 0px -1px 0px}.fb_dialog_content .dialog_header .header_center{color:#fff;font-size:16px;font-weight:700;line-height:18px;text-align:center;vertical-align:middle}.fb_dialog_content .dialog_content{background:url(https://connect.facebook.net/rsrc.php/v4/y9/r/jKEcVPZFk-2.gif) no-repeat 50% 50%;border:1px solid #4A4A4A;border-bottom:0;border-top:0;height:150px}.fb_dialog_content .dialog_footer{background:#f5f6f7;border:1px solid #4A4A4A;border-top-color:#ccc;height:40px}#fb_dialog_loader_close{float:left}.fb_dialog.fb_dialog_mobile .fb_dialog_close_icon{visibility:hidden}#fb_dialog_loader_spinner{animation:rotateSpinner 1.2s linear infinite;background-color:transparent;background-image:url(https://connect.facebook.net/rsrc.php/v4/y2/r/onuUJj0tCqE.png);background-position:50% 50%;background-repeat:no-repeat;height:24px;width:24px}@keyframes rotateSpinner{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.fb_iframe_widget{display:inline-block;position:relative}.fb_iframe_widget span{display:inline-block;position:relative;text-align:justify}.fb_iframe_widget iframe{position:absolute}.fb_iframe_widget_fluid_desktop,.fb_iframe_widget_fluid_desktop span,.fb_iframe_widget_fluid_desktop iframe{max-width:100%}.fb_iframe_widget_fluid_desktop iframe{min-width:220px;position:relative}.fb_iframe_widget_lift{z-index:1}.fb_iframe_widget_fluid{display:inline}.fb_iframe_widget_fluid span{width:100%}
+</style><style></style><script type="text/javascript" charset="UTF-8" src="https://maps.googleapis.com/maps-api-v3/api/js/65/3b/common.js"></script><script type="text/javascript" charset="UTF-8" src="https://maps.googleapis.com/maps-api-v3/api/js/65/3b/util.js"></script></head>
+<body flt-embedding="full-page" flt-renderer="canvaskit" flt-build-mode="release" spellcheck="false" style="position: fixed; inset: 0px; overflow: hidden; padding: 0px; margin: 0px; user-select: none; touch-action: none;"><flt-semantics-placeholder role="button" aria-live="polite" tabindex="0" aria-label="Enable accessibility" style="position: absolute; left: -1px; top: -1px; width: 1px; height: 1px;"></flt-semantics-placeholder>
+
+  <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="img-container">
+            <img style="max-height: 300px;max-width:300px ;" id="image" alt="Picture">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="done()" data-dismiss="modal">Done!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- This script installs service_worker.js to provide PWA functionality to
+       application. For more information, see:
+       https://developers.google.com/web/fundamentals/primers/service-workers -->
+
+
+
+  <!-- Add Firebase products that you want to use -->
+
+
+
+  <script>
+       
+       
+
+     function getLocale() {
+
+          if(!localStorage.getItem('locale')){
+              return null;
+            }
+           return localStorage.getItem('locale')
+         }
+
+  </script>
+
+
+
+  <script src="https://copafacil.b-cdn.net/main.dart.js?v=2026-10-04" type="application/javascript"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCZW1MSokZqOfA1plKj4Qg5DGQaCEH7LjA"></script>
+
+
+  <script src="https://js.stripe.com/v3"></script>
+
+
+  <script>
+    
+
+  
+
+ 
+        
+      
+
+       
+    
+
+       let uploadCrop;
+
+      let files = [];
+      let index = 0;
+
+      
+  function downloadFile(url) {
+   window.open(url, '_blank').focus();
+  }
+
+     function getBase64(file,r) {
+        var reader = new FileReader();
+        reader.readAsDataURL(file);
+        let that=this;
+        reader.onload = function () {
+          //console.log("tamanho: "+ reader.result.length);
+          r(reader.result);
+        };
+        reader.onerror = function (error) {
+          //console.log('Error: ', error);
+        };
+    }
+
+
+
+  function  getCanvasReduceImage(file,MAX_WIDTH,MAX_HEIGHT,response,crop){
+
+  getBase64(file,(base64)=>{
+
+    var img =  document.createElement("img");
+        //img.style.display="none"
+        //img.id="img-add";
+       // document.body.appendChild(img);
+        var canvas = document.createElement("canvas");
+        img.src=base64;
+        img.onload=()=>{
+                let portrait=true;
+                var width = img.naturalWidth;
+                var height = img.naturalHeight;
+                 if ((width > height && MAX_WIDTH<MAX_HEIGHT)  || (width < height && MAX_WIDTH>MAX_HEIGHT)  ) {
+                      let aux=MAX_WIDTH;
+                      MAX_WIDTH=MAX_HEIGHT;
+                      MAX_HEIGHT=aux;
+                 }
+
+                portrait=height>width;
+                if(crop){
+                      let f=Math.max(MAX_WIDTH/width,MAX_HEIGHT/height);
+                      let wAux=f*width;
+                      let hAux=f*height;
+                      canvas.width = MAX_WIDTH;
+                      canvas.height = MAX_HEIGHT;
+
+                      var ctx = canvas.getContext("2d");
+                      ctx.fillStyle = "black";
+                      ctx.fillRect(0, 0, canvas.width, canvas.height);
+                      ctx.drawImage(img,(Math.max(0,(wAux-MAX_WIDTH))/2)/f,(Math.max(0,(hAux-MAX_HEIGHT))/2)/f,
+                      Math.min(wAux,MAX_WIDTH)/f,Math.min(hAux,MAX_HEIGHT)/f,Math.max(0,(MAX_WIDTH-wAux)/2) ,Math.max(0,(MAX_HEIGHT-hAux)/2),
+                       Math.min(wAux,MAX_WIDTH),Math.min(hAux,MAX_HEIGHT));
+                } else{
+                     let factor=Math.min(MAX_WIDTH/width,MAX_HEIGHT/height);
+                      width *= factor;
+                      height *= factor;
+                      canvas.width = width;
+                      canvas.height = height;
+                      var ctx = canvas.getContext("2d");
+                      ctx.drawImage(img, 0, 0, width, height);
+                }
+
+                response(canvas.toDataURL());
+
+                console.log("w-f "+ width+ " h-f"+height);
+        };
+        });
+  }
+
+  var result1;
+var w11;
+var h11;
+var cropper;
+
+function  getCanvasImage(blob,MAX_WIDTH,MAX_HEIGHT,response){
+
+
+var img =  document.createElement("img");
+
+var canvas = document.createElement("canvas");
+img.src=blob;
+img.onload=()=>{
+   var width = img.naturalWidth;
+   var height = img.naturalHeight;
+  canvas.width = MAX_WIDTH;
+   canvas.height = MAX_HEIGHT;
+
+const scale = Math.min(MAX_WIDTH / img.width,  MAX_HEIGHT / img.height);
+       const newWidth = img.width * scale;
+       const newHeight = img.height * scale;
+     const x = (canvas.width - newWidth) / 2;
+     const y = (canvas.height - newHeight) / 2;
+      const ctx = canvas.getContext('2d');
+     ctx.drawImage(img, x, y, newWidth, newHeight);
+   response(canvas.toDataURL());
+};
+
+
+}
+
+
+function done(){
+canvas = cropper.getCroppedCanvas({
+width: w11,
+height: h11,
+});
+getCanvasImage(canvas.toDataURL(),w11,h11,(r)=>{
+
+                                      result1(r);
+                                 })
+
+// console.log();
+// result1(canvas.toDataURL());
+}
+
+  window.addEventListener('DOMContentLoaded', function () {
+          var image = document.getElementById('image');
+          var cropBoxData;
+          var canvasData;
+
+          $('#modal').on('shown.bs.modal', function () {
+            cropper = new Cropper(image, {
+              autoCropArea: 0.5,
+              initialAspectRatio:w11/h11,
+              ready: function () {
+                //Should set crop box data first here
+                cropper.setCropBoxData(cropBoxData).setCanvasData(canvasData);
+              }
+            });
+          }).on('hidden.bs.modal', function () {
+
+
+
+
+            cropper.destroy();
+          });
+        });
+
+
+  function selectImage(result,w,h,format1,multiple){
+                result1 = result;
+                w11 = w;
+                h11 = h;
+                  index = 0;
+                  files = [];
+
+                                    var input = document.createElement('input');
+                                    input.type = 'file';
+                                    if(multiple){
+                                      input.multiple = 'multiple'
+                                    }
+                                    input.click();
+                                    input.onchange = () => {
+                                        if(input.files.length > 1){
+                                          let i = 0;
+                                          let f = ()=>{
+                                            if(i<input.files.length){
+                                              getCanvasReduceImage(input.files[i],w,h,(r)=>{
+                                                   result(r);
+                                                   i++;
+                                                   f();
+                                              },true)
+                                            }
+                                          }
+
+                                          f();
+
+                                        }else{
+                                            var reader = new FileReader();
+                                            reader.onload = function (e) {
+                                                    $('#image')
+                                              .attr('src', e.target.result);
+                                              $('#modal').modal('toggle')
+
+                                            };
+                                            reader.readAsDataURL(input.files[0]);
+                                        }
+                                    }
+  }
+
+
+
+
+
+     function buy(code,url,uid,annual) {
+        console.log(uid);
+        console.log(code);
+        console.log(url);
+        if(annual && code == 'price_1SEVbzAePqiTx6sNywb4Bm2M'){
+          code = 'price_1SEVynAePqiTx6sN0RJEVVQY';
+        }
+
+        var stripe = Stripe(   'pk_live_ozalLVJlDUw1GYjiVTAZKX8T' || 'pk_test_J1fKWwGPZljcV51j1vundmXM' );
+                stripe.redirectToCheckout({
+                  lineItems: [{
+                    price:  code,
+                    quantity: 1
+                  }],
+                  clientReferenceId:uid,
+                  mode:  annual ? 'payment' :'subscription',
+                  successUrl: url,
+                  cancelUrl: url
+                });
+    }
+ 
+
+
+
+
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('flutter-first-frame', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js?v=1088544669-8');
+      });
+    }
+  </script>
+
+
+  
+
+
+
+  
+
+  <style>
+    label.cabinet{
+        display: block;
+        cursor: pointer;
+    }
+    label.cabinet input.file{
+        position: relative;
+        height: 100%;
+        width: auto;
+        opacity: 0;
+        -moz-opacity: 0;
+    filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);
+    margin-top:-30px;
+    }
+
+    #upload-demo{
+        width: 250px;
+        height: 250px;
+    padding-bottom:25px;
+    }
+
+    
+    #upload-demo img{
+         -webkit-user-drag: none;
+   -khtml-user-drag: none;
+   -moz-user-drag: none;
+      -o-user-drag: none;
+     user-drag: none;
+    }
+
+
+
+</style>
+
+
+
+
+
+
+
+    
+
+
+
+<flt-announcement-host><flt-announcement-polite aria-live="polite" style="position: fixed; overflow: hidden; transform: translate(-99999px, -99999px); width: 1px; height: 1px;"></flt-announcement-polite><flt-announcement-assertive aria-live="assertive" style="position: fixed; overflow: hidden; transform: translate(-99999px, -99999px); width: 1px; height: 1px;"></flt-announcement-assertive></flt-announcement-host><iframe name="__privateStripeMetricsController9600" frameborder="0" allowtransparency="true" scrolling="no" role="presentation" allow="payment *" src="https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fcopafacil.com%2F-txk0l&amp;title=EFOOTBALL%20DYNAMIC&amp;referrer=&amp;muid=NA&amp;sid=NA&amp;version=6&amp;preview=false&amp;__shared_params__[version]=v3" aria-hidden="true" tabindex="-1" style="border-width: medium !important; border-style: none !important; border-color: currentcolor !important; border-image: initial !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; visibility: hidden !important; position: fixed !important; height: 1px !important; pointer-events: none !important; user-select: none !important;"></iframe><flt-image-picker-inputs id="__image_picker_web-file-input"></flt-image-picker-inputs><flutter-view flt-view-id="0" tabindex="-1" style="position: absolute; inset: 0px; width: 1280px; height: 720px;"><flt-glass-pane><flt-platform-view id="flt-pv-0" slot="flt-pv-slot-0"><div class="web-selectable-region-context-menu" style="width: 100%; height: 100%;"></div></flt-platform-view></flt-glass-pane><flt-text-editing-host></flt-text-editing-host><flt-semantics-host style="position: absolute; transform-origin: 0px 0px 0px; transform: scale(1);"></flt-semantics-host><style id="flt-text-editing-stylesheet">flutter-view flt-scene-host {  font: normal normal 14px sans-serif;}flutter-view flt-semantics input[type=range] {  appearance: none;  -webkit-appearance: none;  width: 100%;  position: absolute;  border: none;  top: 0;  right: 0;  bottom: 0;  left: 0;}flutter-view input::selection {  background-color: transparent;}flutter-view textarea::selection {  background-color: transparent;}flutter-view flt-semantics input,flutter-view flt-semantics textarea,flutter-view flt-semantics [contentEditable="true"] {  caret-color: transparent;}flutter-view .flt-text-editing::placeholder {  opacity: 0;}flutter-view:focus { outline: none;}flutter-view .transparentTextEditing:-webkit-autofill,flutter-view .transparentTextEditing:-webkit-autofill:hover,flutter-view .transparentTextEditing:-webkit-autofill:focus,flutter-view .transparentTextEditing:-webkit-autofill:active {  opacity: 0 !important;}</style></flutter-view><div id="fb-root" class=" fb_reset"><div style="position: absolute; top: -10000px; width: 0px; height: 0px;"><div></div></div></div></body></html>

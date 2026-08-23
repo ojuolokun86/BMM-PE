@@ -78,6 +78,7 @@ const { addFame, showFame, showStats, deleteFame, listFame } = require('./comman
 const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
 //const { handleCallCommand } = require('./command/call');
+const handleTourCommand = require('../tournament/tournament');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
 function getMatchedOwner(senderId, senderLid, botId, botLid) {
   if (senderId === botId || senderId === botLid) return senderId;
@@ -157,6 +158,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
 
     // Command switch
     switch (command) {
+      case 'tour':
+        await handleTourCommand(sock, msg);
+        break;
       case 'contacts':
       case 'savedcontacts':
         await contactCommand(sock, msg, args, prefix);

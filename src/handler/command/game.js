@@ -251,7 +251,7 @@ async function endGame(sock, groupId, sender) {
     games.delete(groupId);
 }
 
-async function sendGameHelp(groupId) {
+async function sendGameHelp(sock, groupId) {
     await sock.sendMessage(groupId, {
         text: `🎮 *Word Chain Game Commands*\n\n` +
                 `1️⃣ *.game wordchain*\n` +

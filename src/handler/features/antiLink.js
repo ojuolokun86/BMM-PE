@@ -138,7 +138,6 @@ await sock.sendMessage(from, { text: '❌ Invalid choice. Try again.' });
 
     sock.ev.off('messages.upsert', listener);
   };
-
   sock.ev.on('messages.upsert', listener);
 }
 

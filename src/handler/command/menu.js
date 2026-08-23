@@ -207,8 +207,7 @@ const getFunMenu = (ownerName, mode, phoneNumber, prefix, version) => `
 async function funMenu(sock, chatId, message, ownerName, mode, phoneNumber, groupId, prefix, authId) {
   const funMenuText = getFunMenu(ownerName, mode, phoneNumber, prefix, version);
   const contextInfo = {
-    ...getContextInfo(),
-    ...getForwardedContext()
+    ...getContextInfo()
   };
   const sent = await sock.sendMessage(chatId, {
     text: funMenuText,
