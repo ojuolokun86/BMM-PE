@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const {} = require('puppet')
+const {} = require('puppeteer');
 const fs = require('fs');
 
 function safeJson(text) {
