@@ -1,7 +1,6 @@
 const { getWelcomeSettings } = require('../../database/welcomeDb');
 const { getGroupMetadataCached } = require('../../index')
 const { showFame, showStats } = require('../command/hallOfFame');
-const { getGroupProfilePicBuffer, getContextInfo } = require('../../utils/groupImagePreview');
 
 
 async function handleGroupParticipantsUpdate(sock, update, groupCache) {
@@ -58,8 +57,6 @@ async function handleGroupParticipantsUpdate(sock, update, groupCache) {
                 greeting = `Hello @${username},\n@${actor.split('@')[0]} added you to the group.`;
             }
 
-            const groupPicBuffer = await getGroupProfilePicBuffer(sock, groupId);
-
             const welcomeMsg = `👋 *Welcome to ${groupName}*
 
 ${greeting}  
@@ -89,12 +86,7 @@ You are member *#${membersCount}*. 🤝`;
 
             await sock.sendMessage(groupId, {
                 text: welcomeMsg,
-                mentions: mentionIds,
-                contextInfo: getContextInfo({
-                    title: groupName,
-                    body: `Welcome @${username}`,
-                    thumbnail: groupPicBuffer
-                })
+                mentions: mentionIds
             });
 
             if (settings.showFame) {
@@ -105,7 +97,6 @@ You are member *#${membersCount}*. 🤝`;
         /* ================= GREETING ================= */
         if (update.action === 'add' && settings.greet) {
             const username = participantId.split('@')[0];
-            const groupPicBuffer = await getGroupProfilePicBuffer(sock, groupId);
             const stats = await showStats(sock, groupId, true)
             // const adminMentions = admins.map(a => `@${a.split('@')[0]}`).join(', ');
 
@@ -138,12 +129,7 @@ You are member *#${membersCount}*. 🤝`;
                     ...(ownerId ? [ownerId] : []),
                     ...admins,
                     ...stats.mentions
-                ],
-                contextInfo: getContextInfo({
-                    title: groupName,
-                    body: `Welcome @${username}`,
-                    thumbnail: groupPicBuffer
-                })
+                ]
             });
         }
 

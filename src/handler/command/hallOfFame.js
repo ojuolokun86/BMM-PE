@@ -1,6 +1,5 @@
 const supabase = require('../../supabaseClient')
 const { checkIfAdmin } = require('./kick')
-const { getGroupProfilePicBuffer, getContextInfo } = require('../../utils/groupImagePreview')
 
 async function getCommunityInfo(sock, groupJid) {
   try {
@@ -23,7 +22,6 @@ async function getCommunityInfo(sock, groupJid) {
 
 async function addFame(sock, msg, chatId, sender, args, prefix) {
   try {
-    const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const isAdmin = await checkIfAdmin(sock, chatId, sender)
     const community = await getCommunityInfo(sock, chatId)
     if (!community) {
@@ -162,12 +160,7 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
 
     await sock.sendMessage(chatId, {
       text: message,
-      mentions: [userJid],
-      contextInfo: getContextInfo({
-        title: community.communityName,
-        body: 'HALL OF FAME UPDATE',
-        thumbnail: groupPicBuffer
-      })
+      mentions: [userJid]
     })
   } catch (e) {
     console.error(e)
@@ -190,7 +183,6 @@ function normalizeLeague(name) {
 
 async function showFame(sock, chatId) {
   try {
-    const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const community = await getCommunityInfo(sock, chatId)
     if (!community) return sock.sendMessage(chatId, { text: '📜 This group is not part of a community.' })
 
@@ -259,11 +251,7 @@ async function showFame(sock, chatId) {
     text += `━━━━━━━━━━━━━━━━━━\n`
     text += `🔥 Only Legends made it up here 🔥`
 
-    await sock.sendMessage(chatId, { text, mentions, contextInfo: getContextInfo({
-      title: community.communityName,
-      body: 'Hall of Fame',
-      thumbnail: groupPicBuffer
-    }) })
+    await sock.sendMessage(chatId, { text, mentions })
   } catch (e) {
     console.error(e)
     await sock.sendMessage(chatId, { text: '❌ Failed to load Hall of Fame.' })
@@ -272,7 +260,6 @@ async function showFame(sock, chatId) {
 
 async function showStats(sock, chatId, returnText = false) {
   try {
-    const groupPicBuffer = await getGroupProfilePicBuffer(sock, chatId)
     const community = await getCommunityInfo(sock, chatId)
 
     if (!community) {
@@ -400,12 +387,7 @@ async function showStats(sock, chatId, returnText = false) {
 
     await sock.sendMessage(chatId, {
       text,
-      mentions,
-      contextInfo: getContextInfo({
-        title: community.communityName,
-        body: 'Trophy Leaderboard',
-        thumbnail: groupPicBuffer
-      })
+      mentions
     })
 
   } catch (e) {

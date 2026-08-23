@@ -45,11 +45,7 @@ async function sendNextQuestion(sock, groupId) {
                         '\n\n⏰ 30 seconds to answer!';
 
     await sock.sendMessage(groupId, {
-        text: questionText,
-        contextInfo: getContextInfo({
-            title: '🎯 Trivia Question',
-            body: `Round ${game.currentRound + 1}`
-        })
+        text: questionText
     });
 
     game.timeoutId = setTimeout(() => handleQuestionTimeout(sock, groupId), game.answerTimeout);

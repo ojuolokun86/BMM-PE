@@ -5,43 +5,7 @@ const {
     getGroupStats,
     getGroupDailyStats
 } = require('../features/groupStats');
-const axios = require('axios');
-
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-/**
- * Fetch group profile picture as buffer
- */
-async function getGroupProfilePicBuffer(sock, groupId) {
-    try {
-        const url = await sock.profilePictureUrl(groupId, 'image');
-        if (!url) return null;
-
-        const res = await axios.get(url, { responseType: 'arraybuffer' });
-        return Buffer.from(res.data);
-    } catch (err) {
-        console.warn('⚠️ Could not fetch group profile picture');
-        return null;
-    }
-}
-
-function getContextInfo({
-    title,
-    body,
-    thumbnail,
-    renderLargerThumbnail = true
-}) {
-    return {
-        externalAdReply: {
-            title,
-            body,
-            mediaType: 1,
-            showAdAttribution: false,
-            renderLargerThumbnail,
-            thumbnail
-        }
-    };
-}
 async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
     await loadGroupStatsFromDB(remoteJid);
     await loadGroupDailyStatsFromDB(remoteJid);
@@ -158,16 +122,9 @@ async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
         ...activeMembers.map(u => u.jid),
         ...inactiveMembers.map(u => u.jid)
     ];
-    const groupPicBuffer = await getGroupProfilePicBuffer(sock, remoteJid);
-
     await sock.sendMessage(remoteJid, {
         text,
-        mentions: [...mentions, ownerId],
-        contextInfo: getContextInfo({
-            title: groupName,
-            body: `📈 Group Stats for ${groupName}`,
-            thumbnail: groupPicBuffer
-        })
+        mentions: [...mentions, ownerId]
     });
 }
 

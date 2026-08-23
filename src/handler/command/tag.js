@@ -1,6 +1,5 @@
 //const sendToChat = require('../../utils/sendToChat');
 const { getBaileys } = require('../../utils/baileys');
-const {  getGroupProfilePicBuffer, getContextInfo} = require('../../utils/groupImagePreview');
 
 
 
@@ -157,17 +156,10 @@ async function tagCommand(sock, msg, command, args) {
     const mentionsWithSender = tagAllMsgObj.mentions.includes(senderJid)
       ? tagAllMsgObj.mentions
       : [senderJid, ...tagAllMsgObj.mentions];
-      const groupPicBuffer = await getGroupProfilePicBuffer(sock, remoteJid);
-
     await sock.sendMessage(remoteJid, {
       text: tagAllMsgObj.text,
       mentions: mentionsWithSender,
-      quotedMessage: msg,
-      contextInfo: getContextInfo({
-        title: groupName,
-        body: `Tag All Notification for ${groupName}`,
-        thumbnail: groupPicBuffer
-      })
+      quotedMessage: msg
     });
   } else if (command === 'admin') {
     const admins = groupMetadata.participants.filter(p => p.admin);
@@ -175,16 +167,10 @@ async function tagCommand(sock, msg, command, args) {
     let adminMsg = `🤖 *BMM BOT* 🤖\n\n👑 *Group Admins in ${groupName}:*\n`;
     adminMsg += admins.map(p => `• 👮 @${p.id.split('@')[0]}`).join('\n');
     adminMsg += `\n\n${additionalMessage ? `📝 ${additionalMessage}\n` : ''}`;
-    const groupPicBuffer = await getGroupProfilePicBuffer(sock, remoteJid);
     await sock.sendMessage(remoteJid, {
       text: adminMsg,
       mentions: adminIds,
-      quotedMessage: msg,
-      contextInfo: getContextInfo({
-        title: groupName,
-        body: `Admin List Notification for ${groupName}`,
-        thumbnail: groupPicBuffer
-      })
+      quotedMessage: msg
     });
   } else {
     await sock.sendMessage(remoteJid, { text: '❌ Unknown tag command. Use tag, tagall, or admin.' });
