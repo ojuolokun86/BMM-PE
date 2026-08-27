@@ -70,6 +70,39 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
       })
     }
 
+    const { data: leagueEntries = [], error: leagueEntriesError } = await supabase
+      .from('hall_of_fame')
+      .select('*')
+      .eq('community_jid', community.communityJid)
+      .eq('user_jid', userJid)
+      .eq('league', league)
+      .order('team', { ascending: true })
+
+    console.log('[HALL] League history lookup result:', {
+      userJid,
+      league,
+      count: leagueEntries.length,
+      entries: leagueEntries,
+      leagueEntriesError: leagueEntriesError ? { message: leagueEntriesError.message, details: leagueEntriesError.details, hint: leagueEntriesError.hint } : null
+    })
+
+    const sameTeamAlreadyExists = leagueEntries.some(entry =>
+      String(entry.team || '').trim().toLowerCase() === String(team || '').trim().toLowerCase()
+    )
+
+    if (leagueEntries.length > 0 && !sameTeamAlreadyExists) {
+      const historyMessage = formatHallOfFameHistoryMessage({
+        userJid,
+        league,
+        previousEntries: leagueEntries,
+        newTeam: team
+      })
+      await sock.sendMessage(chatId, {
+        text: historyMessage,
+        mentions: [userJid]
+      })
+    }
+
     // Step 1: Check if exact same user + league + team exists
     const { data: existing, error: existingError } = await supabase
       .from('hall_of_fame')
@@ -217,6 +250,25 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
   }
 }
 
+
+function formatHallOfFameHistoryMessage({ userJid, league, previousEntries = [], newTeam }) {
+  const normalizedLeague = normalizeLeague(league)
+  const username = userJid ? `@${userJid.split('@')[0]}` : '@user'
+  const count = Array.isArray(previousEntries) ? previousEntries.length : 0
+  const description = count === 1 ? 'entry' : 'entries'
+
+  let text = `🏆 *HALL OF FAME HISTORY*\n\n`
+  text += `${username}, you already have *${count} ${description}* in the *${normalizedLeague}* Hall of Fame:\n\n`
+
+  previousEntries.forEach((entry, index) => {
+    const teamName = String(entry.team || 'Unknown Team').trim()
+    const trophies = Number(entry.trophies || 0)
+    text += `${index + 1}. ⚽ ${teamName} — 🏆 x${trophies}\n`
+  })
+
+  text += `\nYou are now adding another entry with:\n⚽ ${String(newTeam || 'Unknown Team').trim()}`
+  return text
+}
 
 // Helper to normalize league names
 function normalizeLeague(name) {
@@ -647,5 +699,6 @@ module.exports = {
   showStats,
   deleteFame,
   listFame,
-  normalizeLeague
+  normalizeLeague,
+  formatHallOfFameHistoryMessage
 }

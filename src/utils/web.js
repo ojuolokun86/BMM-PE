@@ -493,5 +493,6 @@ module.exports = {
   generateContendersListMessage,
   getCommunityInfo,
   processNewContender,
-  CONFIG
+  CONFIG,
+  sendHallOfFameMessage
 };
