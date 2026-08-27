@@ -55,4 +55,7 @@ async function handleTimeCommand(sock, remoteJid, message, args) {
     });
 }
 
-module.exports = handleTimeCommand;
+module.exports = {
+    handleTimeCommand,
+    getTimezone
+};

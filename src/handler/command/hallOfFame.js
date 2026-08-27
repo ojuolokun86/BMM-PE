@@ -37,7 +37,6 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
 
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
     if (!mentioned || mentioned.length === 0) {
-      console.log('[HALL] .hall command missing mention:', { chatId, args, sender })
       return sock.sendMessage(chatId, {
         text: `❌ Mention a user.\nUsage: ${prefix} hall @user League, Team`
       })
@@ -51,20 +50,7 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
     const league = leagueRaw?.trim()
     const team = teamParts.join(',').trim()
 
-    console.log('[HALL] .hall request received:', {
-      chatId,
-      sender,
-      rawArgs: args,
-      input,
-      league,
-      team,
-      userJid,
-      communityJid: community.communityJid,
-      communityName: community.communityName
-    })
-
     if (!league || !team) {
-      console.log('[HALL] Invalid Hall of Fame payload:', { chatId, input, league, team })
       return sock.sendMessage(chatId, {
         text: '❌ Usage: .hall @user League, Team'
       })
@@ -78,13 +64,9 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
       .eq('league', league)
       .order('team', { ascending: true })
 
-    console.log('[HALL] League history lookup result:', {
-      userJid,
-      league,
-      count: leagueEntries.length,
-      entries: leagueEntries,
-      leagueEntriesError: leagueEntriesError ? { message: leagueEntriesError.message, details: leagueEntriesError.details, hint: leagueEntriesError.hint } : null
-    })
+    if (leagueEntriesError) {
+      throw leagueEntriesError
+    }
 
     const sameTeamAlreadyExists = leagueEntries.some(entry =>
       String(entry.team || '').trim().toLowerCase() === String(team || '').trim().toLowerCase()
@@ -113,46 +95,22 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
       .eq('team', team)
       .maybeSingle()
 
-    console.log('[HALL] Existing lookup result:', {
-      userJid,
-      league,
-      team,
-      found: !!existing,
-      existing,
-      existingError: existingError ? { message: existingError.message, details: existingError.details, hint: existingError.hint } : null
-    })
+    if (existingError) {
+      throw existingError
+    }
 
     let newTrophyCount = 1
     if (existing) {
-      // Same team, same league → increment trophies
       newTrophyCount = existing.trophies + 1
-      console.log('[HALL] Updating existing Hall of Fame record:', {
-        id: existing.id,
-        oldTrophies: existing.trophies,
-        newTrophies: newTrophyCount,
-        userJid,
-        league,
-        team
-      })
       const { error: updateError } = await supabase
         .from('hall_of_fame')
         .update({ trophies: newTrophyCount })
         .eq('id', existing.id)
 
       if (updateError) {
-        console.error('[HALL] Update failed:', updateError)
         throw updateError
       }
     } else {
-      // Step 2 & 3: Insert new row (new team or new user)
-      console.log('[HALL] Inserting new Hall of Fame record:', {
-        community_jid: community.communityJid,
-        community_name: community.communityName,
-        user_jid: userJid,
-        league,
-        team,
-        trophies: 1
-      })
       const { error: insertError } = await supabase.from('hall_of_fame').insert({
         community_jid: community.communityJid,
         community_name: community.communityName,
@@ -163,7 +121,6 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
       })
 
       if (insertError) {
-        console.error('[HALL] Insert failed:', insertError)
         throw insertError
       }
     }

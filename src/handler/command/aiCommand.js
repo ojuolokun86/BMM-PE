@@ -1,7 +1,6 @@
-const axios = require('axios');
-// Using sock.sendMessage directly instead of sendToChat
+const { callAI, AI_PROVIDERS } = require('../../utils/aiProviderManager');
 
-const AI_PROVIDERS = {
+const AI_PROVIDERS_LEGACY = {
     'gpt': {
         name: "🤖 GPT-4O-Mini",
         url: (query) => `https://api.giftedtech.co.ke/api/ai/gpt4o-mini?apikey=gifted&q=${encodeURIComponent(query)}`,
@@ -55,49 +54,12 @@ function formatAIResponse(provider, response) {
 }
 
 async function getAIResponse(provider, query) {
-    try {
-        const config = {
-            timeout: 30000,
-            validateStatus: function (status) {
-                return status >= 200 && status < 500;
-            }
-        };
-
-        const url = typeof provider.url === 'function' ? provider.url(query) : provider.url;
-       // console.log(`[AI] Making ${provider.method} request to:`, url);
-        
-        let response;
-        if (provider.method === 'POST') {
-            const requestData = provider.requestBody ? provider.requestBody(query) : { query };
-            if (provider.headers) {
-                config.headers = provider.headers;
-            }
-            //console.log('[AI] Request data:', requestData);
-            response = await axios.post(url, requestData, config);
-        } else {
-            response = await axios.get(url, config);
-        }
-        
-
-       // console.log(`[AI] Response status: ${response.status}`);
-       // console.log('[AI] Response data:', JSON.stringify(response.data, null, 2));
-
-        if (response.status !== 200) {
-            throw new Error(`API returned status ${response.status}`);
-        }
-
-        const result = provider.responseParser(response.data);
-        if (!result) {
-            throw new Error('Empty or invalid response from AI provider');
-        }
-        return result;
-    } catch (error) {
-        console.error(`Error with ${provider.name}:`, error.message);
-        if (error.response) {
-            console.error('Response error data:', error.response.data);
-        }
-        throw error;
+    const sessionId = `ai-command:${provider && provider.name ? provider.name : 'default'}`;
+    const result = await callAI(sessionId, [{ role: 'user', content: query }]);
+    if (!result.success) {
+        throw new Error(result.error || 'AI request failed');
     }
+    return result.text;
 }
 
 async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
@@ -131,36 +93,17 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
             text: "⏳ *Processing your request...*"
         });
 
-        // Select provider based on command
-        let providersToTry;
-        if (cmd === 'bmm') {
-            providersToTry = [AI_PROVIDERS.bmm];
-        } else if (cmd === 'gpt') {
-            providersToTry = [AI_PROVIDERS.gpt];
-        } else {
-            // Default: try GPT first, then BMM as fallback
-            providersToTry = [AI_PROVIDERS.gpt, AI_PROVIDERS.bmm];
-        }
+        const sessionKey = `ai-command:${chatId}`;
+        const result = await callAI(sessionKey, [{ role: 'user', content: query }], {
+            preferredOrder: cmd === 'bmm' ? ['groq', 'cloudflare'] : cmd === 'gpt' ? ['cloudflare', 'groq'] : ['groq', 'cloudflare']
+        });
 
-        for (const [index, currentProvider] of providersToTry.entries()) {
-            try {
-                const aiResponse = await getAIResponse(currentProvider, query);
-                if (aiResponse) {
-                    const formattedResponse = formatAIResponse(currentProvider, aiResponse);
-                    return sock.sendMessage(chatId, {
-                        text: formattedResponse
-                    });
-                }
-            } catch (error) {
-                console.error(`Attempt ${index + 1} with ${currentProvider.name} failed:`, error.message);
-                
-                if (index < providersToTry.length - 1) {
-                    await sock.sendMessage(chatId, {
-                        text: `⚠️ ${currentProvider.errorMessage} Trying next available AI...`
-                    });
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                }
-            }
+        if (result.success) {
+            const providerName = AI_PROVIDERS[result.provider]?.name || result.provider;
+            const formattedResponse = formatAIResponse({ name: providerName }, result.text);
+            return sock.sendMessage(chatId, {
+                text: formattedResponse
+            });
         }
 
         throw new Error('All AI providers are currently unavailable.');
@@ -178,6 +121,7 @@ async function aiCommand(sock, chatId, msg, { prefix, args, command: cmd }) {
 │ • Network connectivity problems
 │
 │ Please try again in a few minutes.
+│ If this persists, contact the bot administrator.
 
 ╰───  *BMM AI System*  ───╯
         `;

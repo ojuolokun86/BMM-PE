@@ -131,6 +131,12 @@ const commandRegistry = {
     category: 'Group',
     adminOnly: true
   },
+  congratulate: {
+    description: 'Celebrate a new trophy win for a user using Hall of Fame history',
+    usage: 'congratulate @user League, Team',
+    category: 'Group',
+    adminOnly: true
+  },
   fame: {
     description: 'Show Hall of Fame',
     usage: 'fame',

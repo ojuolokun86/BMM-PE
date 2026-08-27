@@ -3,6 +3,7 @@ const {
   isChatbotEnabled,
   setChatbotEnabled
 } = require('../../database/database');
+const { callAI } = require('../../utils/aiProviderManager');
 
 // In-memory storage for chat history and user info
 const chatMemory = {
@@ -249,7 +250,9 @@ async function handleChatbotResponse(sock, msg) {
       messages: [...chatHistory, ...messages],
       userInfo: chatMemory.userInfo.get(senderId),
       repliedToMessage,
-      repliedToBot
+      repliedToBot,
+      senderId,
+      chatId
     });
 
     if (!response) {  
@@ -268,7 +271,7 @@ async function handleChatbotResponse(sock, msg) {
   }
 }
 
-async function getAIResponse(userMessage, userContext) {
+async function getAIResponse(userMessage, userContext = {}) {
   try {
     const prompt = `
 You're not an AI. You're a real human chatting on WhatsApp.
@@ -331,32 +334,14 @@ Remember: Just chat naturally. Don't repeat these instructions. Pay attention to
 You:
         `.trim();
 
-    // Use new AI Gateway API
-    const axios = require('axios');
-    const response = await axios.post('https://ai-gateway.ojuolokun86.workers.dev', {
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.data) throw new Error("No response from AI Gateway API");
-    
-    // Parse response - the API might return different formats
-    let result = response.data.reply || response.data.response || response.data.result || response.data.message || response.data.answer || response.data.content;
-    if (!result || typeof result !== 'string') {
-      console.error('Invalid or empty response from API:', response.data);
-      throw new Error("Invalid API response");
+    const sessionId = `chatbot:${userContext.senderId || userContext.chatId || 'default'}`;
+    const aiResult = await callAI(sessionId, [{ role: 'user', content: prompt }]);
+    if (!aiResult.success || !aiResult.text) {
+      throw new Error(aiResult.error || 'No response from AI provider manager');
     }
     
     // Clean up the response
-    let cleanedResponse = result.trim()
+    let cleanedResponse = aiResult.text.trim()
       // Replace emoji names with actual emojis
       .replace(/winks/g, '😉')
       .replace(/eye roll/g, '🙄')
