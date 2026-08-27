@@ -137,6 +137,11 @@ const commandRegistry = {
     category: 'Group',
     adminOnly: true
   },
+  halloffame: {
+    description: 'Show the dynamic Hall of Fame ranking from the web API',
+    usage: 'halloffame',
+    category: 'Group'
+  },
   listgroup: {
     description: 'List all groups the bot is in',
     usage: 'listgroup',

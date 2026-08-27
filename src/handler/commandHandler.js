@@ -77,6 +77,7 @@ const { handleChatbotCommand } = require('./command/chatBot');
 const { addFame, showFame, showStats, deleteFame, listFame } = require('./command/hallOfFame');
 const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
+const { sendHallOfFameMessage } = require('../utils/web');
 //const { handleCallCommand } = require('./command/call');
 const handleTourCommand = require('../tournament/tournament');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
@@ -411,6 +412,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'hall':
         await addFame(sock, msg, from, senderId, args, prefix);
+        break;
+      case 'halloffame':
+      case 'halloffmae':
+        await sendHallOfFameMessage(sock, from);
         break;
       case 'contender':
         // Restrict to specific bot user ID: 2348051891310

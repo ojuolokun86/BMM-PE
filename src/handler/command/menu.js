@@ -77,6 +77,7 @@ const getMainMenu = (
 > 👻 listinactive → View inactive members
 > 💥 destroy → Destroy the group
 > 🏆 hall → Add user to Hall of Fame
+> 🏆 halloffame → Dynamic Hall of Fame ranking
 > 🏆 fame → Hall of Fame
 > 🏆 list → List Hall of Fame entries
 > 🏆 rm → Remove user from Hall of Fame

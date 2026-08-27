@@ -16,6 +16,146 @@ const CONFIG = {
 
 // Store processed contenders in memory (for duplicate prevention)
 const processedContenders = new Set();
+const processedHallOfFameMessages = new Set();
+const HALL_OF_FAME_API_URL = 'https://dyn-server.fly.dev/api/bot/hall-of-fame';
+
+/**
+ * Fetch Hall of Fame ranking from backend API
+ */
+async function fetchHallOfFameRanking() {
+  try {
+    console.log('🏆 [HALL OF FAME] Fetching rankings...');
+    const response = await axios.get(HALL_OF_FAME_API_URL, {
+      timeout: 15000
+    });
+
+    if (!response?.data || response.data.success !== true) {
+      console.warn('⚠️ [HALL OF FAME] API returned unsuccessful response');
+      return { success: false, data: [] };
+    }
+
+    return {
+      success: true,
+      data: Array.isArray(response.data.data) ? response.data.data : []
+    };
+  } catch (error) {
+    const status = error?.response?.status;
+    const message = error?.message || 'Request failed';
+    console.error('❌ [HALL OF FAME] API error:', status || 'network', message);
+    return { success: false, data: [] };
+  }
+}
+
+function sortHallOfFameUsers(users = []) {
+  return [...users].sort((a, b) => {
+    const trophyDiff = Number(b?.trophies ?? 0) - Number(a?.trophies ?? 0);
+    if (trophyDiff !== 0) return trophyDiff;
+    return Number(a?.rank ?? Number.MAX_SAFE_INTEGER) - Number(b?.rank ?? Number.MAX_SAFE_INTEGER);
+  });
+}
+
+function buildHallOfFameUserText(user, position) {
+  const name = String(user?.name || 'Unknown').trim();
+  const trophies = Number(user?.trophies ?? 0);
+  const awards = Array.isArray(user?.awards) ? user.awards : [];
+  const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '🏅';
+
+  let text = `${medal} *${name}*\n🏆 Trophies: ${trophies}`;
+
+  if (awards.length > 0) {
+    text += '\n\n🏅 Awards won:';
+    for (const award of awards) {
+      const awardName = award?.award || 'Award';
+      const season = award?.season || 'Season';
+      text += `\n• ${awardName} - ${season}`;
+    }
+  }
+
+  return text;
+}
+
+function buildHallOfFameText(users = []) {
+  if (!users.length) {
+    return '👑 No Hall of Fame winners yet.';
+  }
+
+  const sortedUsers = sortHallOfFameUsers(users);
+  let message = '🏆 *DYNAMIC EFOOTBALL COMMUNITY*\n';
+  message += '👑 *HALL OF FAME RANKING*\n\n';
+
+  sortedUsers.forEach((user, index) => {
+    const position = index + 1;
+    message += `${buildHallOfFameUserText(user, position)}\n\n`;
+  });
+
+  return message.trim();
+}
+
+async function sendHallOfFameMessage(sock, chatId) {
+  try {
+    const result = await fetchHallOfFameRanking();
+
+    if (!result.success) {
+      await sock.sendMessage(chatId, {
+        text: '⚠️ Hall of Fame is temporarily unavailable. Please try again later.'
+      });
+      return { success: false, status: 'error' };
+    }
+
+    const users = sortHallOfFameUsers(result.data);
+
+    if (!users.length) {
+      await sock.sendMessage(chatId, {
+        text: '👑 No Hall of Fame winners yet.'
+      });
+      return { success: true, status: 'empty' };
+    }
+
+    const dedupeKey = `${chatId}:${users.map(user => `${user.name}:${user.trophies}:${user.rank || 0}`).join('|')}`;
+    if (processedHallOfFameMessages.has(dedupeKey)) {
+      return { success: false, status: 'duplicate' };
+    }
+
+    processedHallOfFameMessages.add(dedupeKey);
+    setTimeout(() => {
+      processedHallOfFameMessages.delete(dedupeKey);
+    }, 60_000);
+
+    const textMessage = buildHallOfFameText(users);
+    await sock.sendMessage(chatId, { text: textMessage });
+
+    for (const [index, user] of users.entries()) {
+      if (!user?.picture || typeof sock?.sendMessage !== 'function') {
+        continue;
+      }
+
+      try {
+        const imageResponse = await axios.get(user.picture, {
+          responseType: 'arraybuffer',
+          timeout: 10000
+        });
+
+        const imageBuffer = Buffer.from(imageResponse.data);
+        const caption = buildHallOfFameUserText(user, index + 1);
+
+        await sock.sendMessage(chatId, {
+          image: imageBuffer,
+          caption
+        });
+      } catch (imageError) {
+        console.error('❌ [HALL OF FAME] profile image error:', imageError?.message || 'Image fetch failed');
+      }
+    }
+
+    return { success: true, status: 'sent', count: users.length };
+  } catch (error) {
+    console.error('❌ [HALL OF FAME] send error:', error?.message || 'Unknown error');
+    await sock.sendMessage(chatId, {
+      text: '⚠️ Hall of Fame is temporarily unavailable. Please try again later.'
+    });
+    return { success: false, status: 'error' };
+  }
+}
 
 /**
  * Fetch new contenders from backend API
