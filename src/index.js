@@ -162,7 +162,6 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     Browsers,
     jidDecode,
     fetchLatestBaileysVersion,
-    version,
   } = baileys;
   await bootSequence();
 
@@ -185,12 +184,11 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     }
 
     const { state, saveCreds } = await useSQLiteAuthState(authId, phoneNumber);
-
+    const version = await fetchLatestBaileysVersion();
     let qrShown = false;
     let pairingRequested = false;
     const msgRetryCounterCache = new NodeCache()
     sock = makeWASocket({
-      version: version,
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
       logger: pino({
