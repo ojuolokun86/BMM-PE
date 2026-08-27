@@ -157,9 +157,10 @@ async function congratulateCommand(sock, msg, chatId, sender, args, prefix) {
       });
     }
 
-    const warningText = `⚠️ HALL OF FAME CHECK\n\n@${userJid.split('@')[0]} currently has ${totalTrophies} trophies recorded in the Hall of Fame, but I couldn't find a new Hall of Fame entry for today.\n\n🏟️ League: ${normalizedLeague}\n⚽ Team: ${normalizedTeam}\n\nPlease update the Hall of Fame first.\n\nReply *continue* to proceed with the congratulations anyway.`;
+    const adminDmJid = sender.includes('@') ? sender : `${sender}@s.whatsapp.net`;
+    const warningText = `⚠️ HALL OF FAME CHECK\n\n@${userJid.split('@')[0]} currently has ${totalTrophies} trophies recorded in the Hall of Fame, but I couldn't find a new Hall of Fame entry for today.\n\n🏟️ League: ${normalizedLeague}\n⚽ Team: ${normalizedTeam}\n\nPlease update the Hall of Fame first.\n\nReply *continue* in this DM to proceed with the congratulations anyway.\n\n_Only the admin who started this command can reply._`;
 
-    const sent = await sock.sendMessage(chatId, {
+    const sent = await sock.sendMessage(adminDmJid, {
       text: warningText,
       mentions: [userJid]
     });
@@ -176,13 +177,13 @@ async function congratulateCommand(sock, msg, chatId, sender, args, prefix) {
         const context = reply.message?.extendedTextMessage?.contextInfo;
         const isReply = context?.stanzaId === menuMsgId;
 
-        if (replyFrom !== chatId || replySender !== sender || !isReply) return;
+        if (replyFrom !== adminDmJid || replySender !== sender || !isReply) return;
 
         const body = reply.message?.conversation || reply.message?.extendedTextMessage?.text || '';
         const normalizedReply = body.trim().toLowerCase();
 
         if (normalizedReply !== 'continue') {
-          await sock.sendMessage(chatId, {
+          await sock.sendMessage(adminDmJid, {
             text: '❌ Override cancelled. No congratulations sent.'
           });
           sock.ev.off('messages.upsert', listener);

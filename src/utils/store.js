@@ -1,9 +1,25 @@
 const fs = require('fs')
 const path = require('path')
+const { saveChatbotMessages, mergeChatbotHistory, mergeChatbotMemory } = require('../database/database')
 const STORE_FILE = path.join(process.cwd(), 'data', 'store.json')
 
-// Config: keep last 20 messages per chat (configurable) - More aggressive for lower RAM
-let MAX_MESSAGES = 20
+// This cache supports Baileys getMessage; SQLite is the durable chatbot history.
+const MAX_MESSAGES = 120
+
+function messageTimestamp(message) {
+    const timestamp = message?.messageTimestamp
+    return typeof timestamp === 'object'
+        ? Number(timestamp.low || timestamp.value || 0)
+        : Number(timestamp || 0)
+}
+
+function messageText(message) {
+    return message?.message?.conversation
+        || message?.message?.extendedTextMessage?.text
+        || message?.message?.imageMessage?.caption
+        || message?.message?.videoMessage?.caption
+        || ''
+}
 
 // Try to read config from settings
 // try {
@@ -19,6 +35,33 @@ const store = {
     messages: {},
     contacts: {},
     chats: {},
+    jidAliases: new Map(),
+
+    normalizeJid(jid) {
+        let current = jid
+        const visited = new Set()
+        while (current && this.jidAliases.has(current) && !visited.has(current)) {
+            visited.add(current)
+            current = this.jidAliases.get(current)
+        }
+        return current
+    },
+
+    registerJidMapping({ lid, pn } = {}) {
+        if (!lid || !pn) return
+        const existingLidMessages = this.messages[lid]
+        if (existingLidMessages?.length) {
+            this.addMessages(existingLidMessages.map(message => ({
+                ...message,
+                key: { ...message.key, remoteJid: pn }
+            })))
+        }
+        delete this.messages[lid]
+        mergeChatbotHistory(lid, pn)
+        mergeChatbotMemory(lid, pn)
+        this.jidAliases.set(lid, pn)
+        this.jidAliases.set(pn, pn)
+    },
 
     readFromFile(filePath = STORE_FILE) {
         try {
@@ -33,8 +76,6 @@ const store = {
                 this.contacts = data.contacts || {}
                 this.chats = data.chats || {}
                 this.messages = {}
-                
-                // Clean up any existing data to match new format
                 this.cleanupData()
             }
         } catch (e) {
@@ -69,6 +110,33 @@ const store = {
         }
     },
 
+    addMessages(messages, { decodeJid } = {}) {
+        const normalize = (jid) => this.normalizeJid(typeof decodeJid === 'function' ? decodeJid(jid) : jid)
+        const historyRows = []
+        for (const msg of messages || []) {
+            const rawJid = msg?.key?.remoteJid
+            if (!rawJid || rawJid === 'status@broadcast') continue
+            const jid = normalize(rawJid)
+            const text = messageText(msg)
+            if (text.trim() && !jid.endsWith('@g.us')) {
+                historyRows.push({
+                    chatId: jid,
+                    messageId: msg.key.id,
+                    role: msg.key.fromMe ? 'assistant' : 'user',
+                    content: text,
+                    timestamp: messageTimestamp(msg)
+                })
+            }
+            const chatMessages = this.messages[jid] || []
+            if (!chatMessages.some(existing => existing.key?.id === msg.key.id)) {
+                chatMessages.push(msg)
+            }
+            chatMessages.sort((left, right) => messageTimestamp(left) - messageTimestamp(right))
+            this.messages[jid] = chatMessages.slice(-MAX_MESSAGES)
+        }
+        if (historyRows.length) saveChatbotMessages(historyRows)
+    },
+
     bind(ev, { decodeJid } = {}) {
         const normalize = (jid) => {
             if (!jid) return jid
@@ -78,7 +146,7 @@ const store = {
         ev.on('messages.upsert', ({ messages }) => {
             messages.forEach(msg => {
                 if (!msg.key?.remoteJid) return
-                const jid = msg.key.remoteJid
+                const jid = normalize(msg.key.remoteJid)
                 if (jid === 'status@broadcast') return
 
                 if (!msg.key.fromMe) {
@@ -95,16 +163,23 @@ const store = {
                         }
                     }
                 }
-                this.messages[jid] = this.messages[jid] || []
-
-                // push new message
-                this.messages[jid].push(msg)
-
-                // trim old ones
-                if (this.messages[jid].length > MAX_MESSAGES) {
-                    this.messages[jid] = this.messages[jid].slice(-MAX_MESSAGES)
-                }
+                this.addMessages([msg], { decodeJid })
             })
+        })
+
+        ev.on('messaging-history.set', ({ messages, chats, contacts }) => {
+            this.addMessages(messages, { decodeJid })
+            ;(chats || []).forEach(chat => {
+                const id = normalize(chat.id)
+                if (id) this.chats[id] = { id, subject: chat.subject || '' }
+            })
+            ;(contacts || []).forEach(contact => {
+                if (contact.id) this.contacts[normalize(contact.id)] = contact
+            })
+        })
+
+        ev.on('lid-mapping.update', (mapping) => {
+            this.registerJidMapping(mapping)
         })
 
         ev.on('contacts.update', (contacts) => {
@@ -130,7 +205,13 @@ const store = {
     },
 
     async loadMessage(jid, id) {
-        return this.messages[jid]?.find(m => m.key.id === id) || null
+        const canonicalJid = this.normalizeJid(jid)
+        return this.messages[canonicalJid]?.find(m => m.key.id === id) || null
+    },
+
+    async loadMessages(jid, count = 30) {
+        const canonicalJid = this.normalizeJid(jid)
+        return (this.messages[canonicalJid] || []).slice(-Math.max(0, count))
     },
 
     // Get store statistics

@@ -161,7 +161,8 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     DisconnectReason,
     Browsers,
     jidDecode,
-    fetchLatestBaileysVersion
+    fetchLatestBaileysVersion,
+    version,
   } = baileys;
   await bootSequence();
 
@@ -184,12 +185,12 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
     }
 
     const { state, saveCreds } = await useSQLiteAuthState(authId, phoneNumber);
-    const {version} = await fetchLatestBaileysVersion()
+
     let qrShown = false;
     let pairingRequested = false;
     const msgRetryCounterCache = new NodeCache()
     sock = makeWASocket({
-      version: [2,3000,1038162681],
+      version: version,
       auth: state,
       browser: Browsers.ubuntu('Chrome'),
       logger: pino({
@@ -215,7 +216,7 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
         const msg = await store.loadMessage(key.remoteJid, key.id)
         return msg?.message || undefined
       },
-      syncFullHistory: false,
+      syncFullHistory: true,
       groupMetadataCache: key => groupCache.get(key),
       groupMetadataCacheSet: (key, value) => groupCache.set(key, value),
       msgRetryCounterCache
@@ -369,10 +370,6 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
 
       handleIncomingMessage({ authId, sock, msg, phoneNumber });
     });
-
-    sock.ev.on('lid-mapping.update', (update) => {
-      //console.log('🔁 New LID ↔ PN mapping:', update)
-    })
 
     // Handle incoming calls
     // sock.ev.on('call', async ({ call }) => {

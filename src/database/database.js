@@ -20,6 +20,30 @@ db.prepare(`
   )
 `).run();
 
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS chatbot_memory (
+    user_id TEXT PRIMARY KEY,
+    memory_json TEXT NOT NULL DEFAULT '{}',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS chatbot_history (
+    chat_id TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    message_timestamp INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (chat_id, message_id)
+  )
+`).run();
+db.prepare(`
+  CREATE INDEX IF NOT EXISTS idx_chatbot_history_chat_time
+  ON chatbot_history (chat_id, message_timestamp)
+`).run();
+
 // Add chatbot_enabled column to existing users table if it doesn't exist
 try {
   db.prepare(`ALTER TABLE users ADD COLUMN chatbot_enabled INTEGER DEFAULT 0`).run();
@@ -346,22 +370,132 @@ function setReactToCommand(user_id, enabled) {
   db.prepare(`UPDATE users SET react_to_command = ? WHERE user_id = ?`).run(enabled ? 1 : 0, user_id);
 }
 
-function isChatbotEnabled(user_id) {
-  const row = db.prepare(`SELECT chatbot_enabled FROM users WHERE user_id = ?`).get(user_id);
-  return row?.chatbot_enabled === 1;
-}
-
-function setChatbotEnabled(user_id, enabled) {
-  db.prepare(`UPDATE users SET chatbot_enabled = ? WHERE user_id = ?`).run(enabled ? 1 : 0, user_id);
-}
-
-function recordBotActivity({ user, bot, action }) {
-  if (!user || !bot || !action) {
-    throw new Error('Missing required parameters for recordBotActivity');
+function getChatbotMemory(user_id) {
+  const row = db.prepare(`SELECT memory_json FROM chatbot_memory WHERE user_id = ?`).get(user_id);
+  if (!row) return {};
+  try {
+    return JSON.parse(row.memory_json) || {};
+  } catch (error) {
+    return {};
   }
-  db.prepare(
-    'INSERT INTO bot_activity (user, bot, action, time) VALUES (?, ?, ?, ?)'
-  ).run(user, bot, action, Date.now());
+}
+
+function setChatbotMemory(user_id, memory) {
+  db.prepare(`
+    INSERT INTO chatbot_memory (user_id, memory_json, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user_id) DO UPDATE SET
+      memory_json = excluded.memory_json,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(user_id, JSON.stringify(memory || {}));
+}
+
+function mergeChatbotMemory(fromUserId, toUserId) {
+  if (!fromUserId || !toUserId || fromUserId === toUserId) return;
+  const source = getChatbotMemory(fromUserId);
+  const target = getChatbotMemory(toUserId);
+  const merged = { ...target };
+
+  for (const [key, value] of Object.entries(source)) {
+    if (Array.isArray(value)) {
+      const existing = Array.isArray(merged[key]) ? merged[key] : [];
+      merged[key] = [...new Set([...existing, ...value].filter(item => item !== undefined && item !== null && item !== ''))];
+    } else if (value && typeof value === 'object') {
+      merged[key] = { ...(value || {}), ...(merged[key] || {}) };
+    } else if ((merged[key] === undefined || merged[key] === null || merged[key] === '') && value !== undefined && value !== null && value !== '') {
+      merged[key] = value;
+    }
+  }
+
+  if (Object.keys(merged).length || Object.keys(source).length || Object.keys(target).length) {
+    setChatbotMemory(toUserId, merged);
+  }
+  db.prepare(`DELETE FROM chatbot_memory WHERE user_id = ?`).run(fromUserId);
+}
+
+function saveChatbotMessages(messages, maxPerChat = Number(process.env.CHATBOT_HISTORY_LIMIT) || 5000) {
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO chatbot_history
+      (chat_id, message_id, role, content, message_timestamp)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  const prune = db.prepare(`
+    DELETE FROM chatbot_history
+    WHERE chat_id = ? AND rowid NOT IN (
+      SELECT rowid FROM chatbot_history
+      WHERE chat_id = ?
+      ORDER BY message_timestamp DESC, rowid DESC
+      LIMIT ?
+    )
+  `);
+  const saveBatch = db.transaction((rows) => {
+    const chats = new Set();
+    for (const row of rows || []) {
+      if (!row?.chatId || !row.messageId || !row.content?.trim()) continue;
+      insert.run(row.chatId, row.messageId, row.role === 'assistant' ? 'assistant' : 'user', row.content.trim().slice(0, 4000), Number(row.timestamp) || 0);
+      chats.add(row.chatId);
+    }
+    for (const chatId of chats) prune.run(chatId, chatId, maxPerChat);
+  });
+  saveBatch(messages);
+}
+
+function getChatbotHistory(chatId, limit = 30) {
+  return db.prepare(`
+    SELECT rowid AS row_id, message_id AS id, role, content, message_timestamp AS timestamp
+    FROM chatbot_history
+    WHERE chat_id = ?
+    ORDER BY rowid DESC
+    LIMIT ?
+  `).all(chatId, Math.max(0, Math.min(5000, limit))).reverse();
+}
+
+function searchChatbotHistory(chatId, terms, limit = 30) {
+  const usableTerms = [...new Set((terms || []).filter(term => /^[\w'-]{3,}$/u.test(term)))].slice(0, 12);
+  if (!usableTerms.length) return [];
+  const clauses = usableTerms.map(() => 'content LIKE ?').join(' OR ');
+  return db.prepare(`
+    SELECT rowid AS row_id, message_id AS id, role, content, message_timestamp AS timestamp
+    FROM chatbot_history
+    WHERE chat_id = ? AND (${clauses})
+    ORDER BY rowid DESC
+    LIMIT ?
+  `).all(chatId, ...usableTerms.map(term => `%${term}%`), Math.max(0, Math.min(200, limit)));
+}
+
+function getChatbotHistoryWindow(chatId, timestamp, radius = 5) {
+  const before = db.prepare(`
+    SELECT rowid AS row_id, message_id AS id, role, content, message_timestamp AS timestamp
+    FROM chatbot_history
+    WHERE chat_id = ? AND rowid <= ?
+    ORDER BY rowid DESC
+    LIMIT ?
+  `);
+  const after = db.prepare(`
+    SELECT rowid AS row_id, message_id AS id, role, content, message_timestamp AS timestamp
+    FROM chatbot_history
+    WHERE chat_id = ? AND rowid > ?
+    ORDER BY rowid ASC
+    LIMIT ?
+  `);
+  const target = Number(timestamp);
+  const beforeRows = before.all(chatId, target, Math.max(1, radius));
+  const afterRows = after.all(chatId, target, Math.max(1, radius));
+  return [...beforeRows, ...afterRows].sort((left, right) => Number(left.row_id) - Number(right.row_id));
+}
+
+function mergeChatbotHistory(fromChatId, toChatId) {
+  if (!fromChatId || !toChatId || fromChatId === toChatId) return;
+  const merge = db.transaction(() => {
+    db.prepare(`
+      INSERT OR IGNORE INTO chatbot_history
+        (chat_id, message_id, role, content, message_timestamp)
+      SELECT ?, message_id, role, content, message_timestamp
+      FROM chatbot_history WHERE chat_id = ?
+    `).run(toChatId, fromChatId);
+    db.prepare(`DELETE FROM chatbot_history WHERE chat_id = ?`).run(fromChatId);
+  });
+  merge();
 }
 
 // Update adventure games table to use only playerId
@@ -550,6 +684,14 @@ module.exports = {
   setReactToCommand,
   isChatbotEnabled,
   setChatbotEnabled,
+  getChatbotMemory,
+  setChatbotMemory,
+  mergeChatbotMemory,
+  saveChatbotMessages,
+  getChatbotHistory,
+  searchChatbotHistory,
+  getChatbotHistoryWindow,
+  mergeChatbotHistory,
   recordBotActivity,
   
   // Sudo management
