@@ -16,6 +16,8 @@ db.prepare(`
     react_to_command INTEGER DEFAULT 0, -- 0: off, 1: on
     followed_teams TEXT DEFAULT '[]',
     chatbot_enabled INTEGER DEFAULT 0, -- 0: off, 1: on
+    auto_accept_requests INTEGER DEFAULT 0, -- 0: off, 1: on
+    auto_reject_requests INTEGER DEFAULT 0, -- 0: off, 1: on
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
@@ -138,6 +140,14 @@ try {
 
 try {
   db.prepare("ALTER TABLE users ADD COLUMN react_to_command INTEGER DEFAULT 0;").run();
+} catch (e) {}
+
+try {
+  db.prepare("ALTER TABLE users ADD COLUMN auto_accept_requests INTEGER DEFAULT 0;").run();
+} catch (e) {}
+
+try {
+  db.prepare("ALTER TABLE users ADD COLUMN auto_reject_requests INTEGER DEFAULT 0;").run();
 } catch (e) {}
 
 // Add show_fame column to welcome_settings table
@@ -545,6 +555,35 @@ function setChatbotEnabled(user_id, enabled) {
   `).run(user_id, enabled ? 1 : 0);
 }
 
+function getJoinRequestSettings(user_id) {
+  if (!user_id) return { accept: false, reject: false };
+
+  const row = db.prepare(`
+    SELECT auto_accept_requests, auto_reject_requests
+    FROM users WHERE user_id = ?
+  `).get(user_id);
+
+  return {
+    accept: row?.auto_accept_requests === 1,
+    reject: row?.auto_reject_requests === 1
+  };
+}
+
+function setJoinRequestSetting(user_id, setting, enabled) {
+  if (!user_id || !['accept', 'reject'].includes(setting)) return false;
+
+  const column = setting === 'accept' ? 'auto_accept_requests' : 'auto_reject_requests';
+  const otherColumn = setting === 'accept' ? 'auto_reject_requests' : 'auto_accept_requests';
+  db.prepare(`
+    INSERT INTO users (user_id, ${column}, ${otherColumn}) VALUES (?, ?, 0)
+    ON CONFLICT(user_id) DO UPDATE SET
+      ${column} = excluded.${column},
+      ${otherColumn} = CASE WHEN excluded.${column} = 1 THEN 0 ELSE users.${otherColumn} END
+  `).run(user_id, enabled ? 1 : 0);
+
+  return true;
+}
+
 // 🏆 Contender Groups Management Functions
 function setContenderGroup(groupId, groupName, enabled = true) {
   db.prepare(`
@@ -684,6 +723,8 @@ module.exports = {
   setReactToCommand,
   isChatbotEnabled,
   setChatbotEnabled,
+  getJoinRequestSettings,
+  setJoinRequestSetting,
   getChatbotMemory,
   setChatbotMemory,
   mergeChatbotMemory,

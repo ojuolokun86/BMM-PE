@@ -3,3 +3,4 @@ package-lock.json
 src/database/sessions.db
 data/
 .env
+src/database/sessions.db-journal

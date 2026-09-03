@@ -76,6 +76,8 @@ const getMainMenu = (
 > 🖼️ group pic → Reply to image to set group picture
 > 👻 listinactive → View inactive members
 > 💥 destroy → Destroy the group
+> ✅ accept on/off → Automatically approve join requests
+> ❌ reject on/off → Automatically reject join requests
 > 🏆 hall → Add user to Hall of Fame
 > 🏆 congratulate → Celebrate a new trophy win
 > 🏆 halloffame → Dynamic Hall of Fame ranking

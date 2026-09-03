@@ -395,6 +395,15 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
       }
     });
 
+    sock.ev.on('group.join-request', async (update) => {
+      try {
+        const { handleJoinRequest } = require('./handler/command/joinRequestAutomation');
+        await handleJoinRequest(sock, update);
+      } catch (err) {
+        console.error('Error in join request handler:', err);
+      }
+    });
+
     // Send online message to owner
     // if (restartType === 'manual') {
     //   await sendRestartMessage(sock, phoneNumber, { type: 'initial', additionalInfo: `Bot started successfully on ${phoneNumber}.` });

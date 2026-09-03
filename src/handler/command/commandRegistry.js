@@ -67,6 +67,18 @@ const commandRegistry = {
     category: 'Core',
     aliases: ['h', 'ajuda']
   },
+  accept: {
+    description: 'Automatically approve join requests',
+    usage: 'accept [on|off]',
+    category: 'Group',
+    adminOnly: true
+  },
+  reject: {
+    description: 'Automatically reject join requests',
+    usage: 'reject [on|off]',
+    category: 'Group',
+    adminOnly: true
+  },
   menu: {
     description: 'Display system menu',
     usage: 'menu',

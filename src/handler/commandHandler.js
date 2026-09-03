@@ -79,6 +79,7 @@ const { congratulateCommand } = require('./command/congratulate');
 const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
 const { sendHallOfFameMessage } = require('../utils/web');
+const { handleJoinRequestCommand } = require('./command/joinRequestAutomation');
 //const { handleCallCommand } = require('./command/call');
 const handleTourCommand = require('../tournament/tournament');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
@@ -287,6 +288,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'rejectall':
         await rejectAllRequests(sock, msg, phoneNumber);
+        break;
+      case 'accept':
+      case 'reject':
+        await handleJoinRequestCommand(sock, msg, [command, ...args], phoneNumber);
         break;
       case 'lockinfo':
         await lockGroupInfo(sock, msg, phoneNumber);
