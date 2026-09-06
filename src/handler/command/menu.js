@@ -79,7 +79,6 @@ const getMainMenu = (
 > ✅ accept on/off → Automatically approve join requests
 > ❌ reject on/off → Automatically reject join requests
 > 🏆 hall → Add user to Hall of Fame
-> 🏆 congratulate → Celebrate a new trophy win
 > 🏆 halloffame → Dynamic Hall of Fame ranking
 > 🏆 fame → Hall of Fame
 > 🏆 list → List Hall of Fame entries

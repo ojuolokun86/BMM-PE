@@ -1,5 +1,94 @@
 const supabase = require('../../supabaseClient')
 const { checkIfAdmin } = require('./kick')
+const { callAI } = require('../../utils/aiProviderManager')
+
+function getRankCategory(trophies) {
+  if (trophies >= 10) return { category: 'LEGEND', emoji: '👑', stars: '⭐⭐⭐⭐⭐⭐', nextTier: 'Already at the top!', needed: 0 }
+  if (trophies >= 7) return { category: 'CHAMPION', emoji: '🏆', stars: '⭐⭐⭐⭐⭐', nextTier: 'Legend', needed: 10 - trophies }
+  if (trophies >= 5) return { category: 'MASTER', emoji: '🥇', stars: '⭐⭐⭐⭐', nextTier: 'Champion', needed: 7 - trophies }
+  if (trophies >= 3) return { category: 'EXPERT', emoji: '🥈', stars: '⭐⭐⭐', nextTier: 'Master', needed: 5 - trophies }
+  if (trophies >= 2) return { category: 'RISING STAR', emoji: '🌟', stars: '⭐⭐', nextTier: 'Expert', needed: 3 - trophies }
+  if (trophies >= 1) return { category: 'ROOKIE', emoji: '🔰', stars: '⭐', nextTier: 'Rising Star', needed: 2 - trophies }
+  return { category: 'NEWCOMER', emoji: '🌱', stars: '', nextTier: 'Rookie', needed: 1 }
+}
+
+function getProgressionMessage(totalTrophies, rankInfo) {
+  if (totalTrophies === 1) return "🌟 Amazing start! You've earned your first trophy and are now a ROOKIE!\n🎯 Next goal: Earn 1 more trophy to become a Rising Star!"
+  if (totalTrophies === 2) return "🌟 Great progress! You're now a RISING STAR!\n🎯 Next goal: Earn 1 more trophy to become an EXPERT!"
+  if (totalTrophies === 3) return "⭐ Impressive! You've reached EXPERT level!\n🎯 Next goal: Earn 2 more trophies to become a MASTER!"
+  if (totalTrophies === 5) return "⭐⭐ Outstanding! You're now a MASTER!\n🎯 Next goal: Earn 2 more trophies to become a CHAMPION!"
+  if (totalTrophies === 7) return "⭐⭐⭐ Incredible! You've achieved CHAMPION status!\n🎯 Next goal: Earn 3 more trophies to become a LEGEND!"
+  if (totalTrophies >= 10) return "👑 LEGENDARY! You're a true LEGEND of this community!\n🏆 You've reached the pinnacle of success!"
+  return `🎯 Next goal: Earn ${rankInfo.needed} more trophy${rankInfo.needed > 1 ? 's' : ''} to become a ${rankInfo.nextTier}!`
+}
+
+let hallAnnouncementSequence = 0
+
+async function generateHallCongratulation(facts) {
+  hallAnnouncementSequence += 1
+  const compositionStyles = [
+    'Open with the achievement or match context, then weave in the rank and next target.',
+    'Open with the player mention and a vivid celebration, then reveal the milestone and progression naturally.',
+    'Open with the new rank or milestone, then connect the trophy achievement to the player journey.',
+    'Use a short sports-commentary style announcement with varied sentence lengths and a memorable closing.',
+    'Use a warm, classy community announcement that leads with the significance of the win rather than a generic congratulations.'
+  ]
+  const compositionStyle = compositionStyles[(hallAnnouncementSequence - 1) % compositionStyles.length]
+
+  const prompt = `Create only the congratulatory and progression section of an elegant Hall of Fame achievement announcement for a competitive eFootball community. Return only WhatsApp-ready text, with no explanation, JSON, labels, or factual data table.
+
+Use the exact facts below to make the wording exciting, classy, natural and genuinely fresh. This is announcement variation ${hallAnnouncementSequence}; use this composition direction: ${compositionStyle}
+
+Two consecutive announcements may contain similar facts, but they must feel like independently written announcements, not rewrites of the same template. Vary the opening, sentence lengths, order of ideas, transitions, verbs, and closing. Do not use a fixed five-step structure such as congratulations, rank, totals, next tier, congratulations. Do not begin with the same type of sentence as the previous announcement.
+
+Never use or closely imitate these repetitive patterns: “Only X more trophies stand between you...”, “Keep the fire burning”, “your next triumph is within reach”, “you’re now...”, or “bringing your total to...”. Avoid generic template phrases such as “another trophy, another statement” and avoid repeating the same metaphor or sentence structure.
+
+Do not invent facts, alter numbers, round numbers, recalculate values, rename values, or change the player mention, community name, league, or team. Correctly reflect the current rank, rank emoji, stars, next tier, and exact number of trophies needed. Celebrate the milestone status naturally. Include a congratulatory closing.
+
+If the player is already LEGEND and nextTier is "Already at the top!", do not mention earning more trophies. Celebrate reaching the pinnacle instead.
+
+Exact facts:
+Player mention: ${facts.playerMention}
+Community name: ${facts.communityName}
+Achievement / normalized league: ${facts.league}
+Team: ${facts.team}
+Trophies in this entry: ${facts.entryTrophies}
+Total trophies in community: ${facts.communityTotalTrophies}
+Total trophies won by player: ${facts.totalTrophies}
+Current rank: ${facts.rank}
+Rank emoji: ${facts.rankEmoji}
+Rank stars: ${facts.stars || '(none)'}
+Next tier: ${facts.nextTier}
+Trophies needed for next tier: ${facts.needed}
+Milestone status: ${facts.milestoneStatus}
+
+The final text must preserve the supplied facts in its wording and be suitable for WhatsApp.`
+
+  try {
+    const result = await callAI(`hall-of-fame:${facts.playerMention}:${facts.league}:${facts.team}:${hallAnnouncementSequence}`, [{ role: 'user', content: prompt }])
+    if (result?.success && result.text?.trim()) return result.text.trim()
+  } catch (error) {
+    console.error('[HALL OF FAME] AI wording failed, using factual fallback:', error.message)
+  }
+
+  const fallbackProgression = getProgressionMessage(facts.totalTrophies, facts.rankInfo)
+  return [
+    `🎉 Congratulations ${facts.playerMention}!`,
+    `A brilliant achievement in ${facts.league} with ${facts.team}.`,
+    'Your consistency and determination continue to build an impressive legacy!',
+    fallbackProgression
+  ].join('\n\n')
+}
+
+function getMilestoneStatus(totalTrophies) {
+  if (totalTrophies === 1) return 'Reached the first trophy milestone and entered ROOKIE.'
+  if (totalTrophies === 2) return 'Reached the RISING STAR milestone.'
+  if (totalTrophies === 3) return 'Reached the EXPERT milestone.'
+  if (totalTrophies === 5) return 'Reached the MASTER milestone.'
+  if (totalTrophies === 7) return 'Reached the CHAMPION milestone.'
+  if (totalTrophies >= 10) return 'Reached the LEGEND milestone and the pinnacle rank.'
+  return `Currently progressing toward the ${getRankCategory(totalTrophies).nextTier} rank.`
+}
 
 async function getCommunityInfo(sock, groupJid) {
   try {
@@ -29,11 +118,11 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
         text: '❌ This command works only inside a *community group*.'
       })
     }
-    // if (!isAdmin) {
-    //   return sock.sendMessage(chatId, {
-    //     text: '❌ You must be an admin to use this command.'
-    //   })
-    // }
+    if (!isAdmin) {
+      return sock.sendMessage(chatId, {
+        text: '❌ You must be an admin to use this command.'
+      })
+    }
 
     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid
     if (!mentioned || mentioned.length === 0) {
@@ -56,35 +145,6 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
       })
     }
 
-    const { data: leagueEntries = [], error: leagueEntriesError } = await supabase
-      .from('hall_of_fame')
-      .select('*')
-      .eq('community_jid', community.communityJid)
-      .eq('user_jid', userJid)
-      .eq('league', league)
-      .order('team', { ascending: true })
-
-    if (leagueEntriesError) {
-      throw leagueEntriesError
-    }
-
-    const sameTeamAlreadyExists = leagueEntries.some(entry =>
-      String(entry.team || '').trim().toLowerCase() === String(team || '').trim().toLowerCase()
-    )
-
-    if (leagueEntries.length > 0 && !sameTeamAlreadyExists) {
-      const historyMessage = formatHallOfFameHistoryMessage({
-        userJid,
-        league,
-        previousEntries: leagueEntries,
-        newTeam: team
-      })
-      await sock.sendMessage(chatId, {
-        text: historyMessage,
-        mentions: [userJid]
-      })
-    }
-
     // Step 1: Check if exact same user + league + team exists
     const { data: existing, error: existingError } = await supabase
       .from('hall_of_fame')
@@ -101,7 +161,7 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
 
     let newTrophyCount = 1
     if (existing) {
-      newTrophyCount = existing.trophies + 1
+      newTrophyCount = Number(existing.trophies || 0) + 1
       const { error: updateError } = await supabase
         .from('hall_of_fame')
         .update({ trophies: newTrophyCount })
@@ -126,76 +186,49 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
     }
 
     // Get user's total trophies in this community
-    const { data: userAllTrophies } = await supabase
+    const { data: userAllTrophies, error: userTrophiesError } = await supabase
       .from('hall_of_fame')
       .select('trophies')
       .eq('community_jid', community.communityJid)
       .eq('user_jid', userJid)
 
-    const totalTrophies = userAllTrophies?.reduce((sum, record) => sum + record.trophies, 0) || 0
+    if (userTrophiesError) {
+      throw userTrophiesError
+    }
+
+    const totalTrophies = userAllTrophies?.reduce((sum, record) => sum + Number(record.trophies || 0), 0) || 0
 
     // Get total trophies in this community (all users)
-    const { data: communityAllTrophies } = await supabase
+    const { data: communityAllTrophies, error: communityTrophiesError } = await supabase
       .from('hall_of_fame')
       .select('trophies')
       .eq('community_jid', community.communityJid)
 
-    const communityTotalTrophies = communityAllTrophies?.reduce((sum, record) => sum + record.trophies, 0) || 0
-
-    // Get user's total trophies across ALL communities
-    const userGlobalTrophies = await supabase
-      .from('hall_of_fame')
-      .select('trophies')
-      .eq('user_jid', userJid)
-      .then(({ data }) => data?.reduce((sum, record) => sum + record.trophies, 0) || 0)
-
-    // Get user's rank category
-    function getRankCategory(trophies) {
-      if (trophies >= 10) return { category: 'LEGEND', emoji: '👑', stars: '⭐⭐⭐⭐⭐⭐', nextTier: 'Already at the top!' }
-      if (trophies >= 7) return { category: 'CHAMPION', emoji: '🏆', stars: '⭐⭐⭐⭐⭐', nextTier: 'Legend (10 trophies)', needed: 10 - trophies }
-      if (trophies >= 5) return { category: 'MASTER', emoji: '🥇', stars: '⭐⭐⭐⭐', nextTier: 'Champion (7 trophies)', needed: 7 - trophies }
-      if (trophies >= 3) return { category: 'EXPERT', emoji: '🥈', stars: '⭐⭐⭐', nextTier: 'Master (5 trophies)', needed: 5 - trophies }
-      if (trophies >= 2) return { category: 'RISING STAR', emoji: '🌟', stars: '⭐⭐', nextTier: 'Expert (3 trophies)', needed: 3 - trophies }
-      if (trophies >= 1) return { category: 'ROOKIE', emoji: '🔰', stars: '⭐', nextTier: 'Rising Star (2 trophies)', needed: 2 - trophies }
-      return { category: 'NEWCOMER', emoji: '🌱', stars: '', nextTier: 'Rookie (1 trophy)', needed: 1 }
+    if (communityTrophiesError) {
+      throw communityTrophiesError
     }
+
+    const communityTotalTrophies = communityAllTrophies?.reduce((sum, record) => sum + Number(record.trophies || 0), 0) || 0
 
     const rankInfo = getRankCategory(totalTrophies)
-
-    // Create personalized message
-    let message = `🏆 *HALL OF FAME UPDATE*\n\n`
-    message += `🎉 Congratulations @${userJid.split('@')[0]}! 🎉\n\n`
-    message += `📝 You've been added to the *Hall of Fame* in **${community.communityName}** community!\n\n`
-    message += `🏟️ *Achievement:* ${normalizeLeague(league)}, *Team* ${team}\n`
-    message += `🏆 *Trophies in this entry:* ${newTrophyCount}\n`
-    message += `📊 *Total trophies in community:* ${communityTotalTrophies}\n`
-    message += `🏅 *Total trophies won by you:* ${totalTrophies}\n\n`
-    message += `${rankInfo.emoji} *Current Rank:* ${rankInfo.category} ${rankInfo.stars}\n\n`
-
-    if (totalTrophies === 1) {
-      message += `🌟 *Amazing start!* You've earned your first trophy and are now a **ROOKIE**!\n`
-      message += `🎯 *Next goal:* Earn 1 more trophy to become a **Rising Star**!`
-    } else if (totalTrophies === 2) {
-      message += `🌟 *Great progress!* You're now a **RISING STAR**!\n`
-      message += `🎯 *Next goal:* Earn 1 more trophy to become an **EXPERT**!`
-    } else if (totalTrophies === 3) {
-      message += `⭐ *Impressive!* You've reached **EXPERT** level!\n`
-      message += `🎯 *Next goal:* Earn 2 more trophies to become a **MASTER**!`
-    } else if (totalTrophies === 5) {
-      message += `⭐⭐ *Outstanding!* You're now a **MASTER**!\n`
-      message += `🎯 *Next goal:* Earn 2 more trophies to become a **CHAMPION**!`
-    } else if (totalTrophies === 7) {
-      message += `⭐⭐⭐ *Incredible!* You've achieved **CHAMPION** status!\n`
-      message += `🎯 *Next goal:* Earn 3 more trophies to become a **LEGEND**!`
-    } else if (totalTrophies >= 10) {
-      message += `👑 *LEGENDARY!* You're a true **LEGEND** of this community!\n`
-      message += `🏆 *You've reached the pinnacle of success!*`
-    } else {
-      message += `🎯 *Next goal:* Earn ${rankInfo.needed} more trophy${rankInfo.needed > 1 ? 's' : ''} to become a **${rankInfo.nextTier.split('(')[0].trim()}**!`
+    const facts = {
+      playerMention: `@${userJid.split('@')[0]}`,
+      communityName: community.communityName,
+      league: normalizeLeague(league),
+      team,
+      entryTrophies: newTrophyCount,
+      communityTotalTrophies,
+      totalTrophies,
+      rank: rankInfo.category,
+      rankEmoji: rankInfo.emoji,
+      stars: rankInfo.stars,
+      nextTier: rankInfo.nextTier,
+      needed: rankInfo.needed,
+      milestoneStatus: getMilestoneStatus(totalTrophies),
+      rankInfo
     }
-
-    message += `\n\n━━━━━━━━━━━━━━━━━━\n`
-    message += `🔥 Keep climbing the ranks! 🔥`
+    const aiMessage = await generateHallCongratulation(facts)
+    const message = `🏆 *HALL OF FAME UPDATE*\n\n${aiMessage}\n\n📝 You've been added to the *Hall of Fame* in *${facts.communityName}* community!\n\n🏟️ *Achievement:* ${facts.league}, *Team* ${facts.team}\n🏆 *Trophies in this entry:* ${facts.entryTrophies}\n📊 *Total trophies in community:* ${facts.communityTotalTrophies}\n🏅 *Total trophies won by you:* ${facts.totalTrophies}\n\n${facts.rankEmoji} *Current Rank:* ${facts.rank} ${facts.stars}\n\n━━━━━━━━━━━━━━━━━━\n🔥 Keep climbing the ranks! 🔥`
 
     await sock.sendMessage(chatId, {
       text: message,
@@ -207,25 +240,6 @@ async function addFame(sock, msg, chatId, sender, args, prefix) {
   }
 }
 
-
-function formatHallOfFameHistoryMessage({ userJid, league, previousEntries = [], newTeam }) {
-  const normalizedLeague = normalizeLeague(league)
-  const username = userJid ? `@${userJid.split('@')[0]}` : '@user'
-  const count = Array.isArray(previousEntries) ? previousEntries.length : 0
-  const description = count === 1 ? 'entry' : 'entries'
-
-  let text = `🏆 *HALL OF FAME HISTORY*\n\n`
-  text += `${username}, you already have *${count} ${description}* in the *${normalizedLeague}* Hall of Fame:\n\n`
-
-  previousEntries.forEach((entry, index) => {
-    const teamName = String(entry.team || 'Unknown Team').trim()
-    const trophies = Number(entry.trophies || 0)
-    text += `${index + 1}. ⚽ ${teamName} — 🏆 x${trophies}\n`
-  })
-
-  text += `\nYou are now adding another entry with:\n⚽ ${String(newTeam || 'Unknown Team').trim()}`
-  return text
-}
 
 // Helper to normalize league names
 function normalizeLeague(name) {
@@ -367,16 +381,6 @@ async function showStats(sock, chatId, returnText = false) {
     const sortedUsers = Object.values(userStats).sort(
       (a, b) => b.totalTrophies - a.totalTrophies
     )
-
-    function getRankCategory(trophies) {
-      if (trophies >= 10) return { category: 'LEGEND', emoji: '👑', stars: '⭐⭐⭐⭐⭐⭐' }
-      if (trophies >= 7) return { category: 'CHAMPION', emoji: '🏆', stars: '⭐⭐⭐⭐⭐' }
-      if (trophies >= 5) return { category: 'MASTER', emoji: '🥇', stars: '⭐⭐⭐⭐' }
-      if (trophies >= 3) return { category: 'EXPERT', emoji: '🥈', stars: '⭐⭐⭐' }
-      if (trophies >= 2) return { category: 'RISING STAR', emoji: '🌟', stars: '⭐⭐' }
-      if (trophies >= 1) return { category: 'ROOKIE', emoji: '🔰', stars: '⭐' }
-      return { category: 'NEWCOMER', emoji: '🌱', stars: '' }
-    }
 
     const totalTrophies = sortedUsers.reduce((sum, u) => sum + u.totalTrophies, 0)
 
@@ -656,6 +660,5 @@ module.exports = {
   showStats,
   deleteFame,
   listFame,
-  normalizeLeague,
-  formatHallOfFameHistoryMessage
+  normalizeLeague
 }

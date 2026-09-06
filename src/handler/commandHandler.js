@@ -75,7 +75,6 @@ const contactCommand = require('./command/contact');
 const broadcastCommand = require('./command/broadcast');
 const { handleChatbotCommand } = require('./command/chatBot');
 const { addFame, showFame, showStats, deleteFame, listFame } = require('./command/hallOfFame');
-const { congratulateCommand } = require('./command/congratulate');
 const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
 const { sendHallOfFameMessage } = require('../utils/web');
@@ -418,9 +417,6 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'hall':
         await addFame(sock, msg, from, senderId, args, prefix);
-        break;
-      case 'congratulate':
-        await congratulateCommand(sock, msg, from, senderId, args, prefix);
         break;
       case 'halloffame':
       case 'halloffmae':
