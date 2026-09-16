@@ -16,50 +16,55 @@ function formatUptime(totalSeconds) {
 }
 
 async function checkForUpdates() {
+  const currentVersion = `v${version}`;
+
   try {
-    // Fetch latest tags normally
-    try {
-      await execPromise('git fetch --tags');
-    } catch (fetchError) {
-      const errorText = `${fetchError.stderr || ''} ${fetchError.message || ''}`;
+    // Get tags directly from the remote without changing local tags.
+    const { stdout } = await execPromise(
+      'git ls-remote --tags --refs origin'
+    );
 
-      // If local VPS tags conflict with remote tags, force-sync them
-      if (
-        errorText.includes('would clobber existing tag') ||
-        errorText.includes('[rejected]') ||
-        errorText.includes('tag update rejected')
-      ) {
-        console.log('⚠️ Tag conflict detected. Force-syncing VPS tags with origin...');
+    const remoteVersions = stdout
+      .split('\n')
+      .map(line => {
+        const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+        return match ? match[1] : null;
+      })
+      .filter(Boolean);
 
-        await execPromise('git fetch --tags --force');
-
-        console.log('✅ VPS tags successfully synchronized with origin.');
-      } else {
-        throw fetchError;
-      }
+    if (!remoteVersions.length) {
+      throw new Error('No version tags found on remote');
     }
 
-    // Remote/latest version
-    const { stdout: latestTag } = await execPromise(
-      'git describe --tags --abbrev=0 origin/main'
-    );
-    const latestVersion = latestTag.trim();
+    // Compare semantic versions properly
+    remoteVersions.sort((a, b) => {
+      const av = a.slice(1).split('.').map(Number);
+      const bv = b.slice(1).split('.').map(Number);
 
-    // The running version comes from package.json
-    const currentVersion = `v${version}`;
+      for (let i = 0; i < 3; i++) {
+        if (av[i] !== bv[i]) {
+          return bv[i] - av[i];
+        }
+      }
+
+      return 0;
+    });
+
+    const latestVersion = remoteVersions[0];
 
     return {
       hasUpdate: latestVersion !== currentVersion,
       current: currentVersion,
       latest: latestVersion
     };
+
   } catch (error) {
     console.error('Error checking for updates:', error);
 
     return {
       hasUpdate: false,
-      current: `v${version}`,
-      latest: `v${version}`
+      current: currentVersion,
+      latest: currentVersion
     };
   }
 }
