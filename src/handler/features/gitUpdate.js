@@ -19,7 +19,10 @@ function getLocalVersion() {
 }
 
 async function installProductionDependencies() {
-  await run('npm install --omit=dev --no-audit --no-fund');
+  console.log('📦 Installing production dependencies...');
+  const output = await run('npm install --omit=dev --no-audit --no-fund');
+  const summary = output.split('\n').filter(Boolean).slice(-1)[0];
+  console.log(`✅ Production dependencies installed${summary ? `: ${summary}` : ''}`);
 }
 
 // Helper: Get commit messages between two commits
