@@ -19,45 +19,28 @@ async function checkForUpdates() {
   const currentVersion = `v${version}`;
 
   try {
-    // Get tags directly from the remote without changing local tags.
-    const { stdout } = await execPromise(
-      'git ls-remote --tags --refs origin'
+    await execPromise('git fetch origin main --quiet');
+
+    const { stdout: remotePackage } = await execPromise(
+      'git show origin/main:package.json'
     );
+    const latestVersion = `v${JSON.parse(remotePackage).version}`;
+    const currentParts = version.split('.').map(Number);
+    const latestParts = latestVersion.slice(1).split('.').map(Number);
+    let comparison = 0;
 
-    const remoteVersions = stdout
-      .split('\n')
-      .map(line => {
-        const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
-        return match ? match[1] : null;
-      })
-      .filter(Boolean);
-
-    if (!remoteVersions.length) {
-      throw new Error('No version tags found on remote');
+    for (let index = 0; index < 3; index++) {
+      if (latestParts[index] !== currentParts[index]) {
+        comparison = latestParts[index] > currentParts[index] ? 1 : -1;
+        break;
+      }
     }
 
-    // Compare semantic versions properly
-    remoteVersions.sort((a, b) => {
-      const av = a.slice(1).split('.').map(Number);
-      const bv = b.slice(1).split('.').map(Number);
-
-      for (let i = 0; i < 3; i++) {
-        if (av[i] !== bv[i]) {
-          return bv[i] - av[i];
-        }
-      }
-
-      return 0;
-    });
-
-    const latestVersion = remoteVersions[0];
-
     return {
-      hasUpdate: latestVersion !== currentVersion,
+      hasUpdate: comparison > 0,
       current: currentVersion,
       latest: latestVersion
     };
-
   } catch (error) {
     console.error('Error checking for updates:', error);
 
