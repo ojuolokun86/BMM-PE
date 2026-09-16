@@ -18,6 +18,10 @@ function getLocalVersion() {
   return pkg.version;
 }
 
+async function installProductionDependencies() {
+  await run('npm install --omit=dev --no-audit --no-fund');
+}
+
 // Helper: Get commit messages between two commits
 async function getChangelog(fromCommit, toCommit) {
   if (!fromCommit || !toCommit || fromCommit === toCommit) return [];
@@ -57,7 +61,7 @@ async function normalUpdate() {
   const fromCommit = await run('git rev-parse --short HEAD');
 
   await run('git pull origin main');
-  await run('npm install --production');
+  await installProductionDependencies();
 
   const toVersion = getLocalVersion();
   const toCommit = await run('git rev-parse --short HEAD');
@@ -83,7 +87,7 @@ async function forceUpdate() {
 
   await run('git fetch origin');
   await run('git reset --hard origin/main');
-  await run('npm install --production');
+  await installProductionDependencies();
 
   const toVersion = getLocalVersion();
   const toCommit = await run('git rev-parse --short HEAD');
