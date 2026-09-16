@@ -17,17 +17,37 @@ function formatUptime(totalSeconds) {
 
 async function checkForUpdates() {
   try {
-    // Fetch latest tags from remote
-    await execPromise('git fetch --tags');
-    
-    // Get latest tag
-    const { stdout: latestTag } = await execPromise('git describe --tags --abbrev=0 origin/main');
+    // Fetch latest tags normally
+    try {
+      await execPromise('git fetch --tags');
+    } catch (fetchError) {
+      const errorText = `${fetchError.stderr || ''} ${fetchError.message || ''}`;
+
+      // If local VPS tags conflict with remote tags, force-sync them
+      if (
+        errorText.includes('would clobber existing tag') ||
+        errorText.includes('[rejected]') ||
+        errorText.includes('tag update rejected')
+      ) {
+        console.log('⚠️ Tag conflict detected. Force-syncing VPS tags with origin...');
+
+        await execPromise('git fetch --tags --force');
+
+        console.log('✅ VPS tags successfully synchronized with origin.');
+      } else {
+        throw fetchError;
+      }
+    }
+
+    // Remote/latest version
+    const { stdout: latestTag } = await execPromise(
+      'git describe --tags --abbrev=0 origin/main'
+    );
     const latestVersion = latestTag.trim();
-    
-    // Get current tag
-    const { stdout: currentTag } = await execPromise('git describe --tags --abbrev=0');
-    const currentVersion = currentTag.trim();
-    
+
+    // The running version comes from package.json
+    const currentVersion = `v${version}`;
+
     return {
       hasUpdate: latestVersion !== currentVersion,
       current: currentVersion,
@@ -35,7 +55,12 @@ async function checkForUpdates() {
     };
   } catch (error) {
     console.error('Error checking for updates:', error);
-    return { hasUpdate: false, current: version, latest: version };
+
+    return {
+      hasUpdate: false,
+      current: `v${version}`,
+      latest: `v${version}`
+    };
   }
 }
 
