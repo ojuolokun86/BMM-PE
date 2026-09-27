@@ -38,6 +38,7 @@ const getMainMenu = (
 > 🔄 restart → Reboot system
 > 🚪 logout → Logout session
 > � react → React to commands
+> 🔄 restartmsg on/off → Toggle restart notification DMs (owner only)
 > � disk → Show storage & memory info
 > 📦 npm → Update Baileys package
 > 🔄 update → Update bot from GitHub
