@@ -17,7 +17,7 @@ db.prepare(`
 // 🔍 Get antilink settings
 function getAntilinkSettings(groupId, botId) {
   const row = db.prepare(`
-    SELECT mode, warn_limit, bypass_admins
+    SELECT mode, warn_limit, bypass_admins, link_filter
     FROM antilink_settings
     WHERE group_id = ? AND bot_id = ?
   `).get(groupId, botId);
@@ -25,14 +25,15 @@ function getAntilinkSettings(groupId, botId) {
   return {
     mode: row?.mode || 'off',
     warnLimit: row?.warn_limit || 2,
-    bypassAdmins: row?.bypass_admins === 1
+    bypassAdmins: row?.bypass_admins === 1,
+    linkFilter: row?.link_filter || 'all'
   };
 }
 
 // 💾 Set or update antilink settings
 function setAntilinkSettings(groupId, botId, updates = {}) {
   const existing = db.prepare(`
-    SELECT mode, warn_limit, bypass_admins FROM antilink_settings WHERE group_id = ? AND bot_id = ?
+    SELECT mode, warn_limit, bypass_admins, link_filter FROM antilink_settings WHERE group_id = ? AND bot_id = ?
   `).get(groupId, botId);
 
   // Use existing values if not provided in updates
@@ -43,13 +44,16 @@ function setAntilinkSettings(groupId, botId, updates = {}) {
     : typeof existing?.bypass_admins !== 'undefined'
       ? existing.bypass_admins
       : 1;
+  const linkFilter = typeof updates.linkFilter !== 'undefined'
+    ? updates.linkFilter
+    : existing?.link_filter || 'all';
 
   if (existing) {
-    db.prepare(`UPDATE antilink_settings SET mode = ?, warn_limit = ?, bypass_admins = ? WHERE group_id = ? AND bot_id = ?`)
-      .run(mode, warnLimit, bypass, groupId, botId);
+    db.prepare(`UPDATE antilink_settings SET mode = ?, warn_limit = ?, bypass_admins = ?, link_filter = ? WHERE group_id = ? AND bot_id = ?`)
+      .run(mode, warnLimit, bypass, linkFilter, groupId, botId);
   } else {
-    db.prepare(`INSERT INTO antilink_settings (group_id, bot_id, mode, warn_limit, bypass_admins) VALUES (?, ?, ?, ?, ?)`)
-      .run(groupId, botId, mode, warnLimit, bypass);
+    db.prepare(`INSERT INTO antilink_settings (group_id, bot_id, mode, warn_limit, bypass_admins, link_filter) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(groupId, botId, mode, warnLimit, bypass, linkFilter);
   }
 }
 

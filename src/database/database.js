@@ -61,6 +61,7 @@ db.prepare(`
     mode TEXT DEFAULT 'off',
     warn_limit INTEGER DEFAULT 2,
     bypass_admins INTEGER DEFAULT 1,
+    link_filter TEXT DEFAULT 'all',
     PRIMARY KEY (group_id, bot_id)
   )
 `).run();
@@ -136,6 +137,10 @@ try {
 
 try {
   db.prepare("ALTER TABLE antilink_settings ADD COLUMN bypass_admins INTEGER DEFAULT 1").run();
+} catch (e) {} // Ignore if already exists
+
+try {
+  db.prepare("ALTER TABLE antilink_settings ADD COLUMN link_filter TEXT DEFAULT 'all'").run();
 } catch (e) {} // Ignore if already exists
 
 try {

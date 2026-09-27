@@ -7,6 +7,7 @@ const { markMessageAsBotDeleted } = require('../../utils/botDeletedMessages');
 const { getAllowedLinks, hasAllowedLink } = require('../../database/linkDb');
 
 const WA_DEFAULT_LINK_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+|wa\.me\/[^\s]+|chat\.whatsapp\.com\/[^\s]+|t\.me\/[^\s]+|bit\.ly\/[^\s]+|[\w-]+\.(com|net|org|info|biz|xyz|live|tv|me|link)(\/\S*)?)/i;
+const WHATSAPP_LINK_REGEX = /\b(?:wa\.me|(?:[\w-]+\.)?whatsapp\.(?:com|net))(?:[/:?#][^\s]*)?/i;
 // ✅ Random warning messages for warn-remove
 const warningMessages = [
   "⚠️ @user, links are not allowed here. Warning {count}/{limit}. Stop now or face removal!",
@@ -61,10 +62,11 @@ async function detectAndAct({ sock, from, msg}) {
 
   if (settings.mode === 'off') return false;
   
-  // Check if message contains any links
-  WA_DEFAULT_LINK_REGEX.lastIndex = 0;
-
-if (!WA_DEFAULT_LINK_REGEX.test(textMsg)) return false;
+  const linkRegex = settings.linkFilter === 'whatsapp'
+    ? WHATSAPP_LINK_REGEX
+    : WA_DEFAULT_LINK_REGEX;
+  linkRegex.lastIndex = 0;
+  if (!linkRegex.test(textMsg)) return false;
   if (userJid.includes(botJid)) return false;
 
   // Get allowed links for this group from database

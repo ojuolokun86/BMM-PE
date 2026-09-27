@@ -7,6 +7,7 @@ const menu = (settings) =>
 > • Warn Limit: ${settings.warnLimit || 2}
 > • Admin Bypass: ${settings.bypassAdmins ? '🟢 Enabled' : '🔴 Disabled'}
 > • Mode: ${settings.mode || 'Off'}
+> • Link Filter: ${settings.linkFilter === 'whatsapp' ? 'WhatsApp only' : 'All links'}
   
 🖥️ [COMMAND OPTIONS]
 > 0 → Disable Antilink
@@ -15,6 +16,9 @@ const menu = (settings) =>
 > 3 → Remove User Immediately
 > 4 → Set Warn Limit (Current: ${settings.warnLimit || 2})
 > 5 → Toggle Admin Bypass
+> 6 → Toggle Link Filter (All / WhatsApp only)
+
+*Use .antlink whatsapp or .antlink all to set the filter directly.*
 
 *You can allow some set of links to be shared in Your group*
 *Action Required: Reply with a number to execute command.*`;
@@ -31,7 +35,7 @@ async function isGroupAdmin(sock, chatId, userId) {
 }
 
 
-async function handleAntilinkCommand(sock, msg, phoneNumber) {
+async function handleAntilinkCommand(sock, msg, phoneNumber, args = []) {
   const from = msg.key.remoteJid;
   const sender = msg.key.participant || msg.key.remoteJid;
   const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
@@ -49,6 +53,22 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
     return await sock.sendMessage(from, {
       text: '> ❌ Only the bot owner can change the Antilink settings.'
     });
+  }
+
+  const filterOption = args[0]?.toLowerCase();
+  if (filterOption) {
+    if (!['whatsapp', 'all'].includes(filterOption)) {
+      return sock.sendMessage(from, {
+        text: '❌ Use .antlink whatsapp to check WhatsApp links only, or .antlink all to check all links.'
+      }, { quoted: msg });
+    }
+
+    setAntilinkSettings(groupId, botId, { linkFilter: filterOption });
+    return sock.sendMessage(from, {
+      text: filterOption === 'whatsapp'
+        ? '✅ Antilink will now check WhatsApp links only. Other links will be allowed.'
+        : '✅ Antilink will now check all links.'
+    }, { quoted: msg });
   }
 
   const current = getAntilinkSettings(groupId, botId);
@@ -70,7 +90,7 @@ async function handleAntilinkCommand(sock, msg, phoneNumber) {
     const body = reply?.message?.conversation || reply?.message?.extendedTextMessage?.text || '';
     const option = parseInt(body.trim());
 
-    if (isNaN(option) || ![0, 1, 2, 3, 4, 5].includes(option)) {
+    if (isNaN(option) || ![0, 1, 2, 3, 4, 5, 6].includes(option)) {
 await sock.sendMessage(from, { text: '❌ Invalid choice. Try again.' });
       sock.ev.off('messages.upsert', listener);
       return;
@@ -134,6 +154,14 @@ await sock.sendMessage(from, { text: '❌ Invalid choice. Try again.' });
         text: `👮 Admin bypass is now *${newVal ? 'enabled' : 'disabled'}*.`
       });
       break;
+     case 6: {
+      const linkFilter = current.linkFilter === 'whatsapp' ? 'all' : 'whatsapp';
+      setAntilinkSettings(groupId, botId, { linkFilter });
+      await sock.sendMessage(from, {
+        text: `🔗 Antilink will now check ${linkFilter === 'whatsapp' ? 'WhatsApp links only' : 'all links'}.`
+      });
+      break;
+    }
     }
 
     sock.ev.off('messages.upsert', listener);

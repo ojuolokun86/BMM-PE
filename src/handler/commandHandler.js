@@ -212,7 +212,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         await modeCommand(sock, msg, textMsg, phoneNumber);
         break;
       case 'antilink':
-        await handleAntilinkCommand(sock, msg, phoneNumber);
+        await handleAntilinkCommand(sock, msg, phoneNumber, args);
         break;
       case 'antitag':
         await handleAntitagCommand(sock, from, senderId, args, isAdmin);
