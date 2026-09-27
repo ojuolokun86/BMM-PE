@@ -6,6 +6,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { getRestartMessagesEnabled } = require('../database/database');
 
 // Track active restarts to avoid duplicate triggers
 const activeRestarts = new Map();
@@ -25,6 +26,12 @@ const pendingRestartFile = path.join(__dirname, '../../.pending_restart.json');
 async function sendRestartMessage(sock, phoneNumber, { type = 'manual', additionalInfo = '' } = {}) {
   if (!sock?.sendMessage) {
     console.error('❌ Cannot send restart message: Invalid socket');
+    return false;
+  }
+
+  const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
+  if (!botId || !getRestartMessagesEnabled(botId)) {
+    console.log(`🔕 Restart DM disabled or bot identity unavailable${botId ? ` for bot ${botId}` : ''}`);
     return false;
   }
 

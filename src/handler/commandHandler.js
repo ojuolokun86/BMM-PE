@@ -16,6 +16,7 @@ const statusCommand = require('./command/statusCommand');
 const welcomeCommand = require('./command/welcomeCommand');
 const { viewOnceCommand } = require('./command/viewOnce');
 const reactCommand = require('./command/reactCommand');
+const restartMessageCommand = require('./command/restartMessageCommand');
 const { getReactToCommand } = require('../database/database');
 const { getEmojiForCommand } = require('./features/commandEmoji');
 const tagCommand = require('./command/tag');
@@ -248,6 +249,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'react':
         await reactCommand(sock, msg, textMsg);
+        break;
+      case 'restartmsg':
+        await restartMessageCommand(sock, msg, args);
         break;
       case 'tag':
       case 'tagall':

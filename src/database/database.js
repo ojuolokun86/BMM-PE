@@ -18,6 +18,7 @@ db.prepare(`
     chatbot_enabled INTEGER DEFAULT 0, -- 0: off, 1: on
     auto_accept_requests INTEGER DEFAULT 0, -- 0: off, 1: on
     auto_reject_requests INTEGER DEFAULT 0, -- 0: off, 1: on
+    restart_message_enabled INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
@@ -153,6 +154,10 @@ try {
 
 try {
   db.prepare("ALTER TABLE users ADD COLUMN auto_reject_requests INTEGER DEFAULT 0;").run();
+} catch (e) {}
+
+try {
+  db.prepare("ALTER TABLE users ADD COLUMN restart_message_enabled INTEGER DEFAULT 0").run();
 } catch (e) {}
 
 // Add show_fame column to welcome_settings table
@@ -383,6 +388,19 @@ function getReactToCommand(user_id) {
 }
 function setReactToCommand(user_id, enabled) {
   db.prepare(`UPDATE users SET react_to_command = ? WHERE user_id = ?`).run(enabled ? 1 : 0, user_id);
+}
+
+function getRestartMessagesEnabled(user_id) {
+  const row = db.prepare(`SELECT restart_message_enabled FROM users WHERE user_id = ?`).get(user_id);
+  return row?.restart_message_enabled === 1;
+}
+
+function setRestartMessagesEnabled(user_id, enabled) {
+  db.prepare(`
+    INSERT INTO users (user_id, restart_message_enabled)
+    VALUES (?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET restart_message_enabled = excluded.restart_message_enabled
+  `).run(user_id, enabled ? 1 : 0);
 }
 
 function getChatbotMemory(user_id) {
@@ -719,6 +737,7 @@ module.exports = {
   getUserMode,
   getUserPrefix,
   setUserPrefix,
+  followedTeams,
   getUserStatusViewMode,
   setUserStatusViewMode,
   deleteUser,
@@ -726,6 +745,8 @@ module.exports = {
   isBotOwner,
   getReactToCommand,
   setReactToCommand,
+  getRestartMessagesEnabled,
+  setRestartMessagesEnabled,
   isChatbotEnabled,
   setChatbotEnabled,
   getJoinRequestSettings,

@@ -101,6 +101,12 @@ const commandRegistry = {
     category: 'Core',
     ownerOnly: true
   },
+  restartmsg: {
+    description: 'Toggle restart notification DMs',
+    usage: 'restartmsg [on|off]',
+    category: 'Core',
+    ownerOnly: true
+  },
 
 
 

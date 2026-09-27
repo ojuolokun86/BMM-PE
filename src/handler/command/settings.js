@@ -20,15 +20,18 @@ module.exports = async function settingsCommand(authId, sock, msg) {
   const prefix = settings.prefix || ".";
   const owner = settings.ownerName || name;
   const commandReact = settings.commandReact
+  const restartMessagesEnabled = settings.restartMessagesEnabled;
   const welcomeSettings = settings.welcomeSettings || {};
   const followedTeams = settings.userFollowedTeams || [];
+  const joinRequests = settings.joinRequestSettings || {};
+  const antitag = settings.antitagSettings || {};
   const version = settings.botVersion;
   
   // Format subscription text
 
   let welcomeText = "Not configured";
   if (typeof welcomeSettings.welcome === 'boolean' && typeof welcomeSettings.goodbye === 'boolean') {
-    welcomeText = `Welcome: ${welcomeSettings.welcome ? "🟢 ON" : "🔴 OFF"}\nGoodbye: ${welcomeSettings.goodbye ? "🟢 ON" : "🔴 OFF"}`;
+    welcomeText = `Welcome: ${welcomeSettings.welcome ? "🟢 ON" : "🔴 OFF"}\nGoodbye: ${welcomeSettings.goodbye ? "🟢 ON" : "🔴 OFF"}\nGreeting: ${welcomeSettings.greet ? "🟢 ON" : "🔴 OFF"}\nHall of Fame: ${welcomeSettings.showFame ? "🟢 ON" : "🔴 OFF"}`;
   }
   let antideleteText = "Not configured";
   let forwardStatus = "";
@@ -38,9 +41,11 @@ module.exports = async function settingsCommand(authId, sock, msg) {
     else if (antidelete.mode === 'group') antideleteText = "👥 Group Chats Only";
     else if (antidelete.mode === 'both') antideleteText = "🔁 All Chats & Groups";
     
-    // Add DM forwarding status if antidelete is enabled
-    if (antidelete.mode !== 'off' && antidelete.sendToOwner !== undefined) {
+    if (antidelete.sendToOwner !== undefined) {
       forwardStatus = `\n   - DM Forwarding: ${antidelete.sendToOwner ? '✅ ON' : '❌ OFF'}`;
+    }
+    if (antidelete.excluded !== null && antidelete.excluded !== undefined) {
+      forwardStatus += `\n   - Excluded from this group: ${antidelete.excluded ? '✅ YES' : '❌ NO'}`;
     }
   }
   let statusView = "Not configured";
@@ -62,6 +67,27 @@ module.exports = async function settingsCommand(authId, sock, msg) {
       .join('\n');
   }
 
+  const requestText = joinRequests.accept
+    ? 'Auto-accept ON'
+    : joinRequests.reject ? 'Auto-reject ON' : 'OFF';
+  const antilinkMode = {
+    off: 'OFF',
+    warn: 'Warn only',
+    'warn-remove': 'Warn and remove',
+    remove: 'Remove immediately'
+  }[antilink?.mode] || 'OFF';
+  const antilinkText = settings.isGroup
+    ? `${antilinkMode}\n   - Filter: ${antilink?.linkFilter === 'whatsapp' ? 'WhatsApp only' : 'All links'}\n   - Warn limit: ${antilink?.warnLimit || 2}\n   - Admin bypass: ${antilink?.bypassAdmins ? 'ON' : 'OFF'}`
+    : 'Available in groups';
+  const allowedLinkText = settings.isGroup && settings.allowedLinks?.length
+    ? settings.allowedLinks.join(', ')
+    : settings.isGroup ? 'None' : 'Available in groups';
+  const welcomeReport = settings.isGroup ? welcomeText : 'Available in groups';
+  const contenderText = settings.isGroup
+    ? settings.contenderSettings?.enabled ? '✅ ON' : '❌ OFF'
+    : 'Available in groups';
+  const antitagText = `${antitag.enabled ? '✅ ON' : '❌ OFF'} (max warnings: ${settings.antitagMaxWarnings || 3})`;
+
   
 
   // Format 3: Simple Style
@@ -75,14 +101,18 @@ module.exports = async function settingsCommand(authId, sock, msg) {
 � *Status View*: ${statusView}
 ${version ? `� *Version*: ${version}` : ''}
 ✨ *Command React*: ${commandReact ? '✅ ON' : '❌ OFF'}
+🔄 *Restart DMs*: ${restartMessagesEnabled ? '✅ ON' : '❌ OFF'}
+🤖 *Chatbot*: ${settings.chatbotEnabled ? '✅ ON' : '❌ OFF'}
+📨 *Join Requests*: ${requestText}
+🛡️ *Anti-tag*: ${antitagText}
 
-🛡️ *Anti-link*: ${antilink?.enabled ? '✅ ON' : '❌ OFF'}
-${antilink?.enabled ? `   - Action: ${antilink.action || 'warn'}
-   - Excluded: ${antilink.excluded?.length || 0} groups` : ''}
+🛡️ *Anti-link*: ${antilinkText}
+🔗 *Allowed Link Platforms*: ${allowedLinkText}
 
 🛡️ *Anti-delete*: ${antideleteText}${forwardStatus}
 
-� *Welcome/Goodbye*: ${welcomeText}
+👋 *Welcome Settings*: ${welcomeReport}
+🏆 *Contender Monitoring*: ${contenderText}
 
 ⚽ *Followed Teams*:
 ${teamText}
