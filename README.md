@@ -418,9 +418,12 @@ npm run dev
 # Install production dependencies
 npm install --production
 
-# Configure environment
-cp .env.example .env
-# Edit .env with production settings
+# Configure the service environment
+BMM_SETUP_TOKEN=replace-with-a-long-random-secret
+BMM_DATA_DIR=/data
+PORT=3000
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-server-side-supabase-key
 
 # Start production server
 npm start
@@ -437,10 +440,16 @@ docker build -t bmm-bot .
 # Run container
 docker run -d \
   --name bmm-bot \
-  --env-file .env \
-  -v $(pwd)/data:/app/data \
+  -p 3000:3000 \
+  -e BMM_SETUP_TOKEN=replace-with-a-long-random-secret \
+  -e BMM_DATA_DIR=/data \
+  -e SUPABASE_URL=https://your-project.supabase.co \
+  -e SUPABASE_ANON_KEY=your-server-side-supabase-key \
+  -v "$(pwd)/data:/data" \
   bmm-bot
 ```
+
+Open `http://localhost:3000/setup` and enter the same setup token to pair WhatsApp. The setup API and pairing details require this token. The bot binds to `PORT` and stores SQLite databases plus its JSON cache under `BMM_DATA_DIR`.
 
 ### Fly.io Deployment
 ```bash
@@ -450,12 +459,25 @@ curl -L https://fly.io/install.sh | sh
 # Authenticate
 flyctl auth login
 
+# Create the persistent volume if this app does not already have one
+flyctl volumes create data --region lhr --size 1
+
+# Set a strong private setup token
+flyctl secrets set BMM_SETUP_TOKEN=replace-with-a-long-random-secret SUPABASE_URL=https://your-project.supabase.co SUPABASE_ANON_KEY=your-server-side-supabase-key
+
 # Deploy
 flyctl deploy
 
 # Scale if needed
 flyctl scale count 1
 ```
+
+After deployment, open `https://<your-app>.fly.dev/setup` and enter the setup token. `fly.toml` mounts the Fly volume at `/data` and configures the service health check. Keep one always-on instance; do not scale this WhatsApp connection to multiple replicas or scale it to zero.
+
+### Render or Railway
+Deploy the Dockerfile as a single, always-on service. Add a persistent disk/volume mounted at `/data`, set `BMM_DATA_DIR=/data`, and configure `BMM_SETUP_TOKEN`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` as private environment variables. `SUPABASE_SERVICE_ROLE_KEY` can be used instead of `SUPABASE_ANON_KEY` when required by your Supabase policies; keep it secret. Use the public service URL with `/setup` to pair WhatsApp. The service listens on the platform-provided `PORT` (3000 by default).
+
+The optional `POST /contender/new` webhook is disabled unless `CONTENDER_WEBHOOK_TOKEN` is set. When enabled, callers must send `Authorization: Bearer <token>`; configure the same secret in the calling backend.
 
 ### PM2 Configuration
 ```json
