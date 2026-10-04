@@ -1,8 +1,8 @@
 ![BMM Banner](/src/assets/BMM.jpg)
 
-# BMM V3.8.13 - Advanced WhatsApp Bot Framework
+# BMM V3.11.0 - Advanced WhatsApp Bot Framework
 
-**BMM (Bot Management Module) Version 3.8.13** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
+**BMM (Bot Management Module) Version 3.11.0** is a comprehensive, enterprise-grade WhatsApp bot framework built with Node.js, Baileys, and Supabase. It features advanced automation capabilities, modular architecture, and production-ready deployment options for communities and businesses.
 
 ## 🚀 Key Features
 
@@ -84,7 +84,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # Bot Configuration
 BOT_NAME=BMM
-BOT_VERSION=3.8.7
+BOT_VERSION=3.11.0
 DEFAULT_PREFIX=.
 BOT_OWNER_NUMBER=2348026977793
 
