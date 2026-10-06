@@ -1,6 +1,7 @@
 const { getInactiveMembers, loadGroupStatsFromDB, groupStats, getGroupStats } = require('../features/groupStats');
 const { getGroupAdmins } = require('./groupCommand');
 const sendToChat = require('../../utils/sendToChat');
+const { getCommunityStatsScope } = require('./groupStatsCommand');
 
 const KICK_DELAY_MS = 1500;
 const CONFIRM_TIMEOUT_MS = 60000;
@@ -47,12 +48,14 @@ async function kickCommand(sock, msg, command, args, from) {
         return;
     }
 
+    const invokedMetadata = await sock.groupMetadata(groupId);
+
     // Only allow admins to use the command
     if (!(await checkIfAdmin(sock, groupId, senderId))) {
         await sock.sendMessage(groupId, { text: "❌ Only group admins can use this command." }, { quoted: msg });
         return;
     }
-    // Bot must be admin
+    // Bot must be admin in the actual group where members are being removed.
     if (!(await checkIfAdmin(sock, groupId, botLid))) {
         await sock.sendMessage(groupId, { text: "❌ I must be admin to kick members." }, { quoted: msg });
         return;
@@ -71,7 +74,7 @@ async function kickCommand(sock, msg, command, args, from) {
     }
 
     // Helper: unified confirmation flow for both "members" and "inactive"
-    async function confirmAndKick(toKick, mentionList, mentions, confirmText) {
+    async function confirmAndKick(toKick, mentionList, mentions, confirmText, kickGroupId = groupId) {
         const confMsg = await sock.sendMessage(groupId, {
             text: confirmText + `\n\n${mentionList}\n\n*Reply to this message* with:\n- "yes" to confirm\n- "no" to cancel\n\n_You have 60 seconds. Only the admin who issued the command can confirm._\n\n*To stop the operation while it's running, send:*\n.kick exit`,
             mentions
@@ -123,7 +126,7 @@ async function kickCommand(sock, msg, command, args, from) {
                         delete kickOperations[groupId];
                         return;
                     }
-                    await sock.groupParticipantsUpdate(groupId, [id], "remove");
+                    await sock.groupParticipantsUpdate(kickGroupId, [id], "remove");
                     await new Promise(res => setTimeout(res, KICK_DELAY_MS));
                 }
 
@@ -180,50 +183,43 @@ async function kickCommand(sock, msg, command, args, from) {
     const { getAllInactiveMembers } = require('./groupStatsCommand');
 
     if (subCmd === 'inactive') {
-        await loadGroupStatsFromDB(groupId);
-        const metadata = await sock.groupMetadata(groupId);
-        const admins = await getGroupAdmins(sock, groupId);
+        const communityScope = await getCommunityStatsScope(sock, groupId, invokedMetadata);
+        const participants = invokedMetadata.participants || [];
+        if (!communityScope) await loadGroupStatsFromDB(groupId);
+
+        const adminJids = new Set(await getGroupAdmins(sock, groupId));
         const botId = sock.user?.lid?.split(':')[0] || sock.user?.id?.split(':')[0];
         const botJid = `${botId}@s.whatsapp.net`;
-        const excludeJids = admins.concat([botJid]);
-    
-        // Wait a moment for stats to be fully loaded
+        const excludeJids = [...adminJids, botJid, `${botLid}@lid`];
+
         await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const stats = getGroupStats(groupId);
-    
-        // Debug: Check if stats are loaded
+
+        const stats = communityScope?.stats || getGroupStats(groupId);
+
         if (!stats || Object.keys(stats).length === 0) {
             await sock.sendMessage(groupId, { text: "⚠️ No group statistics available. The bot needs to collect message data first." }, { quoted: msg });
             return;
         }
-    
-        // Use the new function that includes users with 0 messages
+
         const inactivityDays = 30;
-        const inactiveArr = getAllInactiveMembers(stats, metadata.participants, inactivityDays, excludeJids);
-        
-        // Debug: Log what we found
-        // console.log(`Found ${inactiveArr.length} inactive members for group ${groupId}`);
-        // console.log('Inactive members:', inactiveArr);
-    
-        // Map bareId to full JID for current group participants
+        const inactiveArr = getAllInactiveMembers(stats, participants, inactivityDays, excludeJids);
+
         function bareId(jid) { return jid.split('@')[0]; }
         const participantBareMap = {};
-        for (const p of metadata.participants) participantBareMap[bareId(p.id)] = p.id;
-    
-        // Only kick those still in the group
+        for (const p of participants) participantBareMap[bareId(p.id)] = p.id;
+
         const validInactive = inactiveArr
             .filter(u => participantBareMap[u.userId])
             .map(u => ({
                 ...u,
                 fullJid: participantBareMap[u.userId]
             }));
-    
+
         if (!validInactive.length) {
             await sock.sendMessage(groupId, { text: "✅ No inactive members found to kick." }, { quoted: msg });
             return;
         }
-    
+
         const mentionList = validInactive.map((u, i) => {
             const lastActive = u.lastMessageTime
                 ? new Date(u.lastMessageTime).toLocaleDateString()
@@ -231,12 +227,13 @@ async function kickCommand(sock, msg, command, args, from) {
             return `${i + 1}. @${bareId(u.fullJid)} (last active: ${lastActive})`;
         }).join('\n');
         const mentions = validInactive.map(u => u.fullJid);
-    
+
         await confirmAndKick(
             mentions,
             mentionList,
             mentions,
-            `⚠️ *Kick Inactive Members Confirmation*\n\nThe following members have been inactive for ${inactivityDays}+ days:`
+            `⚠️ *Kick Inactive Members Confirmation*\n\nThe following members have been inactive for ${inactivityDays}+ days${communityScope ? ' based on community activity' : ''}:`,
+            groupId
         );
         return;
     }

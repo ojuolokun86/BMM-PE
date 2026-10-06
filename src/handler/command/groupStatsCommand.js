@@ -6,21 +6,85 @@ const {
     getGroupDailyStats
 } = require('../features/groupStats');
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
-    await loadGroupStatsFromDB(remoteJid);
-    await loadGroupDailyStatsFromDB(remoteJid);
 
-    const groupMetadata = await sock.groupMetadata(remoteJid);
-    
-    // Clean up users who are no longer in the group
-    await cleanupGroupStats(remoteJid, groupMetadata.participants);
-    
-    // Reload stats after cleanup to get updated data
-    await loadGroupStatsFromDB(remoteJid);
-    
-    const totalMembers = groupMetadata.participants.length;
-    const stats = getGroupStats(remoteJid);
-    const dailyStats = getGroupDailyStats(remoteJid);
+async function getCommunityStatsScope(sock, groupId, groupMetadata) {
+    const communityJid = groupMetadata.linkedParent;
+    if (!communityJid) return null;
+
+    const communityMetadata = await sock.groupMetadata(communityJid);
+    const participatingGroups = await sock.groupFetchAllParticipating();
+    const groupIds = new Set([groupId]);
+
+    for (const [jid, group] of Object.entries(participatingGroups || {})) {
+        if (!jid.endsWith('@g.us') || jid === communityJid) continue;
+        if (group?.linkedParent === communityJid) groupIds.add(jid);
+    }
+
+    const stats = {};
+    const dailyStats = {};
+    const groupMetadataList = [];
+
+    for (const childGroupId of groupIds) {
+        const childMetadata = childGroupId === groupId
+            ? groupMetadata
+            : await sock.groupMetadata(childGroupId);
+        if (childGroupId !== groupId && childMetadata.linkedParent !== communityJid) continue;
+        groupMetadataList.push(childMetadata);
+
+        await loadGroupStatsFromDB(childGroupId);
+        await loadGroupDailyStatsFromDB(childGroupId);
+
+        for (const [userId, stat] of Object.entries(getGroupStats(childGroupId))) {
+            const existing = stats[userId];
+            if (!existing) {
+                stats[userId] = { ...stat };
+                continue;
+            }
+            existing.messageCount += stat.messageCount;
+            if (stat.lastMessageTime > existing.lastMessageTime) {
+                existing.lastMessageTime = stat.lastMessageTime;
+                existing.name = stat.name || existing.name;
+            }
+        }
+
+        for (const [day, count] of Object.entries(getGroupDailyStats(childGroupId))) {
+            dailyStats[day] = (dailyStats[day] || 0) + count;
+        }
+    }
+
+    const participants = communityMetadata.participants?.length
+        ? communityMetadata.participants
+        : groupMetadataList.flatMap(metadata => metadata.participants || [])
+            .filter((participant, index, all) => all.findIndex(other => other.id === participant.id) === index);
+
+    return { communityJid, communityMetadata, groupMetadataList, participants, stats, dailyStats };
+}
+
+async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
+    const sourceMetadata = await sock.groupMetadata(remoteJid);
+    const communityScope = await getCommunityStatsScope(sock, remoteJid, sourceMetadata);
+    let groupMetadata;
+    let participants;
+    let stats;
+    let dailyStats;
+
+    if (communityScope) {
+        groupMetadata = communityScope.communityMetadata;
+        participants = communityScope.participants;
+        stats = communityScope.stats;
+        dailyStats = communityScope.dailyStats;
+    } else {
+        await loadGroupStatsFromDB(remoteJid);
+        await loadGroupDailyStatsFromDB(remoteJid);
+        groupMetadata = sourceMetadata;
+        participants = groupMetadata.participants;
+        await cleanupGroupStats(remoteJid, participants);
+        await loadGroupStatsFromDB(remoteJid);
+        stats = getGroupStats(remoteJid);
+        dailyStats = getGroupDailyStats(remoteJid);
+    }
+
+    const totalMembers = participants.length;
 
     // Build last 30 days
     const now = new Date();
@@ -48,7 +112,7 @@ async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
     const inactiveMembers = [];
     const allStats = [];
 
-    for (const participant of groupMetadata.participants) {
+    for (const participant of participants) {
         const userId = participant.id.split('@')[0];
         const stat = stats[userId] || { name: participant.notify || userId, messageCount: 0, lastMessageTime: 0 };
         allStats.push({
@@ -77,7 +141,7 @@ async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
     // Format output with stylish font
     const groupName = groupMetadata.subject;
     const groupId = groupMetadata.id || remoteJid;
-    const ownerId = groupMetadata.owner || groupMetadata.participants.find(p => p.admin === 'superadmin')?.id || groupMetadata.participants[0].id;
+    const ownerId = groupMetadata.owner || participants.find(p => p.admin === 'superadmin')?.id || participants[0]?.id;
     const ownerTag = ownerId ? `@${ownerId.split('@')[0]}` : 'Unknown';
 
     let text = `╭━━━『 *📊 GROUP STATS* 』━━━╮\n`;
@@ -182,7 +246,8 @@ function getAllInactiveMembers(stats, currentGroupMembers, thresholdDays, exclud
 module.exports = {
     handleGroupStatsCommand,
     getInactiveMembersDetailed,
-    getAllInactiveMembers
+    getAllInactiveMembers,
+    getCommunityStatsScope
 };
 
 async function handleListInactiveCommand(sock, remoteJid, inactivityDays = 30) {
