@@ -80,6 +80,8 @@ const { handleSudoCommand, checkSudo } = require('./command/sudo');
 const { checkSudoUser } = require('../database/database');
 const { sendHallOfFameMessage } = require('../utils/web');
 const { handleJoinRequestCommand } = require('./command/joinRequestAutomation');
+const channelCommand = require('./command/channelCommand');
+const { isChannelCommandAllowed } = channelCommand;
 //const { handleCallCommand } = require('./command/call');
 const handleTourCommand = require('../tournament/tournament');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
@@ -105,6 +107,24 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     const matchedOwner = getMatchedOwner(senderId, senderLid, botId, botLid);
     const isOwner = msg.key.fromMe || !!matchedOwner;
     const hasSudoAccess = checkSudoUser(senderId);
+    const isNewsletter = from.endsWith('@newsletter');
+
+    let args;
+    let command;
+    if (textMsg.startsWith(prefix)) {
+      args = textMsg.slice(prefix.length).trim().split(/\s+/);
+      command = args.shift().toLowerCase();
+    } else {
+      args = textMsg.trim().split(/\s+/);
+      command = args.shift().toLowerCase();
+    }
+
+    if (isNewsletter && !isChannelCommandAllowed(command)) {
+      await sock.sendMessage(from, {
+        text: `❌ *${command}* is not enabled in channels. Use a command that does not require a group.`
+      });
+      return;
+    }
     //console.log('sender', senderId)
 
     // Always define isGroup, isOwner, isAdmin
@@ -115,7 +135,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     }
 
     // Permission checks for bot mode
-    if (mode === 'private') {
+    if (!isNewsletter && mode === 'private') {
        if (isGroup) {
         if (!isOwner && !hasSudoAccess) {
           console.log('Access denied for:', senderId)
@@ -128,7 +148,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     }}
   
    
-    if (mode === 'admin') {
+    if (!isNewsletter && mode === 'admin') {
       if (isGroup) {
         if (!isAdmin && !isOwner && !hasSudoAccess) {
           console.log('Access denied for:', senderId)
@@ -142,18 +162,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       }
     }
 
-    let args;
-    let command;
-
-    if (textMsg.startsWith(prefix)) {
-      args = textMsg.slice(prefix.length).trim().split(/\s+/);
-      command = args.shift().toLowerCase();
-    } else {
-      args = textMsg.trim().split(/\s+/);
-      command = args.shift().toLowerCase();
-    }
-
-    if (getReactToCommand(botId)) {
+    if (!isNewsletter && getReactToCommand(botId)) {
       const emoji = getEmojiForCommand(command);
       await sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
       console.log(`🔄 Reacted with emoji: ${emoji} for command: ${command}`);
@@ -170,6 +179,9 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'broadcast':
         await broadcastCommand(sock, msg);
+        break;
+      case 'channel':
+        await channelCommand(sock, msg, args, prefix, isOwner);
         break;
       // case 'call':
       //   await handleCallCommand(sock, msg);
