@@ -44,6 +44,13 @@ if (msg.key?.remoteJid?.endsWith('@g.us') && msg.key?.participant) {
   //console.log(`📥 Incoming message from ${sender} in ${from}: to ${receivedFrom}`, message);
   // Auto-react to newsletter posts
   await handleNewsletterAutoReact(sock, msg);
+  if (from.endsWith('@newsletter')) {
+    const userPrefix = await getUserPrefix(botId);
+    if (textMsg.startsWith(userPrefix)) {
+      await execute({ authId, sock, msg, textMsg, phoneNumber });
+    }
+    return;
+  }
   await handleDeletedMessage(sock, msg); 
   await handleIncomingForAntidelete(sock, msg);
   await handleChatbotResponse(sock, msg); 
@@ -96,4 +103,3 @@ catch (err) {
 }
 }
 module.exports = handleIncomingMessage;
-

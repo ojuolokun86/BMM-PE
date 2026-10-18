@@ -28,7 +28,7 @@
 - **Media Tools**: Sticker creation, image processing, video downloads
 - **Sports Integration**: Real-time football updates and team tracking
 - **Fun Commands**: Emoji reactions, quotes, facts, and entertainment
-- **Newsletter Support**: Auto-reaction to newsletter posts
+- **Newsletter Support**: Auto-reaction to newsletter posts and channel-safe prefixed commands; command posts and bot replies are public, group-only commands are blocked, and channel command execution has not been tested against a live WhatsApp channel
 
 ### 📊 Analytics & Management
 - **Group Statistics**: 30-day activity tracking with member rankings
