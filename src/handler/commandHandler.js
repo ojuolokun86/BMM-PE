@@ -82,6 +82,7 @@ const { sendHallOfFameMessage } = require('../utils/web');
 const { handleJoinRequestCommand } = require('./command/joinRequestAutomation');
 const channelCommand = require('./command/channelCommand');
 const { isChannelCommandAllowed } = channelCommand;
+const { handleAutoNewsCommand } = require('./features/autoNews');
 //const { handleCallCommand } = require('./command/call');
 const handleTourCommand = require('../tournament/tournament');
 const { handleCopyCommand, handleHereCommand } = require('./command/copyCommand');
@@ -119,6 +120,8 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       command = args.shift().toLowerCase();
     }
 
+    const isAutoNewsCommand = command === 'news' && args.some(arg => arg.toLowerCase() === 'auto');
+
     if (isNewsletter && !isChannelCommandAllowed(command)) {
       await sock.sendMessage(from, {
         text: `❌ *${command}* is not enabled in channels. Use a command that does not require a group.`
@@ -137,7 +140,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     // Permission checks for bot mode
     if (!isNewsletter && mode === 'private') {
        if (isGroup) {
-        if (!isOwner && !hasSudoAccess) {
+        if (!isOwner && !hasSudoAccess && !(isAdmin && isAutoNewsCommand)) {
           console.log('Access denied for:', senderId)
           return;
         }
@@ -383,7 +386,11 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
           await ytCommand(sock, from, msg, {prefix, args,});
           break;
         case 'news':
-          await newsCommand(sock, from, msg, {prefix, args,});
+          if (isAutoNewsCommand) {
+            await handleAutoNewsCommand(sock, msg, args, prefix, { isAdmin, isOwner });
+          } else {
+            await newsCommand(sock, from, msg, { prefix, args });
+          }
           break;
         case 'fact':
           await factCommand(sock, from, msg, {prefix, args,});
