@@ -119,7 +119,8 @@ const getMainMenu = (
 
 🔧 *UTILITIES*
 > � broadcast → Broadcast message to all groups Member and more
-> 📰 channel send <link or JID> <message> → Publish a text post (owner only; bot must be a channel admin)
+> 📰 channel send <message> → Publish to the current channel (connected account must be a channel admin)
+> 📰 channel send <link or JID> <message> → Publish to another channel (owner only; connected account must be an admin)
 > 📰 In a channel, try ${prefix}news, ${prefix}fact, or ${prefix}ping; the command and reply are public
 > 📌 status → Setup status view and status reactions
 > 👁️ vv → Repost view-once media to chat
