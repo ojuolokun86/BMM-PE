@@ -128,8 +128,11 @@ const getMainMenu = (
 > 🟢 online → Configure bot presence (online/typing/recording)
 > 👤 setprofile → Update bot profile (name, pic, bio, blocklist)
 > 📝 report → Send a report
-> 📰 news → Get the latest headlines from Google News
+> 📰 news → Get the latest headlines
 > 🌍 news <country> → Country news (e.g., news ng, news us, news uk)
+> 🔎 news <topic> → Search news (eFootball uses eFHUB community articles)
+> 🔁 news <topic> auto morning|12h → Schedule news in this group/channel (group admins; channel admins)
+> ⏹️ news auto off → Stop scheduled news; news auto status → Check schedule
 > 🗑️ delete → Delete any message by replying to it both dm and group
 > ❌ del → Delete any message by replying to it both dm and group
 > ⏰ time → Get the current time in a specific country

@@ -1,5 +1,20 @@
 const axios = require('axios');
 
+async function generateImageBuffer(prompt) {
+    const enhancedPrompt = enhancePrompt(prompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}`;
+    const response = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        maxContentLength: 15 * 1024 * 1024
+    });
+    const contentType = response.headers?.['content-type'] || '';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+        throw new Error(`Image generator returned ${contentType || 'an unknown content type'}`);
+    }
+    return Buffer.from(response.data);
+}
+
 /**
  * WhatsApp imagine command: Generate an AI image from a prompt using pollinations.ai
  * Usage: .imagine <your prompt>
@@ -19,17 +34,7 @@ async function imagine(sock, message, command, args, remoteJid) {
                 text: '🎨 Generating your image... Please wait.'
             }, { quoted: message });
 
-            // Enhance and encode the prompt
-            const enhancedPrompt = enhancePrompt(prompt);
-            const encodedPrompt = encodeURIComponent(enhancedPrompt);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
-
-            // Download the image
-            const response = await axios.get(imageUrl, {
-                responseType: 'arraybuffer'
-            });
-
-            const imageBuffer = Buffer.from(response.data);
+            const imageBuffer = await generateImageBuffer(prompt);
 
             await sock.sendMessage(remoteJid, {
                 image: imageBuffer,
@@ -68,4 +73,4 @@ function enhancePrompt(prompt) {
     return `${prompt}, ${selectedEnhancers.join(', ')}`;
 }
 
-module.exports = { imagine };
+module.exports = { imagine, generateImageBuffer };

@@ -400,7 +400,7 @@ const commandRegistry = {
     category: 'Utilities'
   },
   news: {
-    description: 'Get the latest headlines from Google News',
+    description: 'Get the latest headlines; eFootball searches use eFHUB community articles',
     usage: 'news [country]',
     category: 'Utilities'
   },

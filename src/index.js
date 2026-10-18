@@ -25,6 +25,7 @@ const ContenderReceiverServer = require('./server/contenderReceiver');
 
 // Message handler
 const handleIncomingMessage = require('./handler/messageHandler');
+const { startAutoNewsScheduler, stopAutoNewsScheduler } = require('./handler/features/autoNews');
 
 store.readFromFile()
 setInterval(() => store.writeToFile(), 10000)
@@ -281,12 +282,14 @@ async function startBot({ restartType = 'manual', source = restartSource } = {})
         console.log('🚀 [CONTENDERS] Starting contender receiver server...');
         const contenderServer = new ContenderReceiverServer(sock);
         contenderServer.start();
+        startAutoNewsScheduler(sock);
         
        
 
       }
 
       if (connection === 'close') {
+      stopAutoNewsScheduler(sock);
       const code = lastDisconnect?.error?.output?.statusCode;
       const loggedOut = code === DisconnectReason.loggedOut;
 
@@ -434,6 +437,7 @@ async function stopBot(saveSession = true) {
     restarting = true;
 
     if (sock) {
+      stopAutoNewsScheduler(sock);
 
       // Save session before stopping
       if (saveSession && sock.authState?.saveCreds) {
