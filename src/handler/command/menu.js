@@ -71,6 +71,7 @@ const getMainMenu = (
 > 📊 poll → Create a poll
 > 🔗 group link → Fetch invite link
 > � group stats → Display group stats
+> ♻️ group resetstats → Reset this group’s stats (bot owner only)
 > ♻️ group revoke → Revoke group invite link
 > ℹ️ group info → See group details
 > 📝 group desc <text> → Set group description

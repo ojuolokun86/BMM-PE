@@ -270,8 +270,8 @@ const commandRegistry = {
     adminOnly: true
   },
   'group-stats': {
-    description: 'Display group stats',
-    usage: 'group stats',
+    description: 'Display or reset group stats',
+    usage: 'group stats | group resetstats',
     category: 'Group',
     adminOnly: true
   },
