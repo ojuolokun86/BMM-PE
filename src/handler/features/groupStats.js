@@ -108,8 +108,18 @@ function getGroupDailyStats(groupId) {
 
 // Reset group stats (cache and DB)
 async function resetGroupStats(groupId) {
+    const [statsResult, dailyStatsResult] = await Promise.all([
+        supabase.from('group_stats').delete().eq('group_id', groupId),
+        supabase.from('group_daily_stats').delete().eq('group_id', groupId)
+    ]);
+    const error = statsResult.error || dailyStatsResult.error;
+    if (error) {
+        throw new Error(`Failed to reset group stats for ${groupId}: ${error.message}`);
+    }
+
     groupStats[groupId] = {};
-    await supabase.from('group_stats').delete().eq('group_id', groupId);
+    groupDailyStats[groupId] = {};
+    processedMessages[groupId]?.clear();
 }
 
 // Clean up users who are no longer in the group

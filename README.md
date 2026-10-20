@@ -138,6 +138,7 @@ npm run bmm
 | Command | Description | Usage | Permissions |
 |---------|-------------|---------|--------------|
 | `.group stats` | Show activity statistics | `.group stats` | Admin |
+| `.group resetstats` | Reset this group’s message and daily statistics | `.group resetstats` | Bot Owner |
 | `.group desc <text>` | Set group description | `.group desc Welcome!` | Admin |
 | `.group pic` | Set group profile picture | `.group pic` | Admin |
 | `.group link` | Get group invite link | `.group link` | Admin |

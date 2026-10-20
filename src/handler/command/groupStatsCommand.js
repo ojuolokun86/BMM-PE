@@ -52,10 +52,15 @@ async function getCommunityStatsScope(sock, groupId, groupMetadata) {
         }
     }
 
-    const participants = communityMetadata.participants?.length
-        ? communityMetadata.participants
-        : groupMetadataList.flatMap(metadata => metadata.participants || [])
-            .filter((participant, index, all) => all.findIndex(other => other.id === participant.id) === index);
+    const participantsById = new Map();
+    for (const metadata of groupMetadataList) {
+        for (const participant of metadata.participants || []) {
+            if (participant.id) participantsById.set(participant.id, participant);
+        }
+    }
+    const participants = participantsById.size
+        ? [...participantsById.values()]
+        : communityMetadata.participants || [];
 
     return { communityJid, communityMetadata, groupMetadataList, participants, stats, dailyStats };
 }
@@ -77,7 +82,7 @@ async function handleGroupStatsCommand(sock, remoteJid, botInstance) {
         await loadGroupStatsFromDB(remoteJid);
         await loadGroupDailyStatsFromDB(remoteJid);
         groupMetadata = sourceMetadata;
-        participants = groupMetadata.participants;
+        participants = groupMetadata.participants || [];
         await cleanupGroupStats(remoteJid, participants);
         await loadGroupStatsFromDB(remoteJid);
         stats = getGroupStats(remoteJid);

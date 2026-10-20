@@ -1,6 +1,8 @@
 //const sendToChat = require('../../utils/sendToChat');
 const { getBaileys } = require('../../utils/baileys');
 const { handleGroupStatsCommand } = require('./groupStatsCommand')
+const { resetGroupStats } = require('../features/groupStats');
+const { isBotOwner } = require('../../database/database');
 // 📌 Shared utility to extract target JID from reply or mention
 function extractTargetJid(msg) {
   const ctx = msg.message?.extendedTextMessage?.contextInfo;
@@ -571,7 +573,41 @@ async function handleGroupCommand(sock, msg, userId) {
       console.log('stats');
       await handleGroupStatsCommand(sock, groupJid, userId);
       break;
-    } 
+    }
+    case 'resetstats':
+    case 'reset-stats':
+    case 'reset': {
+      if (subcommand === 'reset' && argText.trim().toLowerCase() !== 'stats') {
+        return sock.sendMessage(groupJid, {
+          text: '❌ Use `.group reset stats` to clear this group’s statistics.'
+        }, { quoted: msg });
+      }
+
+      const sender = msg.key.participant || msg.key.remoteJid;
+      const senderId = sender?.split('@')[0];
+      const senderLid = sender?.includes('@lid') ? senderId : null;
+      const botId = sock.user?.id?.split(':')[0]?.split('@')[0];
+      const botLid = sock.user?.lid?.split(':')[0]?.split('@')[0];
+      const isOwner = isBotOwner(senderId, senderLid, botId, botLid);
+
+      if (!isOwner) {
+        return sock.sendMessage(groupJid, {
+          text: '❌ Only the bot owner can reset group statistics.'
+        }, { quoted: msg });
+      }
+
+      try {
+        await resetGroupStats(groupJid);
+        return sock.sendMessage(groupJid, {
+          text: '✅ This group’s message and daily statistics have been reset.'
+        }, { quoted: msg });
+      } catch (error) {
+        console.error(`❌ Error resetting group stats for ${groupJid}:`, error);
+        return sock.sendMessage(groupJid, {
+          text: '❌ Failed to reset this group’s statistics. Please try again later.'
+        }, { quoted: msg });
+      }
+    }
     case 'revoke': {
       if (!isAdmin) {
         return sock.sendMessage(groupJid, { text: '> ❌ Only group admins can revoke the invite link.' }, { quoted: msg });
@@ -595,6 +631,7 @@ async function handleGroupCommand(sock, msg, userId) {
 > .group desc <text> — Set group description
 > .group pic — Reply to image to set group picture
 > .group stats — See group stats
+> .group resetstats — Reset this group’s stats (bot owner only)
 > .group revoke — Revoke group invite link`,
       }, { quoted: msg });
   }
