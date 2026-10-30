@@ -9,6 +9,19 @@ const CONFIRM_TIMEOUT_MS = 60000;
 // Track ongoing kick operations per group
 const kickOperations = {};
 
+function normalizeJid(jid) {
+    if (!jid || typeof jid !== 'string') return '';
+    const atIndex = jid.indexOf('@');
+    if (atIndex === -1) return jid.split(':')[0];
+    return `${jid.slice(0, atIndex).split(':')[0]}${jid.slice(atIndex)}`;
+}
+
+function isBotJid(sock, jid) {
+    const targetJid = normalizeJid(jid);
+    return !!targetJid && [sock.user?.id, sock.user?.lid]
+        .some(botJid => normalizeJid(botJid) === targetJid);
+}
+
 /**
  * Check if user is admin in the group
  */
@@ -75,6 +88,12 @@ async function kickCommand(sock, msg, command, args, from) {
 
     // Helper: unified confirmation flow for both "members" and "inactive"
     async function confirmAndKick(toKick, mentionList, mentions, confirmText, kickGroupId = groupId) {
+        toKick = toKick.filter(id => !isBotJid(sock, id));
+        if (toKick.length === 0) {
+            await sock.sendMessage(groupId, { text: "❌ I can't kick myself." }, { quoted: msg });
+            return;
+        }
+
         const confMsg = await sock.sendMessage(groupId, {
             text: confirmText + `\n\n${mentionList}\n\n*Reply to this message* with:\n- "yes" to confirm\n- "no" to cancel\n\n_You have 60 seconds. Only the admin who issued the command can confirm._\n\n*To stop the operation while it's running, send:*\n.kick exit`,
             mentions
@@ -126,6 +145,7 @@ async function kickCommand(sock, msg, command, args, from) {
                         delete kickOperations[groupId];
                         return;
                     }
+                    if (isBotJid(sock, id)) continue;
                     await sock.groupParticipantsUpdate(kickGroupId, [id], "remove");
                     await new Promise(res => setTimeout(res, KICK_DELAY_MS));
                 }
@@ -160,7 +180,7 @@ async function kickCommand(sock, msg, command, args, from) {
         const admins = await getGroupAdmins(sock, groupId);
         const metadata = await sock.groupMetadata(groupId);
         const toKick = metadata.participants
-            .filter(p => !admins.includes(p.id) && p.id !== botLid)
+            .filter(p => !admins.includes(p.id) && !isBotJid(sock, p.id))
             .map(p => p.id);
 
         if (toKick.length === 0) {
@@ -188,9 +208,15 @@ async function kickCommand(sock, msg, command, args, from) {
         if (!communityScope) await loadGroupStatsFromDB(groupId);
 
         const adminJids = new Set(await getGroupAdmins(sock, groupId));
-        const botId = sock.user?.lid?.split(':')[0] || sock.user?.id?.split(':')[0];
-        const botJid = `${botId}@s.whatsapp.net`;
-        const excludeJids = [...adminJids, botJid, `${botLid}@lid`];
+        const botJids = [
+            normalizeJid(sock.user?.id),
+            normalizeJid(sock.user?.lid)
+        ].filter(Boolean);
+        const excludeJids = [
+            ...adminJids,
+            ...botJids,
+            ...botJids.map(jid => jid.split('@')[0])
+        ];
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -213,7 +239,8 @@ async function kickCommand(sock, msg, command, args, from) {
             .map(u => ({
                 ...u,
                 fullJid: participantBareMap[u.userId]
-            }));
+            }))
+            .filter(u => !isBotJid(sock, u.fullJid));
 
         if (!validInactive.length) {
             await sock.sendMessage(groupId, { text: "✅ No inactive members found to kick." }, { quoted: msg });
@@ -274,6 +301,11 @@ async function kickCommand(sock, msg, command, args, from) {
 - All affected members will be mentioned in the kick message.
 `
         }, { quoted: msg });
+        return;
+    }
+
+    if (isBotJid(sock, targetJid)) {
+        await sock.sendMessage(groupId, { text: "❌ I can't kick myself." }, { quoted: msg });
         return;
     }
 
