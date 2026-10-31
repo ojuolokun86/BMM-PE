@@ -129,6 +129,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       return;
     }
     //console.log('sender', senderId)
+    console.log('msg', msg)
 
     // Always define isGroup, isOwner, isAdmin
     const isGroup = from.endsWith('@g.us');
@@ -435,9 +436,6 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       case 'update':
         await updateCommand(sock, msg, isOwner, args);
         break;
-      default:
-        await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
-        break;
       case 'hall':
         await addFame(sock, msg, from, senderId, args, prefix);
         break;
@@ -468,6 +466,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
       case 'sudo':
         await handleSudoCommand(sock, msg, from, senderId, args, matchedOwner)
+        break;
+         default:
+        await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
+        console.log(`❌ Unknown command: ${command} from ${senderId}`);
         break;
     }
   } catch (err) {
