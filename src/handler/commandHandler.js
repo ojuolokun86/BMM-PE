@@ -114,10 +114,10 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
     let command;
     if (textMsg.startsWith(prefix)) {
       args = textMsg.slice(prefix.length).trim().split(/\s+/);
-      command = args.shift().toLowerCase();
+      command = args.shift().normalize('NFKC').toLowerCase();
     } else {
       args = textMsg.trim().split(/\s+/);
-      command = args.shift().toLowerCase();
+      command = args.shift().normalize('NFKC').toLowerCase();
     }
 
     const isAutoNewsCommand = command === 'news' && args.some(arg => arg.toLowerCase() === 'auto');
