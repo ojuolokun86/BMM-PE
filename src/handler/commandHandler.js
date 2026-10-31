@@ -129,7 +129,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
       return;
     }
     //console.log('sender', senderId)
-    console.log('msg', msg)
+    //console.log('msg', msg)
 
     // Always define isGroup, isOwner, isAdmin
     const isGroup = from.endsWith('@g.us');
@@ -469,7 +469,7 @@ async function execute({ authId, sock, msg, textMsg, phoneNumber }) {
         break;
          default:
         await sock.sendMessage(from, { text: `❌ Unknown command: *${command}*\nType *${getUserPrefix(phoneNumber)}menu* for a list of commands.` });
-        console.log(`❌ Unknown command: ${command} from ${senderId}`);
+        //console.log(`❌ Unknown command: ${command} from ${senderId}`);
         break;
     }
   } catch (err) {
